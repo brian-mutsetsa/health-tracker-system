@@ -7,7 +7,7 @@ class ApiService {
   // Change this to your computer's IP address when testing on real device
   // For emulator, use 10.0.2.2
   // For localhost testing, use 127.0.0.1
-  static const String baseUrl = 'http://192.168.100.18:8000/api';
+  static const String baseUrl = 'https://health-tracker-api-blky.onrender.com/api';
 
   // Generate or get patient ID
   Future<String> getPatientId() async {

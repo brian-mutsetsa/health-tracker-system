@@ -216,11 +216,16 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: [
-              _buildAnswerChip('None', id, currentAnswer),
-              _buildAnswerChip('Mild', id, currentAnswer),
-              _buildAnswerChip('Severe', id, currentAnswer),
-            ],
+            children: id == 'q7'
+                ? [
+                    _buildAnswerChip('Yes', id, currentAnswer),
+                    _buildAnswerChip('No', id, currentAnswer),
+                  ]
+                : [
+                    _buildAnswerChip('None', id, currentAnswer),
+                    _buildAnswerChip('Mild', id, currentAnswer),
+                    _buildAnswerChip('Severe', id, currentAnswer),
+                  ],
           ),
         ],
       ),
@@ -231,12 +236,21 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     bool isSelected = currentAnswer == label;
     Color chipColor;
     
-    if (label == 'None') {
-      chipColor = Colors.green;
-    } else if (label == 'Mild') {
-      chipColor = Colors.orange;
+    // Check if this is the medication question (q7)
+    bool isMedicationQuestion = questionId == 'q7';
+    
+    if (isMedicationQuestion) {
+      // For medication: Yes = green, No = red
+      chipColor = label == 'Yes' ? Colors.green : Colors.red;
     } else {
-      chipColor = Colors.red;
+      // For symptoms: None = green, Mild = orange, Severe = red
+      if (label == 'None') {
+        chipColor = Colors.green;
+      } else if (label == 'Mild') {
+        chipColor = Colors.orange;
+      } else {
+        chipColor = Colors.red;
+      }
     }
     
     return GestureDetector(

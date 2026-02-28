@@ -37,7 +37,7 @@ class Patient {
 
 class DashboardApiService {
   // CHANGE THIS to your computer's IP address (same as mobile app)
-  static const String baseUrl = 'http://192.168.100.18:8000/api';
+  static const String baseUrl = 'https://health-tracker-api-blky.onrender.com/api';
 
   Future<List<Patient>> getPatients() async {
     try {
