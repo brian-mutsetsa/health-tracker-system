@@ -7,8 +7,9 @@ import 'history_screen.dart';
 
 class DailyCheckinScreen extends StatefulWidget {
   final String condition;
-  
-  const DailyCheckinScreen({Key? key, required this.condition}) : super(key: key);
+
+  const DailyCheckinScreen({Key? key, required this.condition})
+    : super(key: key);
 
   @override
   State<DailyCheckinScreen> createState() => _DailyCheckinScreenState();
@@ -16,7 +17,7 @@ class DailyCheckinScreen extends StatefulWidget {
 
 class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   Map<String, String> answers = {};
-  
+
   List<Map<String, dynamic>> getQuestions() {
     if (widget.condition == 'Hypertension') {
       return [
@@ -35,7 +36,10 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         {'id': 'q3', 'question': 'Do you feel extremely fatigued?'},
         {'id': 'q4', 'question': 'Is your vision blurred?'},
         {'id': 'q5', 'question': 'Do you have slow-healing wounds?'},
-        {'id': 'q6', 'question': 'Are you experiencing numbness in hands/feet?'},
+        {
+          'id': 'q6',
+          'question': 'Are you experiencing numbness in hands/feet?',
+        },
         {'id': 'q7', 'question': 'Did you take your medication today?'},
       ];
     } else {
@@ -55,7 +59,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> questions = getQuestions();
     String todayDate = DateFormat('EEEE, MMMM d').format(DateTime.now());
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -69,9 +73,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const HistoryScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
               );
             },
           ),
@@ -108,17 +110,14 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                     Expanded(
                       child: Text(
                         'Answer honestly for accurate health tracking',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue[900],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.blue[900]),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 30),
-              
+
               ...questions.asMap().entries.map((entry) {
                 int index = entry.key;
                 Map<String, dynamic> q = entry.value;
@@ -129,13 +128,15 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                   ],
                 );
               }).toList(),
-              
+
               const SizedBox(height: 10),
-              
+
               ElevatedButton(
-                onPressed: answers.length == questions.length ? () {
-                  _submitCheckin();
-                } : null,
+                onPressed: answers.length == questions.length
+                    ? () {
+                        _submitCheckin();
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[700],
                   foregroundColor: Colors.white,
@@ -147,7 +148,10 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                 ),
                 child: Text(
                   'Submit Check-in (${answers.length}/${questions.length})',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
@@ -160,7 +164,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
 
   Widget _buildQuestionCard(int number, String id, String question) {
     String? currentAnswer = answers[id];
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -212,7 +216,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -232,13 +236,17 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     );
   }
 
-  Widget _buildAnswerChip(String label, String questionId, String? currentAnswer) {
+  Widget _buildAnswerChip(
+    String label,
+    String questionId,
+    String? currentAnswer,
+  ) {
     bool isSelected = currentAnswer == label;
     Color chipColor;
-    
+
     // Check if this is the medication question (q7)
     bool isMedicationQuestion = questionId == 'q7';
-    
+
     if (isMedicationQuestion) {
       // For medication: Yes = green, No = red
       chipColor = label == 'Yes' ? Colors.green : Colors.red;
@@ -252,7 +260,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         chipColor = Colors.red;
       }
     }
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -282,12 +290,14 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   }
 
   void _submitCheckin() async {
-    int severeCount = answers.values.where((answer) => answer == 'Severe').length;
+    int severeCount = answers.values
+        .where((answer) => answer == 'Severe')
+        .length;
     int mildCount = answers.values.where((answer) => answer == 'Mild').length;
-    
+
     String riskLevel;
     String riskColor;
-    
+
     if (severeCount >= 3) {
       riskLevel = 'RED';
       riskColor = 'red';
@@ -301,7 +311,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
       riskLevel = 'GREEN';
       riskColor = 'green';
     }
-    
+
     // Save to Hive (local storage)
     final box = Hive.box<CheckinModel>('checkins');
     final checkin = CheckinModel(
@@ -312,7 +322,18 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
       riskColor: riskColor,
     );
     await box.add(checkin);
-    
+
+    // Show loading spinner
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    }
+
     // Upload to Django API
     bool uploadSuccess = false;
     try {
@@ -323,11 +344,16 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
       print('Failed to upload to Django: $e');
       // Continue anyway - data is saved locally
     }
-    
+
+    // Dismiss loading spinner
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+
     if (!mounted) return;
-    
+
     Color displayColor = _getColorFromString(riskColor);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -335,11 +361,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.circle,
-              color: displayColor,
-              size: 80,
-            ),
+            Icon(Icons.circle, color: displayColor, size: 80),
             const SizedBox(height: 20),
             Text(
               riskLevel,
@@ -353,15 +375,12 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
             Text(
               _getRiskMessage(riskLevel),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
             ),
             const SizedBox(height: 10),
             Text(
-              uploadSuccess 
-                  ? 'Check-in saved & uploaded!' 
+              uploadSuccess
+                  ? 'Check-in saved & uploaded!'
                   : 'Check-in saved locally!',
               style: TextStyle(
                 fontSize: 14,

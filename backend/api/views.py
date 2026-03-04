@@ -29,7 +29,7 @@ def predict_risk_with_ml(answers, condition):
     none_count = sum(1 for v in answers.values() if v == 'None')
     
     # Check medication (q7 is typically medication question)
-    took_medication = 1 if answers.get('q7') == 'None' else 0
+    took_medication = 1 if answers.get('q7') == 'Yes' else 0
     
     # Encode condition
     condition_map = {'Hypertension': 0, 'Diabetes': 1, 'Heart Disease': 2}
