@@ -137,9 +137,10 @@ class PdfGenerator {
       ),
     );
 
-    // Save to device
-    final output = await getTemporaryDirectory();
-    final file = File('${output.path}/HealthReport_${patientId}_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    // Save to app documents directory (accessible to user)
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = 'HealthReport_${patientId}_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.pdf';
+    final file = File('${appDir.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     return file;
   }

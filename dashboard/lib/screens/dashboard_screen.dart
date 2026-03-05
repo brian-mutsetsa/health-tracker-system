@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/pdf_generator.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String providerName;
@@ -616,41 +616,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       tooltip: 'Message Patient',
                       onPressed: () => _openMessageDrawer(p),
                     ),
-                    TextButton(
-                      onPressed: () async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Downloading patient records...',
-                              duration: Duration(seconds: 2),
-                            ),
-                          ),
-                        );
-
-                        try {
-                          // Fetch raw JSON payload of checkins from API for this specific patient
-                          final checkinsList = await _apiService
-                              .getPatientCheckinsRaw(p.patientId);
-                          await PdfGenerator.generateAndDownloadReport(
-                            p,
-                            checkinsList,
-                          );
-                        } catch (e) {
+                    if (!kIsWeb)
+                      TextButton(
+                        onPressed: () async {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to generate PDF: $e'),
+                            const SnackBar(
+                              content: Text(
+                                'Downloading patient records...',
+                              ),
                             ),
                           );
-                        }
-                      },
-                      child: const Text(
-                        'Export PDF',
-                        style: TextStyle(
-                          color: AppTheme.primaryTeal,
-                          fontWeight: FontWeight.bold,
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('PDF export available on mobile only'),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Export PDF',
+                          style: TextStyle(
+                            color: AppTheme.primaryTeal,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
