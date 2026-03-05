@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient, CheckIn
+from .models import Patient, CheckIn, Message
 
 
 class CheckInSerializer(serializers.ModelSerializer):
@@ -49,3 +49,10 @@ class CheckInCreateSerializer(serializers.Serializer):
         # Create check-in
         checkin = CheckIn.objects.create(patient=patient, **validated_data)
         return checkin
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id', 'sender_id', 'receiver_id', 'content', 'timestamp', 'is_read']
+        read_only_fields = ['id', 'timestamp']

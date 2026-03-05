@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import 'history_screen.dart';
 
 class DailyCheckinScreen extends StatefulWidget {
   final String condition;
-
   const DailyCheckinScreen({Key? key, required this.condition})
     : super(key: key);
 
@@ -58,106 +59,157 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> questions = getQuestions();
-    String todayDate = DateFormat('EEEE, MMMM d').format(DateTime.now());
+    String todayDate = DateFormat('MMMM d, yyyy').format(DateTime.now());
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Daily Check-in'),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 10),
-              Text(
-                todayDate,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16,
               ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Answer honestly for accurate health tracking',
-                        style: TextStyle(fontSize: 14, color: Colors.blue[900]),
-                      ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: AppTheme.textDark,
+                        size: 20,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  Text(
+                    'Daily Check-in',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.history,
+                        color: AppTheme.primaryTeal,
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 30),
+            ),
 
-              ...questions.asMap().entries.map((entry) {
-                int index = entry.key;
-                Map<String, dynamic> q = entry.value;
-                return Column(
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildQuestionCard(index + 1, q['id'], q['question']),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightMint,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          todayDate,
+                          style: const TextStyle(
+                            color: AppTheme.primaryTeal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ).animate().fadeIn().slideY(begin: -0.2),
+
+                    const SizedBox(height: 24),
+
+                    ...questions.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Map<String, dynamic> q = entry.value;
+                      return _buildQuestionCard(
+                            index + 1,
+                            q['id'],
+                            q['question'],
+                          )
+                          .animate()
+                          .fadeIn(delay: Duration(milliseconds: 100 * index))
+                          .slideX(begin: 0.1);
+                    }).toList(),
+
+                    const SizedBox(height: 100), // padding for floating button
                   ],
-                );
-              }).toList(),
-
-              const SizedBox(height: 10),
-
-              ElevatedButton(
-                onPressed: answers.length == questions.length
-                    ? () {
-                        _submitCheckin();
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  disabledBackgroundColor: Colors.grey[300],
-                ),
-                child: Text(
-                  'Submit Check-in (${answers.length}/${questions.length})',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
                 ),
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: SizedBox(
+          width: double.infinity,
+          height: 60,
+          child: ElevatedButton(
+            onPressed: answers.length == questions.length
+                ? _submitCheckin
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              disabledBackgroundColor: Colors.grey[300],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              elevation: 5,
+              shadowColor: AppTheme.primaryTeal.withOpacity(0.5),
+            ),
+            child: Text(
+              'Submit Check-in (${answers.length}/${questions.length})',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ).animate().slideY(begin: 1.0, delay: 500.ms),
       ),
     );
   }
@@ -166,15 +218,16 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     String? currentAnswer = answers[id];
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -185,11 +238,17 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.blue[700],
+                  gradient: AppTheme.mintGradient,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryTeal.withOpacity(0.3),
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
                 child: Center(
                   child: Text(
@@ -197,29 +256,30 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   question,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                    height: 1.3,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 12,
             children: id == 'q7'
                 ? [
                     _buildAnswerChip('Yes', id, currentAnswer),
@@ -242,23 +302,18 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     String? currentAnswer,
   ) {
     bool isSelected = currentAnswer == label;
-    Color chipColor;
-
-    // Check if this is the medication question (q7)
     bool isMedicationQuestion = questionId == 'q7';
 
+    Color activeColor;
     if (isMedicationQuestion) {
-      // For medication: Yes = green, No = red
-      chipColor = label == 'Yes' ? Colors.green : Colors.red;
+      activeColor = label == 'Yes' ? Colors.green : Colors.redAccent;
     } else {
-      // For symptoms: None = green, Mild = orange, Severe = red
-      if (label == 'None') {
-        chipColor = Colors.green;
-      } else if (label == 'Mild') {
-        chipColor = Colors.orange;
-      } else {
-        chipColor = Colors.red;
-      }
+      if (label == 'None')
+        activeColor = AppTheme.primaryTeal;
+      else if (label == 'Mild')
+        activeColor = Colors.orangeAccent;
+      else
+        activeColor = Colors.redAccent;
     }
 
     return GestureDetector(
@@ -267,22 +322,32 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
           answers[questionId] = label;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? chipColor : Colors.grey[100],
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? activeColor : AppTheme.background,
+          borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: isSelected ? chipColor : Colors.grey[300]!,
-            width: 2,
+            color: isSelected ? activeColor : Colors.grey[200]!,
+            width: 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 14,
+            color: isSelected ? Colors.white : AppTheme.textLight,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 15,
           ),
         ),
       ),
@@ -290,6 +355,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   }
 
   void _submitCheckin() async {
+    // Score calculation logic remains unchanged
     int severeCount = answers.values
         .where((answer) => answer == 'Severe')
         .length;
@@ -312,7 +378,6 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
       riskColor = 'green';
     }
 
-    // Save to Hive (local storage)
     final box = Hive.box<CheckinModel>('checkins');
     final checkin = CheckinModel(
       condition: widget.condition,
@@ -323,31 +388,34 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     );
     await box.add(checkin);
 
-    // Show loading spinner
     if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const Center(child: CircularProgressIndicator());
-        },
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const CircularProgressIndicator(color: AppTheme.primaryTeal),
+          ),
+        ),
       );
     }
 
-    // Upload to Django API
     bool uploadSuccess = false;
     try {
       final apiService = ApiService();
       final patientId = await apiService.getPatientId();
       uploadSuccess = await apiService.uploadCheckin(checkin, patientId);
     } catch (e) {
-      print('Failed to upload to Django: $e');
-      // Continue anyway - data is saved locally
+      debugPrint('Failed to upload to Django: $e');
     }
 
-    // Dismiss loading spinner
     if (mounted) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // dismiss loading
     }
 
     if (!mounted) return;
@@ -357,12 +425,21 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        contentPadding: const EdgeInsets.all(32),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.circle, color: displayColor, size: 80),
-            const SizedBox(height: 20),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: displayColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.favorite, color: displayColor, size: 40),
+            ).animate().scale(curve: Curves.easeOutBack, duration: 500.ms),
+            const SizedBox(height: 24),
             Text(
               riskLevel,
               style: TextStyle(
@@ -371,32 +448,59 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                 color: displayColor,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               _getRiskMessage(riskLevel),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppTheme.textDark,
+                height: 1.4,
+              ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              uploadSuccess
-                  ? 'Check-in saved & uploaded!'
-                  : 'Check-in saved locally!',
-              style: TextStyle(
-                fontSize: 14,
-                color: uploadSuccess ? Colors.green[700] : Colors.orange[700],
-                fontWeight: FontWeight.bold,
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: uploadSuccess
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    uploadSuccess ? Icons.cloud_done : Icons.cloud_off,
+                    color: uploadSuccess ? Colors.green : Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    uploadSuccess ? 'Synced to Cloud' : 'Saved Locally',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: uploadSuccess
+                          ? Colors.green[700]
+                          : Colors.orange[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('Done'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('Done'),
+            ),
           ),
         ],
       ),
@@ -404,32 +508,22 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   }
 
   Color _getColorFromString(String colorString) {
-    switch (colorString) {
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow[700]!;
-      case 'orange':
-        return Colors.orange;
-      case 'red':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+    if (colorString == 'green') return Colors.green;
+    if (colorString == 'yellow') return Colors.yellow[700]!;
+    if (colorString == 'orange') return Colors.orange;
+    if (colorString == 'red') return Colors.red;
+    return Colors.grey;
   }
 
   String _getRiskMessage(String riskLevel) {
-    switch (riskLevel) {
-      case 'GREEN':
-        return "You're doing well! Keep monitoring daily.";
-      case 'YELLOW':
-        return "Minor symptoms detected. Continue monitoring closely.";
-      case 'ORANGE':
-        return "Concerning symptoms. Consider contacting your healthcare provider.";
-      case 'RED':
-        return "Urgent symptoms detected. Seek medical attention soon.";
-      default:
-        return "";
-    }
+    if (riskLevel == 'GREEN')
+      return "You're doing well! Keep monitoring daily.";
+    if (riskLevel == 'YELLOW')
+      return "Minor symptoms detected. Continue monitoring closely.";
+    if (riskLevel == 'ORANGE')
+      return "Concerning symptoms. Consider contacting your healthcare provider.";
+    if (riskLevel == 'RED')
+      return "Urgent symptoms detected. Seek medical attention soon.";
+    return "";
   }
 }

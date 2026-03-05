@@ -1,0 +1,64 @@
+Analyzing mobile...                                             
+
+   info - Parameter 'key' could be a super parameter - lib\main.dart:21:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\condition_selection_screen.dart:9:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\condition_selection_screen.dart:88:41 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\condition_selection_screen.dart:103:32 - use_build_context_synchronously
+  error - Expected to find '(' - lib\screens\condition_selection_screen.dart:106:43 - expected_token
+  error - The class 'Size' doesn't have a constant constructor 'infinity' - lib\screens\condition_selection_screen.dart:106:43 - const_with_undefined_constructor
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\condition_selection_screen.dart:137:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\condition_selection_screen.dart:143:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\condition_selection_screen.dart:155:35 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\screens\daily_checkin_screen.dart:12:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:84:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:111:47 - deprecated_member_use
+   info - Unnecessary use of 'toList' in a spread - lib\screens\daily_checkin_screen.dart:178:24 - unnecessary_to_list_in_spreads
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:205:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:228:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:248:51 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:312:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:314:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:316:9 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:338:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:437:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:466:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_checkin_screen.dart:467:37 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:520:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:522:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:524:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\daily_checkin_screen.dart:526:7 - curly_braces_in_flow_control_structures
+   info - Parameter 'key' could be a super parameter - lib\screens\history_screen.dart:9:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:33:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:60:47 - deprecated_member_use
+   info - Unnecessary use of 'toList' in a spread - lib\screens\history_screen.dart:121:26 - unnecessary_to_list_in_spreads
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:147:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:185:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:258:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:265:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:280:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:281:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\history_screen.dart:341:44 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\screens\home_screen.dart:12:9 - use_super_parameters
+   info - Statements in an if should be enclosed in a block - lib\screens\home_screen.dart:41:7 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:75:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:233:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:413:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:485:35 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\screens\home_screen.dart:532:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\home_screen.dart:539:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\tutorial_screen.dart:8:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\tutorial_screen.dart:151:56 - deprecated_member_use
+warning - Unused import: 'dart:io' - lib\services\api_service.dart:3:8 - unused_import
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:43:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:44:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:59:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:60:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:63:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:66:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:67:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:72:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:103:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:105:7 - avoid_print
+  error - The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.  - lib\theme\app_theme.dart:51:18 - argument_type_not_assignable
+
+60 issues found. (ran in 6.4s)

@@ -4,8 +4,9 @@ import numpy as np
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Patient, CheckIn
-from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer
+from .models import Patient, CheckIn, Message
+from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer
+from django.db import models
 
 # Load ML model
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml_models', 'risk_model.pkl')
@@ -59,6 +60,29 @@ class PatientViewSet(viewsets.ReadOnlyModelViewSet):
 class CheckInViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CheckIn.objects.all()
     serializer_class = CheckInSerializer
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        queryset = Message.objects.all()
+        user_id = self.request.query_params.get('user_id', None)
+        other_id = self.request.query_params.get('other_id', None)
+        
+        if user_id and other_id:
+            # Get messages between two specific users
+            return queryset.filter(
+                (models.Q(sender_id=user_id) & models.Q(receiver_id=other_id)) |
+                (models.Q(sender_id=other_id) & models.Q(receiver_id=user_id))
+            )
+        elif user_id:
+            # Get all messages for a specific user
+            return queryset.filter(
+                models.Q(sender_id=user_id) | models.Q(receiver_id=user_id)
+            )
+        return queryset
 
 
 @api_view(['POST'])

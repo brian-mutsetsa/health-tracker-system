@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'patients', views.PatientViewSet, basename='patient')
 router.register(r'checkins', views.CheckInViewSet, basename='checkin')
+router.register(r'messages', views.MessageViewSet, basename='message')
 
 urlpatterns = [
     # Custom endpoints FIRST (before router)

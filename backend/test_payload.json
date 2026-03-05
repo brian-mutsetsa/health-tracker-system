@@ -1,0 +1,12 @@
+{
+    "patient_id": "test_patient_123",
+    "condition": "Hypertension",
+    "date": "2026-03-05T00:00:00Z",
+    "answers": {
+        "q1": "None",
+        "q2": "Mild",
+        "q7": "Yes"
+    },
+    "risk_level": "GREEN",
+    "risk_color": "green"
+}

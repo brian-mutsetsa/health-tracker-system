@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
+import '../theme/app_theme.dart';
+import 'condition_selection_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'history_screen.dart';
-import 'condition_selection_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -19,116 +28,439 @@ class HomeScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Health Tracker'),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              _showSettingsDialog(context, savedCondition);
-            },
+      backgroundColor: AppTheme.background,
+      body: _buildBody(savedCondition),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBody(String condition) {
+    if (_currentIndex == 1) return const CalendarMockScreen();
+    if (_currentIndex == 2) return const HistoryScreen();
+    if (_currentIndex == 3)
+      return const ProfileMockScreen(condition: 'condition');
+
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
+      builder: (context, Box<CheckinModel> box, _) {
+        List<CheckinModel> allCheckins = box.values
+            .where((c) => c.condition == condition)
+            .toList();
+        allCheckins.sort((a, b) => b.date.compareTo(a.date));
+
+        CheckinModel? latestCheckin = allCheckins.isNotEmpty
+            ? allCheckins.first
+            : null;
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTopSection(context),
+
+              Transform.translate(
+                offset: const Offset(0, -30),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // Toggle Button Mock (Available/Unavailable)
+                      Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: AppTheme.mintGradient,
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Available',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Unavailable',
+                                  style: TextStyle(
+                                    color: AppTheme.textLight,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn().slideY(begin: -0.2),
+
+                      const SizedBox(height: 24),
+
+                      // Next Appointment Mock (Matches reference)
+                      _buildNextAppointmentCard(
+                        context,
+                        latestCheckin,
+                        condition,
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Categories Section
+                      _buildHeader('Categories', 'See All'),
+                      const SizedBox(height: 16),
+                      _buildCategoriesRow(),
+
+                      const SizedBox(height: 32),
+
+                      // Suggested Doctors Mock
+                      _buildHeader('Suggested Doctors', 'See All'),
+                      const SizedBox(height: 16),
+                      _buildDoctorCard(),
+
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTopSection(BuildContext context) {
+    String formattedDate = DateFormat('MMMM d, yyyy').format(DateTime.now());
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 24,
+        right: 24,
+        bottom: 60,
       ),
-      body: ValueListenableBuilder(
-        valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
-        builder: (context, Box<CheckinModel> box, _) {
-          List<CheckinModel> allCheckins = box.values
-              .where((c) => c.condition == savedCondition)
-              .toList();
-          allCheckins.sort((a, b) => b.date.compareTo(a.date));
-
-          CheckinModel? latestCheckin =
-              allCheckins.isNotEmpty ? allCheckins.first : null;
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      decoration: const BoxDecoration(
+        color: AppTheme.primaryTeal,
+        gradient: AppTheme.mintGradient,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.calendar_month,
+                  color: AppTheme.primaryTeal,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildWelcomeCard(savedCondition),
-                  const SizedBox(height: 20),
-                  if (latestCheckin != null)
-                    _buildLatestStatusCard(latestCheckin),
-                  if (latestCheckin != null) const SizedBox(height: 20),
-                  _buildQuickActions(context, savedCondition),
-                  const SizedBox(height: 20),
-                  _buildStatsCard(allCheckins),
+                  const Text(
+                    'Today',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
+            ],
+          ),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
             ),
-          );
-        },
+            child: const Icon(
+              Icons.notifications_none,
+              color: AppTheme.textDark,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildWelcomeCard(String condition) {
-    IconData icon;
-    Color color;
-
-    if (condition == 'Hypertension') {
-      icon = Icons.favorite;
-      color = Colors.red;
-    } else if (condition == 'Diabetes') {
-      icon = Icons.water_drop;
-      color = Colors.orange;
-    } else {
-      icon = Icons.monitor_heart;
-      color = Colors.pink;
-    }
-
+  Widget _buildNextAppointmentCard(
+    BuildContext context,
+    CheckinModel? latestCheckin,
+    String condition,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[700]!, Colors.blue[500]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Next Action / Log',
+            style: TextStyle(
+              color: AppTheme.textDark,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppTheme.lightMint,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.medical_services,
+                  color: AppTheme.primaryTeal,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Check-in: $condition',
+                      style: const TextStyle(
+                        color: AppTheme.textDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      latestCheckin != null
+                          ? 'Last: ${DateFormat('MMM d, h:mm a').format(latestCheckin.date)}'
+                          : 'No data yet',
+                      style: const TextStyle(
+                        color: AppTheme.textLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: AppTheme.primaryTeal,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Daily log expected',
+                          style: TextStyle(
+                            color: AppTheme.primaryTeal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DailyCheckinScreen(condition: condition),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppTheme.background,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildHeader(String title, String action) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppTheme.textDark,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          action,
+          style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+        ),
+      ],
+    ).animate().fadeIn(delay: 150.ms);
+  }
+
+  Widget _buildCategoriesRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildCategoryIcon(Icons.monitor_heart, 'Vitals', Colors.blue),
+        _buildCategoryIcon(Icons.child_care, 'Kids', Colors.green),
+        _buildCategoryIcon(Icons.face, 'Skin', Colors.orange),
+        _buildCategoryIcon(Icons.psychology, 'Mind', Colors.red),
+      ],
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildCategoryIcon(IconData icon, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 65,
+          height: 65,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Center(child: Icon(icon, color: color, size: 28)),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoctorCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryTeal,
+        gradient: AppTheme.mintGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryTeal.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+          CircleAvatar(
+            radius: 24,
+            backgroundImage: const NetworkImage(
+              'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=1470&auto=format&fit=crop',
             ),
-            child: Icon(icon, color: Colors.white, size: 40),
           ),
-          const SizedBox(width: 15),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Monitoring',
+                  'Dr. Olivia Grant',
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  condition,
-                  style: const TextStyle(
-                    fontSize: 24,
+                const SizedBox(height: 4),
+                const Text(
+                  'Family Physician',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber, size: 14),
+                const SizedBox(width: 4),
+                const Text(
+                  '4.8',
+                  style: TextStyle(
+                    color: AppTheme.textDark,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -136,396 +468,76 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1);
   }
 
-  Widget _buildLatestStatusCard(CheckinModel checkin) {
-    Color riskColor = _getColorFromString(checkin.riskColor);
-    String timeAgo = _getTimeAgo(checkin.date);
-
+  Widget _buildBottomNav() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Latest Status',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              Text(
-                timeAgo,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: riskColor.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: riskColor, width: 3),
-                ),
-                child: Center(
-                  child: Text(
-                    checkin.riskLevel[0],
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: riskColor,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      checkin.riskLevel,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: riskColor,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _getRiskMessage(checkin.riskLevel),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context, String condition) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActionButton(
-            context,
-            'New Check-in',
-            Icons.add_circle,
-            Colors.blue,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      DailyCheckinScreen(condition: condition),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: _buildActionButton(
-            context,
-            'View History',
-            Icons.history,
-            Colors.green,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HistoryScreen(),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
+      padding: const EdgeInsets.only(bottom: 20, left: 24, right: 24, top: 12),
+      decoration: const BoxDecoration(color: AppTheme.background),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        height: 70,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
           ],
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Icon(icon, color: color, size: 40),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
-            ),
+            _buildNavItem(0, Icons.home_rounded),
+            _buildNavItem(1, Icons.calendar_month_rounded),
+            _buildNavItem(2, Icons.mail_outline_rounded),
+            _buildNavItem(3, Icons.person_outline_rounded),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsCard(List<CheckinModel> checkins) {
-    int totalCheckins = checkins.length;
-    int greenCount = checkins.where((c) => c.riskLevel == 'GREEN').length;
-    int yellowCount = checkins.where((c) => c.riskLevel == 'YELLOW').length;
-    int orangeCount = checkins.where((c) => c.riskLevel == 'ORANGE').length;
-    int redCount = checkins.where((c) => c.riskLevel == 'RED').length;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Overview',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStatItem('Total', totalCheckins, Colors.blue),
-              _buildStatItem('Green', greenCount, Colors.green),
-              _buildStatItem('Yellow', yellowCount, Colors.yellow[700]!),
-              _buildStatItem('Orange', orangeCount, Colors.orange),
-              _buildStatItem('Red', redCount, Colors.red),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, int count, Color color) {
-    return Column(
-      children: [
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+  Widget _buildNavItem(int index, IconData icon) {
+    bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: isSelected
+            ? const BoxDecoration(
+                color: AppTheme.primaryTeal,
+                shape: BoxShape.circle,
+              )
+            : null,
+        child: Icon(
+          icon,
+          color: isSelected ? Colors.white : AppTheme.textLight,
+          size: 26,
         ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showSettingsDialog(BuildContext context, String currentCondition) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Settings'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.swap_horiz),
-              title: const Text('Change Condition'),
-              subtitle: Text(currentCondition),
-              onTap: () {
-                Navigator.pop(context);
-                _showChangeConditionDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Clear All Data'),
-              subtitle: const Text('Delete all check-ins'),
-              onTap: () {
-                Navigator.pop(context);
-                _showClearDataDialog(context);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
+}
 
-  void _showChangeConditionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Condition'),
-        content: const Text(
-            'This will take you back to condition selection. Your previous check-ins will be saved.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final settingsBox = Hive.box('settings');
-              settingsBox.delete('condition');
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const ConditionSelectionScreen(isFirstTime: false),
-                ),
-              );
-            },
-            child: const Text('Change'),
-          ),
-        ],
-      ),
-    );
-  }
+// Mock Screens for Bottom Nav
+class CalendarMockScreen extends StatelessWidget {
+  const CalendarMockScreen({Key? key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) => const Center(child: Text('Calendar'));
+}
 
-  void _showClearDataDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All Data'),
-        content: const Text(
-            'This will permanently delete all your check-ins. This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final box = Hive.box<CheckinModel>('checkins');
-              await box.clear();
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All data cleared')),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete All'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getColorFromString(String colorString) {
-    switch (colorString) {
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow[700]!;
-      case 'orange':
-        return Colors.orange;
-      case 'red':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getRiskMessage(String riskLevel) {
-    switch (riskLevel) {
-      case 'GREEN':
-        return "You're doing well!";
-      case 'YELLOW':
-        return "Minor symptoms detected";
-      case 'ORANGE':
-        return "Concerning symptoms";
-      case 'RED':
-        return "Urgent attention needed";
-      default:
-        return "";
-    }
-  }
-
-  String _getTimeAgo(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
-    } else {
-      return 'Just now';
-    }
-  }
+class ProfileMockScreen extends StatelessWidget {
+  final String condition;
+  const ProfileMockScreen({Key? key, required this.condition})
+    : super(key: key);
+  @override
+  Widget build(BuildContext context) => const Center(child: Text('Profile'));
 }

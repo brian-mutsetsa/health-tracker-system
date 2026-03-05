@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'daily_checkin_screen.dart';
-import 'home_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../theme/app_theme.dart';
 
 class ConditionSelectionScreen extends StatefulWidget {
   final bool isFirstTime;
-  
-  const ConditionSelectionScreen({Key? key, this.isFirstTime = true}) : super(key: key);
+
+  const ConditionSelectionScreen({Key? key, this.isFirstTime = true})
+    : super(key: key);
 
   @override
-  State<ConditionSelectionScreen> createState() => _ConditionSelectionScreenState();
+  State<ConditionSelectionScreen> createState() =>
+      _ConditionSelectionScreenState();
 }
 
 class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
@@ -18,168 +20,221 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(widget.isFirstTime ? 'Welcome' : 'Select Your Condition'),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: !widget.isFirstTime,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                'Which condition are you monitoring?',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Select one to get started',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              
-              _buildConditionCard(
-                'Hypertension',
-                'High Blood Pressure',
-                Icons.favorite,
-                Colors.red,
-              ),
-              const SizedBox(height: 15),
-              
-              _buildConditionCard(
-                'Diabetes',
-                'Blood Sugar Management',
-                Icons.water_drop,
-                Colors.orange,
-              ),
-              const SizedBox(height: 15),
-              
-              _buildConditionCard(
-                'Heart Disease',
-                'Cardiovascular Health',
-                Icons.monitor_heart,
-                Colors.pink,
-              ),
-              
-              const SizedBox(height: 40),
-              
-              ElevatedButton(
-                onPressed: selectedCondition == null ? null : () async {
-                  final settingsBox = Hive.box('settings');
-                  await settingsBox.put('condition', selectedCondition);
-                  
-                  if (!mounted) return;
-                  
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomeScreen(),
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
+                children: [
+                  if (!widget.isFirstTime)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: AppTheme.textDark,
+                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  Expanded(
+                    child: Text(
+                      widget.isFirstTime ? 'Welcome' : 'Select Condition',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.displayMedium?.copyWith(fontSize: 24),
+                      textAlign: widget.isFirstTime
+                          ? TextAlign.center
+                          : TextAlign.left,
+                    ),
                   ),
+                  if (!widget.isFirstTime) const SizedBox(width: 48), // balance
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Which condition are you monitoring?',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                      textAlign: TextAlign.center,
+                    ).animate().fadeIn().slideY(begin: 0.1),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      'Select one to get personalized tracking.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ).animate().fadeIn(delay: 100.ms),
+
+                    const SizedBox(height: 40),
+
+                    _buildConditionCard(
+                      'Hypertension',
+                      'High Blood Pressure',
+                      Icons.favorite,
+                      Colors.redAccent,
+                      200.ms,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildConditionCard(
+                      'Diabetes',
+                      'Blood Sugar Management',
+                      Icons.water_drop,
+                      Colors.orangeAccent,
+                      300.ms,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildConditionCard(
+                      'Heart Disease',
+                      'Cardiovascular Health',
+                      Icons.monitor_heart,
+                      Colors.purpleAccent,
+                      400.ms,
+                    ),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+
+            // Bottom Button
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: selectedCondition == null
+                    ? null
+                    : () async {
+                        final settingsBox = Hive.box('settings');
+                        await settingsBox.put('condition', selectedCondition);
+
+                        if (!mounted) return;
+
+                        // Use named route or generic push replacement depending on structure
+                        // We'll pop then push to avoid circular deps if needed, or just pushReplacement
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
+                      },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  backgroundColor: AppTheme.primaryTeal,
                   disabledBackgroundColor: Colors.grey[300],
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text(
                   'Continue',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ).animate().slideY(begin: 1.0, curve: Curves.easeOut),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildConditionCard(String title, String subtitle, IconData icon, Color color) {
+  Widget _buildConditionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color badgeColor,
+    Duration delay,
+  ) {
     bool isSelected = selectedCondition == title;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
           selectedCondition = title;
         });
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          color: isSelected ? AppTheme.lightMint : Colors.white,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
-            width: isSelected ? 3 : 1,
+            color: isSelected
+                ? AppTheme.primaryTeal.withOpacity(0.5)
+                : Colors.transparent,
+            width: 2,
           ),
           boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-            ),
+            if (!isSelected)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: badgeColor.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 30),
+              child: Icon(icon, color: badgeColor, size: 24),
             ),
-            const SizedBox(width: 15),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: isSelected ? AppTheme.darkTeal : AppTheme.textDark,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isSelected
+                          ? AppTheme.primaryTeal
+                          : AppTheme.textLight,
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 28),
+              const Icon(
+                Icons.check_circle,
+                color: AppTheme.primaryTeal,
+              ).animate().scale(curve: Curves.easeOutBack),
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(delay: delay).slideX(begin: 0.1);
   }
 }

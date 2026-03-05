@@ -31,3 +31,16 @@ class CheckIn(models.Model):
 
     class Meta:
         ordering = ['-date']
+
+class Message(models.Model):
+    sender_id = models.CharField(max_length=100)
+    receiver_id = models.CharField(max_length=100)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"From {self.sender_id} to {self.receiver_id} at {self.timestamp}"
+
+    class Meta:
+        ordering = ['timestamp']
