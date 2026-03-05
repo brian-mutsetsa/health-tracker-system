@@ -6,9 +6,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.core.management import call_command
-from .models import Patient, CheckIn, Message, Provider
-from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer, ProviderSerializer
+from .models import Patient, CheckIn, Message, Provider, TypingStatus
+from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer, ProviderSerializer, TypingStatusSerializer
 from django.db import models
+from django.utils import timezone
 
 # Load ML model
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml_models', 'risk_model.pkl')
@@ -177,3 +178,58 @@ def trigger_seed(request):
         return Response({'status': 'success', 'message': 'Database seeded successfully'}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def update_typing_status(request):
+    """
+    Update typing status for a user chatting with another user.
+    """
+    user_id = request.data.get('user_id')
+    chat_partner_id = request.data.get('chat_partner_id')
+    is_typing = request.data.get('is_typing', False)
+
+    if not user_id or not chat_partner_id:
+        return Response({'error': 'user_id and chat_partner_id required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Convert to boolean if string provided
+    if isinstance(is_typing, str):
+        is_typing = is_typing.lower() == 'true'
+
+    status_obj, created = TypingStatus.objects.update_or_create(
+        user_id=user_id,
+        chat_partner_id=chat_partner_id,
+        defaults={'is_typing': is_typing}
+    )
+    
+    return Response(TypingStatusSerializer(status_obj).data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_typing_status(request):
+    """
+    Check if a partner is currently typing to the requesting user.
+    """
+    user_id = request.query_params.get('user_id')
+    partner_id = request.query_params.get('partner_id')
+
+    if not user_id or not partner_id:
+        return Response({'error': 'user_id and partner_id required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Check if partner is typing to user
+        status_obj = TypingStatus.objects.get(
+            user_id=partner_id,
+            chat_partner_id=user_id
+        )
+        
+        # If the status is older than 10 seconds, assume they stopped typing
+        time_diff = timezone.now() - status_obj.updated_at
+        is_typing = status_obj.is_typing and time_diff.total_seconds() < 10
+
+        return Response({
+            'is_typing': is_typing,
+            'last_updated': status_obj.updated_at
+        }, status=status.HTTP_200_OK)
+    except TypingStatus.DoesNotExist:
+        return Response({'is_typing': False}, status=status.HTTP_200_OK)

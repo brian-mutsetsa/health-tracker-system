@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -15,6 +16,35 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedLogin();
+  }
+
+  Future<void> _checkSavedLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final providerId = prefs.getString('provider_id');
+    final providerName = prefs.getString('provider_name');
+    if (providerId != null && providerName != null) {
+      DashboardApiService.currentProviderId = providerId;
+      DashboardApiService.currentProviderName = providerName;
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                DashboardScreen(providerName: providerName),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {

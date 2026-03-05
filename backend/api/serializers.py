@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient, CheckIn, Message, Provider
+from .models import Patient, CheckIn, Message, Provider, TypingStatus
 
 
 class ProviderSerializer(serializers.ModelSerializer):
@@ -67,3 +67,10 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['id', 'sender_id', 'receiver_id', 'content', 'timestamp', 'is_read']
         read_only_fields = ['id', 'timestamp']
+
+
+class TypingStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TypingStatus
+        fields = ['user_id', 'chat_partner_id', 'is_typing', 'updated_at']
+        read_only_fields = ['updated_at']

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String providerName;
@@ -26,10 +29,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'total_checkins': 0,
   };
 
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    // Poll the backend silently every 15 seconds for real-time updates
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _loadDataSilently();
+    });
+  }
+
+  Future<void> _loadDataSilently() async {
+    final patients = await _apiService.getPatients();
+    final stats = await _apiService.getStats();
+
+    if (mounted) {
+      setState(() {
+        _patients = patients;
+        _stats = stats;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -275,6 +302,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(fontSize: 12, color: AppTheme.textLight),
                   ),
                 ],
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                tooltip: 'Logout',
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const LoginScreen(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -621,14 +673,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onPressed: () async {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'Downloading patient records...',
-                              ),
+                              content: Text('Downloading patient records...'),
                             ),
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('PDF export available on mobile only'),
+                              content: Text(
+                                'PDF export available on mobile only',
+                              ),
                             ),
                           );
                         },

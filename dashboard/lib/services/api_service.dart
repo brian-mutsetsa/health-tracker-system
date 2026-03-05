@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Patient {
   final String id;
@@ -85,6 +86,11 @@ class DashboardApiService {
         final data = jsonDecode(response.body);
         currentProviderId = data['provider_id'];
         currentProviderName = 'Dr. ${data['last_name']}';
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('provider_id', currentProviderId!);
+        await prefs.setString('provider_name', currentProviderName!);
+
         return true;
       }
       return false;
