@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
+import 'home_screen.dart';
 
 class ConditionSelectionScreen extends StatefulWidget {
   final bool isFirstTime;
@@ -129,11 +130,9 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
 
                         if (!mounted) return;
 
-                        // Use named route or generic push replacement depending on structure
-                        // We'll pop then push to avoid circular deps if needed, or just pushReplacement
-                        Navigator.of(
-                          context,
-                        ).popUntil((route) => route.isFirst);
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        );
                       },
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),
