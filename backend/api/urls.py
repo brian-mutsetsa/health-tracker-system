@@ -9,6 +9,7 @@ router.register(r'messages', views.MessageViewSet, basename='message')
 
 urlpatterns = [
     # Custom endpoints FIRST (before router)
+    path('auth/login/', views.provider_login, name='provider-login'),
     path('checkin/submit/', views.create_checkin, name='create-checkin'),
     path('patient/<str:patient_id>/', views.get_patient_by_id, name='get-patient'),
     # Router LAST

@@ -4,8 +4,9 @@ import numpy as np
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Patient, CheckIn, Message
-from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer
+from django.contrib.auth import authenticate
+from .models import Patient, CheckIn, Message, Provider
+from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer, ProviderSerializer
 from django.db import models
 
 # Load ML model
@@ -142,3 +143,23 @@ def get_patient_by_id(request, patient_id):
             {'error': 'Patient not found'},
             status=status.HTTP_404_NOT_FOUND
         )
+
+@api_view(['POST'])
+def provider_login(request):
+    """
+    Authenticate a provider and return provider info.
+    Expects username and password.
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    if not username or not password:
+        return Response({'error': 'Please provide both username and password'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(username=username, password=password)
+
+    if user and hasattr(user, 'provider'):
+        # Valid provider credentials
+        return Response(ProviderSerializer(user.provider).data, status=status.HTTP_200_OK)
+    else:
+        return Response({'error': 'Invalid credentials or not a provider'}, status=status.HTTP_401_UNAUTHORIZED)

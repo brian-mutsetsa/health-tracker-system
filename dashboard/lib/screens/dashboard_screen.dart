@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/pdf_generator.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String providerName;
@@ -551,7 +552,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         2: FlexColumnWidth(2),
         3: FlexColumnWidth(1.5),
         4: FlexColumnWidth(2),
-        5: FlexColumnWidth(1),
+        5: FlexColumnWidth(2),
       },
       children: [
         // Header row
@@ -604,15 +605,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               _buildTableCell(
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'View',
-                    style: TextStyle(
-                      color: AppTheme.primaryTeal,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.message,
+                        color: AppTheme.primaryTeal,
+                      ),
+                      tooltip: 'Message Patient',
+                      onPressed: () => _openMessageDrawer(p),
                     ),
-                  ),
+                    TextButton(
+                      onPressed: () async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Downloading patient records...',
+                              duration: Duration(seconds: 2),
+                            ),
+                          ),
+                        );
+
+                        try {
+                          // Fetch raw JSON payload of checkins from API for this specific patient
+                          final checkinsList = await _apiService
+                              .getPatientCheckinsRaw(p.patientId);
+                          await PdfGenerator.generateAndDownloadReport(
+                            p,
+                            checkinsList,
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to generate PDF: $e'),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        'Export PDF',
+                        style: TextStyle(
+                          color: AppTheme.primaryTeal,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -687,5 +726,273 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _formatDate(DateTime date) {
     return DateFormat('MMM d, yyyy h:mm a').format(date);
+  }
+
+  void _openMessageDrawer(Patient patient) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Messages',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            elevation: 16,
+            child: Container(
+              width: MediaQuery.of(context).size.width > 600
+                  ? 400
+                  : MediaQuery.of(context).size.width,
+              height: double.infinity,
+              color: Colors.white,
+              child: _MessagePanel(patient: patient, apiService: _apiService),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim1, curve: Curves.easeOut)),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _MessagePanel extends StatefulWidget {
+  final Patient patient;
+  final DashboardApiService apiService;
+
+  const _MessagePanel({
+    Key? key,
+    required this.patient,
+    required this.apiService,
+  }) : super(key: key);
+
+  @override
+  State<_MessagePanel> createState() => _MessagePanelState();
+}
+
+class _MessagePanelState extends State<_MessagePanel> {
+  final TextEditingController _msgController = TextEditingController();
+  List<Message> _messages = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    final msgs = await widget.apiService.getMessages(widget.patient.patientId);
+    if (mounted) {
+      setState(() {
+        _messages = msgs;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    if (_msgController.text.trim().isEmpty) return;
+
+    final success = await widget.apiService.sendMessage(
+      widget.patient.patientId,
+      _msgController.text.trim(),
+    );
+
+    if (success) {
+      _msgController.clear();
+      _loadMessages();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryTeal,
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Chat: ${widget.patient.patientId}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      widget.patient.condition,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _loadMessages,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Chat List
+        Expanded(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.primaryTeal),
+                )
+              : _messages.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No messages yet',
+                    style: TextStyle(color: AppTheme.textLight),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  reverse: true,
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    // Reverse the list view layout so newest is at bottom
+                    final msg = _messages[_messages.length - 1 - index];
+                    final isProvider = msg.senderId == 'provider';
+
+                    return Align(
+                      alignment: isProvider
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isProvider
+                              ? AppTheme.lightMint
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20).copyWith(
+                            bottomRight: isProvider
+                                ? const Radius.circular(0)
+                                : const Radius.circular(20),
+                            bottomLeft: !isProvider
+                                ? const Radius.circular(0)
+                                : const Radius.circular(20),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: isProvider
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              msg.content,
+                              style: TextStyle(
+                                color: isProvider
+                                    ? AppTheme.darkTeal
+                                    : AppTheme.textDark,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('h:mm a').format(msg.timestamp),
+                              style: TextStyle(
+                                color: isProvider
+                                    ? AppTheme.primaryTeal.withOpacity(0.6)
+                                    : AppTheme.textLight,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Input Field
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _msgController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.mintGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _sendMessage,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

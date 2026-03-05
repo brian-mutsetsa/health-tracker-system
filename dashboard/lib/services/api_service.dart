@@ -25,8 +25,8 @@ class Patient {
       id: json['id'].toString(),
       patientId: json['patient_id'],
       condition: json['condition'],
-      lastCheckin: json['last_checkin'] != null 
-          ? DateTime.parse(json['last_checkin']) 
+      lastCheckin: json['last_checkin'] != null
+          ? DateTime.parse(json['last_checkin'])
           : null,
       lastRiskLevel: json['last_risk_level'],
       lastRiskColor: json['last_risk_color'],
@@ -35,14 +35,69 @@ class Patient {
   }
 }
 
+class Message {
+  final int id;
+  final String senderId;
+  final String receiverId;
+  final String content;
+  final DateTime timestamp;
+  final bool isRead;
+
+  Message({
+    required this.id,
+    required this.senderId,
+    required this.receiverId,
+    required this.content,
+    required this.timestamp,
+    required this.isRead,
+  });
+
+  factory Message.fromJson(Map<String, dynamic> json) {
+    return Message(
+      id: json['id'],
+      senderId: json['sender_id'],
+      receiverId: json['receiver_id'],
+      content: json['content'],
+      timestamp: DateTime.parse(json['timestamp']),
+      isRead: json['is_read'],
+    );
+  }
+}
+
 class DashboardApiService {
   // CHANGE THIS to your computer's IP address (same as mobile app)
-  static const String baseUrl = 'https://health-tracker-api-blky.onrender.com/api';
+  static const String baseUrl =
+      'https://health-tracker-api-blky.onrender.com/api';
+
+  static String? currentProviderId;
+  static String? currentProviderName;
+
+  /// Authenticate Provider Login
+  Future<bool> login(String username, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        currentProviderId = data['provider_id'];
+        currentProviderName = 'Dr. ${data['last_name']}';
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error during login: $e');
+      return false;
+    }
+  }
 
   Future<List<Patient>> getPatients() async {
     try {
       print('📤 Fetching patients from: $baseUrl/patients/');
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/patients/'),
         headers: {'Content-Type': 'application/json'},
@@ -53,7 +108,7 @@ class DashboardApiService {
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
         print('✅ Received ${data.length} patients');
-        
+
         return data.map((json) => Patient.fromJson(json)).toList();
       } else {
         print('❌ Failed to load patients: ${response.statusCode}');
@@ -68,25 +123,67 @@ class DashboardApiService {
   Future<List<Patient>> getHighRiskPatients() async {
     try {
       List<Patient> allPatients = await getPatients();
-      return allPatients.where((p) => 
-        p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE'
-      ).toList();
+      return allPatients
+          .where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE')
+          .toList();
     } catch (e) {
       print('❌ Error fetching high risk patients: $e');
       return [];
     }
   }
 
+  Future<List<dynamic>> getPatientCheckinsRaw(String patientId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/patients/?search=$patientId'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      if (data.isNotEmpty) {
+        // Patient models serialized have a 'checkins' array loaded into them
+        return data.first['checkins'] ?? [];
+      }
+      return [];
+    } else {
+      throw Exception('Failed to load patient records');
+    }
+  }
+
+  Future<List<Message>> getMessages(String patientId) async {
+    final providerId = currentProviderId ?? 'provider';
+    final response = await http.get(
+      Uri.parse('$baseUrl/messages/?user_id=$providerId&other_id=$patientId'),
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Message.fromJson(json)).toList();
+    }
+    return [];
+  }
+
+  Future<bool> sendMessage(String recipientId, String content) async {
+    final providerId = currentProviderId ?? 'provider';
+    final response = await http.post(
+      Uri.parse('$baseUrl/messages/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'sender_id': providerId,
+        'receiver_id': recipientId,
+        'content': content,
+      }),
+    );
+    return response.statusCode == 201;
+  }
+
   Future<Map<String, int>> getStats() async {
     try {
       List<Patient> patients = await getPatients();
-      
+
       int totalPatients = patients.length;
-      int highRisk = patients.where((p) => 
-        p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE'
-      ).length;
+      int highRisk = patients
+          .where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE')
+          .length;
       int totalCheckins = patients.fold(0, (sum, p) => sum + p.totalCheckins);
-      
+
       return {
         'total_patients': totalPatients,
         'high_risk': highRisk,
@@ -94,11 +191,7 @@ class DashboardApiService {
       };
     } catch (e) {
       print('❌ Error fetching stats: $e');
-      return {
-        'total_patients': 0,
-        'high_risk': 0,
-        'total_checkins': 0,
-      };
+      return {'total_patients': 0, 'high_risk': 0, 'total_checkins': 0};
     }
   }
 }

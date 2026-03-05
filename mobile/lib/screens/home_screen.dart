@@ -6,7 +6,7 @@ import '../models/checkin_model.dart';
 import '../theme/app_theme.dart';
 import 'condition_selection_screen.dart';
 import 'daily_checkin_screen.dart';
-import 'history_screen.dart';
+import 'messages_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody(String condition) {
     if (_currentIndex == 1) return const CalendarMockScreen();
-    if (_currentIndex == 2) return const HistoryScreen();
+    if (_currentIndex == 2) return const MessagesScreen();
     if (_currentIndex == 3)
       return const ProfileMockScreen(condition: 'condition');
 

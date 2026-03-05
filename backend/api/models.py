@@ -1,5 +1,16 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+
+class Provider(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    provider_id = models.CharField(max_length=100, unique=True)
+    specialty = models.CharField(max_length=100, blank=True)
+    hospital = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return f"Dr. {self.user.last_name} ({self.provider_id})"
+
 
 class Patient(models.Model):
     patient_id = models.CharField(max_length=100, unique=True)

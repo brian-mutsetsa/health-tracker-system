@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 
@@ -22,30 +23,49 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    if (_nameController.text.trim().isEmpty) {
+  Future<void> _login() async {
+    if (_nameController.text.trim().isEmpty ||
+        _passController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your provider ID or name')),
+        const SnackBar(
+          content: Text('Please enter your provider username and password'),
+        ),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (!mounted) return;
+    final success = await DashboardApiService().login(
+      _nameController.text.trim(),
+      _passController.text.trim(),
+    );
 
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success && DashboardApiService.currentProviderName != null) {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              DashboardScreen(providerName: _nameController.text.trim()),
+              DashboardScreen(
+                providerName: DashboardApiService.currentProviderName!,
+              ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
       );
-    });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid credentials. Try username: admin | password: password',
+          ),
+        ),
+      );
+    }
   }
 
   @override

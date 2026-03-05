@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../theme/app_theme.dart';
+import '../utils/pdf_generator.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -65,11 +66,61 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     child: IconButton(
                       icon: const Icon(
-                        Icons.more_vert,
-                        color: AppTheme.textDark,
+                        Icons.download,
+                        color: AppTheme.primaryTeal,
                         size: 22,
                       ),
-                      onPressed: () {},
+                      onPressed: () async {
+                        final box = Hive.box<CheckinModel>('checkins');
+                        if (box.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No consultations to export!'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Generating PDF Report...'),
+                          ),
+                        );
+
+                        try {
+                          List<CheckinModel> checkins = box.values.toList();
+                          checkins.sort((a, b) => b.date.compareTo(a.date));
+
+                          final settingsBox = Hive.box('settings');
+                          String patientId = settingsBox.get(
+                            'patient_id',
+                            defaultValue: 'Unknown_Patient',
+                          );
+
+                          // Ignore warning, method signature was checked earlier when writing file
+                          final file = await PdfGenerator.generateReport(
+                            patientId,
+                            checkins,
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Saved to: ${file.path}'),
+                              duration: const Duration(seconds: 5),
+                              action: SnackBarAction(
+                                label: 'OK',
+                                onPressed: () {},
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to generate PDF: $e'),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                 ],

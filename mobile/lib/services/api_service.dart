@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/checkin_model.dart';
+import '../models/message_model.dart';
 
 class ApiService {
   // Change this to your computer's IP address when testing on real device
@@ -103,6 +104,46 @@ class ApiService {
       print('✅ Synced $successCount check-ins, $failCount failed');
     } catch (e) {
       print('❌ Error syncing check-ins: $e');
+    }
+  }
+
+  // Fetch messages for a specific patient
+  Future<List<MessageModel>> getMessages() async {
+    try {
+      final patientId = await getPatientId();
+      final response = await http.get(
+        Uri.parse('$baseUrl/messages/?user_id=$patientId&other_id=provider'),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => MessageModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching messages: $e');
+      return [];
+    }
+  }
+
+  // Send message
+  Future<bool> sendMessage(String text) async {
+    try {
+      final patientId = await getPatientId();
+      final response = await http.post(
+        Uri.parse('$baseUrl/messages/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'sender_id': patientId,
+          'receiver_id': 'provider', // Hardcoded for this phase
+          'content': text,
+        }),
+      );
+
+      return response.statusCode == 201;
+    } catch (e) {
+      print('❌ Error sending message: $e');
+      return false;
     }
   }
 }
