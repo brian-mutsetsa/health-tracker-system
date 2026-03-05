@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.core.management import call_command
 from .models import Patient, CheckIn, Message, Provider
 from .serializers import PatientSerializer, CheckInSerializer, CheckInCreateSerializer, MessageSerializer, ProviderSerializer
 from django.db import models
@@ -163,3 +164,16 @@ def provider_login(request):
         return Response(ProviderSerializer(user.provider).data, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials or not a provider'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['GET'])
+def trigger_seed(request):
+    """
+    Temporary endpoint to trigger database seeding.
+    Needed because Render free tier does not provide SSH/terminal access.
+    """
+    try:
+        call_command('seed_data')
+        return Response({'status': 'success', 'message': 'Database seeded successfully'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

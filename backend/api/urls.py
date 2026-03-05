@@ -12,6 +12,7 @@ urlpatterns = [
     path('auth/login/', views.provider_login, name='provider-login'),
     path('checkin/submit/', views.create_checkin, name='create-checkin'),
     path('patient/<str:patient_id>/', views.get_patient_by_id, name='get-patient'),
+    path('seed/', views.trigger_seed, name='trigger-seed'),
     # Router LAST
     path('', include(router.urls)),
 ]
