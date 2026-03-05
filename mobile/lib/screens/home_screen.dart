@@ -124,14 +124,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 32),
 
                       // Categories Section
-                      _buildHeader('Categories', 'See All'),
+                      _buildHeader(context, 'Categories', 'See All'),
                       const SizedBox(height: 16),
-                      _buildCategoriesRow(),
+                      _buildCategoriesRow(context),
 
                       const SizedBox(height: 32),
 
                       // Suggested Doctors Mock
-                      _buildHeader('Suggested Doctors', 'See All'),
+                      _buildHeader(context, 'Suggested Doctors', 'See All'),
                       const SizedBox(height: 16),
                       _buildDoctorCard(),
 
@@ -201,16 +201,23 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.notifications_none,
-              color: AppTheme.textDark,
+          GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new notifications')),
+              );
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_none,
+                color: AppTheme.textDark,
+              ),
             ),
           ),
         ],
@@ -337,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
   }
 
-  Widget _buildHeader(String title, String action) {
+  Widget _buildHeader(BuildContext context, String title, String action) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -349,55 +356,74 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(
-          action,
-          style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+        GestureDetector(
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$title - $action coming soon!')),
+            );
+          },
+          child: Text(
+            action,
+            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+          ),
         ),
       ],
     ).animate().fadeIn(delay: 150.ms);
   }
 
-  Widget _buildCategoriesRow() {
+  Widget _buildCategoriesRow(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildCategoryIcon(Icons.monitor_heart, 'Vitals', Colors.blue),
-        _buildCategoryIcon(Icons.child_care, 'Kids', Colors.green),
-        _buildCategoryIcon(Icons.face, 'Skin', Colors.orange),
-        _buildCategoryIcon(Icons.psychology, 'Mind', Colors.red),
+        _buildCategoryIcon(context, Icons.monitor_heart, 'Vitals', Colors.blue),
+        _buildCategoryIcon(context, Icons.child_care, 'Kids', Colors.green),
+        _buildCategoryIcon(context, Icons.face, 'Skin', Colors.orange),
+        _buildCategoryIcon(context, Icons.psychology, 'Mind', Colors.red),
       ],
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
   }
 
-  Widget _buildCategoryIcon(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 65,
-          height: 65,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
+  Widget _buildCategoryIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$label category coming soon!')));
+      },
+      child: Column(
+        children: [
+          Container(
+            width: 65,
+            height: 65,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Center(child: Icon(icon, color: color, size: 28)),
           ),
-          child: Center(child: Icon(icon, color: color, size: 28)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textDark,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.textDark,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -531,7 +557,13 @@ class _HomeScreenState extends State<HomeScreen> {
 class CalendarMockScreen extends StatelessWidget {
   const CalendarMockScreen({Key? key}) : super(key: key);
   @override
-  Widget build(BuildContext context) => const Center(child: Text('Calendar'));
+  Widget build(BuildContext context) => const Center(
+    child: Text(
+      'Calendar & Appointments\nComing Soon',
+      textAlign: TextAlign.center,
+      style: TextStyle(fontSize: 18, color: AppTheme.textLight),
+    ),
+  );
 }
 
 class ProfileMockScreen extends StatelessWidget {
@@ -539,5 +571,11 @@ class ProfileMockScreen extends StatelessWidget {
   const ProfileMockScreen({Key? key, required this.condition})
     : super(key: key);
   @override
-  Widget build(BuildContext context) => const Center(child: Text('Profile'));
+  Widget build(BuildContext context) => const Center(
+    child: Text(
+      'User Profile & Settings\nComing Soon',
+      textAlign: TextAlign.center,
+      style: TextStyle(fontSize: 18, color: AppTheme.textLight),
+    ),
+  );
 }

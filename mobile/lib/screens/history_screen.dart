@@ -98,19 +98,17 @@ class HistoryScreen extends StatelessWidget {
                           );
 
                           // Ignore warning, method signature was checked earlier when writing file
-                          final file = await PdfGenerator.generateReport(
+                          await PdfGenerator.generateReport(
                             patientId,
                             checkins,
                           );
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Saved to: ${file.path}'),
-                              duration: const Duration(seconds: 5),
-                              action: SnackBarAction(
-                                label: 'OK',
-                                onPressed: () {},
+                            const SnackBar(
+                              content: Text(
+                                'PDF generated successfully! Choose where to save or share it.',
                               ),
+                              duration: Duration(seconds: 4),
                             ),
                           );
                         } catch (e) {
