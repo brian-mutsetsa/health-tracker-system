@@ -146,4 +146,44 @@ class ApiService {
       return false;
     }
   }
+
+  // Update typing status
+  Future<void> updateTypingStatus(bool isTyping) async {
+    try {
+      final patientId = await getPatientId();
+      await http.post(
+        Uri.parse('$baseUrl/typing/update/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': patientId,
+          'chat_partner_id':
+              'provider', // Provider is always the partner for patient
+          'is_typing': isTyping,
+        }),
+      );
+    } catch (e) {
+      print('❌ Error updating typing status: $e');
+    }
+  }
+
+  // Get typing status
+  Future<bool> getTypingStatus() async {
+    try {
+      final patientId = await getPatientId();
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/typing/status/?user_id=$patientId&partner_id=provider',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['is_typing'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error fetching typing status: $e');
+      return false;
+    }
+  }
 }

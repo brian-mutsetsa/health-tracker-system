@@ -822,25 +822,57 @@ class _MessagePanelState extends State<_MessagePanel> {
   final TextEditingController _msgController = TextEditingController();
   List<Message> _messages = [];
   bool _isLoading = true;
+  bool _isPatientTyping = false;
+  Timer? _pollingTimer;
+  Timer? _typingDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _loadMessages(isPolling: true);
+    });
   }
 
-  Future<void> _loadMessages() async {
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _typingDebounce?.cancel();
+    widget.apiService.updateTypingStatus(widget.patient.patientId, false);
+    _msgController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMessages({bool isPolling = false}) async {
     final msgs = await widget.apiService.getMessages(widget.patient.patientId);
+    final isTyping = await widget.apiService.getTypingStatus(
+      widget.patient.patientId,
+    );
     if (mounted) {
       setState(() {
         _messages = msgs;
-        _isLoading = false;
+        _isPatientTyping = isTyping;
+        if (!isPolling) _isLoading = false;
       });
     }
   }
 
+  void _onMessageChanged(String text) {
+    if (_typingDebounce?.isActive ?? false) _typingDebounce!.cancel();
+
+    widget.apiService.updateTypingStatus(widget.patient.patientId, true);
+
+    _typingDebounce = Timer(const Duration(seconds: 2), () {
+      widget.apiService.updateTypingStatus(widget.patient.patientId, false);
+    });
+  }
+
   Future<void> _sendMessage() async {
     if (_msgController.text.trim().isEmpty) return;
+
+    _typingDebounce?.cancel();
+    widget.apiService.updateTypingStatus(widget.patient.patientId, false);
 
     final success = await widget.apiService.sendMessage(
       widget.patient.patientId,
@@ -983,55 +1015,89 @@ class _MessagePanelState extends State<_MessagePanel> {
         ),
 
         // Input Field
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _msgController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
+        Column(
+          children: [
+            if (_isPatientTyping)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      height: 12,
+                      width: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.primaryTeal,
                       ),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Patient is typing...',
+                      style: TextStyle(
+                        color: AppTheme.textLight,
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.mintGradient,
-                    shape: BoxShape.circle,
+              ),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _sendMessage,
-                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _msgController,
+                        onChanged: _onMessageChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Type a message...',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.mintGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white),
+                        onPressed: _sendMessage,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );

@@ -1,83 +1,55 @@
-# In-App Messaging & Health Reports Implementation Plan
+# Implementation Plan: Chat Enhancements
 
-## Goal Description
-The objective is to implement **In-App Messaging** between patients and providers, and allow both parties to export **Generate Health Reports (PDFs)** for record-keeping and offline review.
+This plan outlines the steps to implement real-time auto-refresh, typing indicators, and message history retention for both the mobile and web dashboard applications.
 
-We will achieve this by building new database models in the Django backend for messages, creating chat interfaces in Flutter, and utilizing Flutter's `pdf` packages to generate visually appealing reports completely on the client side (preventing Render server overloads).
+## User Review Required
+
+> [!IMPORTANT]
+> To implement a true "typing" indicator via HTTP polling without WebSockets, I will need to add a new `TypingStatus` table to the Django backend to temporarily track who is typing to whom. Please confirm this database schema change is acceptable.
 
 ## Proposed Changes
 
-### Django Backend Architecture
-#### [MODIFY] [backend/api/models.py](file:///c:/dev/projects/health_tracker_system/backend/api/models.py), [serializers.py](file:///c:/dev/projects/health_tracker_system/backend/api/serializers.py), [urls.py](file:///c:/dev/projects/health_tracker_system/backend/api/urls.py), [views.py](file:///c:/dev/projects/health_tracker_system/backend/api/views.py)
-- Add a new [Message](file:///c:/dev/projects/health_tracker_system/backend/api/models.py#35-47) model:
-  ```python
-  class Message(models.Model):
-      sender_id = models.CharField(max_length=100) # 'provider' or 'patient_xxx'
-      receiver_id = models.CharField(max_length=100)
-      content = models.TextField()
-      timestamp = models.DateTimeField(auto_now_add=True)
-      is_read = models.BooleanField(default=False)
-  ```
-- Build standard REST endpoints for checking unread messages, sending texts, and fetching chat history.
-- Run `python manage.py makemigrations` and migrate.
-
+### Backend (Django)
 ---
+#### [NEW] [models.py](file:///c:/dev/projects/health_tracker_system/backend/api/models.py)
+- Create a `TypingStatus` model with `user_id`, `chat_partner_id`, `is_typing`, and `updated_at`.
 
-### Export Reports (PDF Generation)
-*To save server load and support true "offline generation" for patients in remote areas, PDFs will be generated locally on the phone using Flutter.*
+#### [MODIFY] [serializers.py](file:///c:/dev/projects/health_tracker_system/backend/api/serializers.py)
+- Add a `TypingStatusSerializer`.
 
-#### [MODIFY] [mobile/pubspec.yaml](file:///c:/dev/projects/health_tracker_system/mobile/pubspec.yaml) & [dashboard/pubspec.yaml](file:///c:/dev/projects/health_tracker_system/dashboard/pubspec.yaml)
-- Add dependencies: `pdf`, `printing`, `path_provider`
+#### [MODIFY] [views.py](file:///c:/dev/projects/health_tracker_system/backend/api/views.py)
+- Create `update_typing_status(request)` to accept POST requests when a user types.
+- Create `get_typing_status(request)` to fetch the current typing state for a chat session.
 
-#### [NEW] shared utility: [pdf_generator.dart](file:///c:/dev/projects/health_tracker_system/mobile/lib/utils/pdf_generator.dart) (Mobile & Dashboard)
-- A unified robust class that accepts a list of `CheckinModel` or [Patient](file:///c:/dev/projects/health_tracker_system/dashboard/lib/services/api_service.dart#4-37) data, and renders a visually beautiful PDF document with the Mint/Teal color branding.
-- The PDF will contain: Patient ID, Condition, Overall Average Risk, and a Table log of the last 30 check-ins (Date, Risk Level, Meds Taken).
+#### [MODIFY] [urls.py](file:///c:/dev/projects/health_tracker_system/backend/api/urls.py)
+- Add routes for `/api/typing/update/` and `/api/typing/status/`.
 
-#### [MODIFY] [mobile/lib/screens/history_screen.dart](file:///c:/dev/projects/health_tracker_system/mobile/lib/screens/history_screen.dart)
-- Append a floating action button or top right action: "📄 Generate Report".
-
-#### [MODIFY] [dashboard/lib/screens/dashboard_screen.dart](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/dashboard_screen.dart)
-- Inside the detailed patient view (right panel), add a button beneath the patient's stats: "⬇️ Download PDF Medical Report".
-
+### Frontend (Flutter Mobile & Web Dashboard)
 ---
+#### [MODIFY] [api_service.dart (Mobile)](file:///c:/dev/projects/health_tracker_system/mobile/lib/services/api_service.dart) & [api_service.dart (Dashboard)](file:///c:/dev/projects/health_tracker_system/dashboard/lib/services/api_service.dart)
+- Add `updateTypingStatus(bool isTyping, String partnerId)` method.
+- Add `getTypingStatus(String partnerId)` method.
 
-### In-App Messaging Feature
-*Since Render free tier drops long-running connections like WebSockets, we will use a standard HTTP Polling strategy every 15 seconds while the user is actively on the [MessagesScreen](file:///c:/dev/projects/health_tracker_system/mobile/lib/screens/messages_screen.dart#8-14).*
+#### [MODIFY] [messages_screen.dart (Mobile)](file:///c:/dev/projects/health_tracker_system/mobile/lib/screens/messages_screen.dart)
+- Reduce the `_pollingTimer` interval from 15 seconds to 3 seconds for near real-time updates without WebSockets.
+- Add an `onChanged` listener to `TextField` to trigger `updateTypingStatus(true)` with a debounce to revert to `false`.
+- In the `_pollingTimer`, fetch both new messages *and* the typing status of the provider.
+- Add a "Provider is typing..." UI element above the input field when active.
 
-#### [NEW] [mobile/lib/screens/messages_screen.dart](file:///c:/dev/projects/health_tracker_system/mobile/lib/screens/messages_screen.dart)
-- A standard chat interface mimicking WhatsApp/iMessage clean aesthetics. Bubbles on right (Patient/Self), Bubbles on left (Provider/Doctor).
-- Tie this into the Mobile bottom navigation bar.
-
-#### [MODIFY] [dashboard/lib/screens/dashboard_screen.dart](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/dashboard_screen.dart)
-- Introduce a messaging modal/drawer. When a provider selects a patient from the main table, they can tab over to "Messages" to quickly
-### Implementation Constraints
-- Backend: Django REST Framework with Simple JWT (if authentication is required).
-- Frontend: Flutter
-- Data source: Use Hive for local mobile persistence, HTTP calls to interact with Django API.
-
-## Pending Implementation Details (Phase 3 Polish)
-
-### User Review Required
-> [!IMPORTANT]
-> To implement real Provider authentication, I will create a new [Provider](file:///c:/dev/projects/health_tracker_system/dashboard/lib/main.dart#18-31) model in Django (or build upon standard Users) and issue JWT tokens or Session cookies. Please confirm if you prefer standard username/password flow or a specific structure for Provider credentials. I will default to a standard [Provider](file:///c:/dev/projects/health_tracker_system/dashboard/lib/main.dart#18-31) model with basic auth.
-
-### Proposed Changes
-
-#### Backend (Django)
-#### [NEW] `backend/api/management/commands/seed_data.py`
-Create a custom management command to erase current data and populate the database with 5-10 realistic patients (names, conditions) along with a rich history of check-ins and message threads for the dashboard to look "full".
-#### [MODIFY] [backend/api/models.py](file:///c:/dev/projects/health_tracker_system/backend/api/models.py)
-Add a [Provider](file:///c:/dev/projects/health_tracker_system/dashboard/lib/main.dart#18-31) model or extend Django's `User` to allow the dashboard to perform real authentication instead of name-string matching.
-#### [MODIFY] [backend/api/views.py](file:///c:/dev/projects/health_tracker_system/backend/api/views.py)
-Add an `/api/auth/login/` endpoint for Provider verification.
-
-#### Frontend (Dashboard Mobile & Web)
-#### [MODIFY] [dashboard/lib/screens/login_screen.dart](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/login_screen.dart)
-Wire the inputs to send a POST request to the new login endpoint. Prevent navigation unless HTTP 200 is returned. Store the Provider token/ID.
-#### [MODIFY] [mobile/lib/screens/home_screen.dart](file:///c:/dev/projects/health_tracker_system/mobile/lib/screens/home_screen.dart) & [dashboard/lib/screens/dashboard_screen.dart](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/dashboard_screen.dart)
-Locate all mock buttons (e.g., Settings, Notifications, "See All", "Suggested Doctors") and either hook them up to actual dummy screens, or trigger functional snackbars/modals so the app feels completely interactive.
+#### [MODIFY] [dashboard_screen.dart (Dashboard)](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/dashboard_screen.dart)
+- In the [_MessagePanelState](file:///c:/dev/projects/health_tracker_system/dashboard/lib/screens/dashboard_screen.dart#821-1040) drawer, implement a similar 3-second `Timer` to poll for messages and typing status.
+- Add an `onChanged` listener to the text input to broadcast the provider's typing status.
+- Show a "Patient is typing..." indicator.
 
 ## Verification Plan
-1. **API Testing**: I will use local Python test scripts or Django test client to verify [Message](file:///c:/dev/projects/health_tracker_system/backend/api/models.py#35-47) endpoints can send and receive texts concurrently.
-2. **PDF Verification**: I will use the browser dashboard locally (`flutter run -d chrome`) to fetch mock patient data and verify the downloaded PDF file is formatted beautifully.
-3. **Chat Sync**: I will deploy to the Mobile phone and the Provider Web app simultaneously to ensure texts sent from Mobile appear on the Dashboard, and vice versa.
+
+### Automated Tests
+- N/A
+
+### Manual Verification
+1. I will deploy the backend changes to Render and the dashboard to Firebase.
+2. I will rebuild the Android APK.
+3. You will open the Dashboard on your computer and the App on your phone.
+4. When you start typing on the phone, the Dashboard should show "Patient is typing..." within 3 seconds.
+5. When you send a message, it should appear on the other side within 3 seconds without having to refresh the page.
+6. Opening a chat should immediately load the historical messages.

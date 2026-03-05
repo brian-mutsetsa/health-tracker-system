@@ -180,6 +180,43 @@ class DashboardApiService {
     return response.statusCode == 201;
   }
 
+  Future<void> updateTypingStatus(String patientId, bool isTyping) async {
+    try {
+      final providerId = currentProviderId ?? 'provider';
+      await http.post(
+        Uri.parse('$baseUrl/typing/update/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': providerId,
+          'chat_partner_id': patientId,
+          'is_typing': isTyping,
+        }),
+      );
+    } catch (e) {
+      print('❌ Error updating typing status: $e');
+    }
+  }
+
+  Future<bool> getTypingStatus(String patientId) async {
+    try {
+      final providerId = currentProviderId ?? 'provider';
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/typing/status/?user_id=$providerId&partner_id=$patientId',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['is_typing'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error fetching typing status: $e');
+      return false;
+    }
+  }
+
   Future<Map<String, int>> getStats() async {
     try {
       List<Patient> patients = await getPatients();

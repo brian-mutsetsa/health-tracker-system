@@ -19,14 +19,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   List<MessageModel> _messages = [];
   bool _isLoading = true;
+  bool _isProviderTyping = false;
   Timer? _pollingTimer;
+  Timer? _typingDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
-    // Poll for new messages every 15 seconds
-    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    // Poll for new messages every 3 seconds for near real-time interaction
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       _loadMessages(isPolling: true);
     });
   }
@@ -34,6 +36,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _typingDebounce?.cancel();
+    _apiService.updateTypingStatus(false);
     _msgController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -46,16 +50,28 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
 
     final msgs = await _apiService.getMessages();
+    final isTyping = await _apiService.getTypingStatus();
 
     if (mounted) {
       setState(() {
         _messages = msgs;
+        _isProviderTyping = isTyping;
         _isLoading = false;
       });
       if (!isPolling && _messages.isNotEmpty) {
         _scrollToBottom();
       }
     }
+  }
+
+  void _onMessageChanged(String text) {
+    if (_typingDebounce?.isActive ?? false) _typingDebounce!.cancel();
+
+    _apiService.updateTypingStatus(true);
+
+    _typingDebounce = Timer(const Duration(seconds: 2), () {
+      _apiService.updateTypingStatus(false);
+    });
   }
 
   void _scrollToBottom() {
@@ -73,6 +89,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (text.isEmpty) return;
 
     _msgController.clear();
+    _typingDebounce?.cancel();
+    _apiService.updateTypingStatus(false);
 
     // Optimistic UI update could go here
 
@@ -267,69 +285,100 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildMessageInput() {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(24),
+    return Column(
+      children: [
+        if (_isProviderTyping)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                const SizedBox(
+                  height: 12,
+                  width: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.primaryTeal,
+                  ),
                 ),
-                child: TextField(
-                  controller: _msgController,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendMessage(),
-                  decoration: const InputDecoration(
-                    hintText: 'Type a message...',
-                    hintStyle: TextStyle(color: AppTheme.textLight),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
+                const SizedBox(width: 8),
+                Text(
+                  'Care Provider is typing...',
+                  style: TextStyle(
+                    color: AppTheme.textLight,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Container(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: TextField(
+                      controller: _msgController,
+                      textInputAction: TextInputAction.send,
+                      onChanged: _onMessageChanged,
+                      onSubmitted: (_) => _sendMessage(),
+                      decoration: const InputDecoration(
+                        hintText: 'Type a message...',
+                        hintStyle: TextStyle(color: AppTheme.textLight),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: _sendMessage,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primaryTeal,
-                  shape: BoxShape.circle,
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primaryTeal,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.send_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
