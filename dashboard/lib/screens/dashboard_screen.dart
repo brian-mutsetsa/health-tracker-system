@@ -8,6 +8,8 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
+const double _kMobileBreakpoint = 768.0;
+
 class DashboardScreen extends StatefulWidget {
   final String providerName;
   const DashboardScreen({Key? key, required this.providerName})
@@ -18,6 +20,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   int _selectedIndex = 0;
   final DashboardApiService _apiService = DashboardApiService();
 
@@ -35,7 +39,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
-    // Poll the backend silently every 15 seconds for real-time updates
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _loadDataSilently();
     });
@@ -44,7 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadDataSilently() async {
     final patients = await _apiService.getPatients();
     final stats = await _apiService.getStats();
-
     if (mounted) {
       setState(() {
         _patients = patients;
@@ -63,7 +65,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _loading = true);
     final patients = await _apiService.getPatients();
     final stats = await _apiService.getStats();
-
     setState(() {
       _patients = patients;
       _stats = stats;
@@ -71,21 +72,113 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  // Navigate and close drawer if it's open
+  void _navigate(int index) {
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState!.closeDrawer();
+    }
+    setState(() => _selectedIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < _kMobileBreakpoint;
+
+        if (isMobile) {
+          return _buildMobileScaffold();
+        }
+        return _buildDesktopScaffold();
+      },
+    );
+  }
+
+  // ─── Mobile Scaffold ──────────────────────────────────────────────────────
+
+  Widget _buildMobileScaffold() {
     return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: AppTheme.background,
+      drawer: Drawer(
+        child: SafeArea(child: _buildSidebarContent(isMobile: true)),
+      ),
+      body: Column(
+        children: [
+          _buildTopNavMobile(),
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryTeal,
+                    ),
+                  )
+                : _buildContent(isMobile: true),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: (i) => setState(() => _selectedIndex = i),
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: AppTheme.primaryTeal,
+      unselectedItemColor: AppTheme.textLight,
+      selectedFontSize: 11,
+      unselectedFontSize: 11,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.grid_view_rounded),
+          label: 'Overview',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.people_outline_rounded),
+          label: 'Patients',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.warning_amber_rounded),
+          label: 'High Risk',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.analytics_outlined),
+          label: 'Analytics',
+        ),
+      ],
+    );
+  }
+
+  // ─── Desktop Scaffold ─────────────────────────────────────────────────────
+
+  Widget _buildDesktopScaffold() {
+    return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppTheme.background,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Sidebar
-          _buildSidebar(),
-
-          // Main Content
+          Container(
+            width: 260,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            child: SafeArea(child: _buildSidebarContent(isMobile: false)),
+          ),
+          // Main area
           Expanded(
             child: Column(
               children: [
-                _buildTopNav(),
+                _buildTopNavDesktop(),
                 Expanded(
                   child: _loading
                       ? const Center(
@@ -93,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: AppTheme.primaryTeal,
                           ),
                         )
-                      : _buildContent(),
+                      : _buildContent(isMobile: false),
                 ),
               ],
             ),
@@ -103,118 +196,111 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSidebar() {
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Logo Area
-          Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.mintGradient,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.monitor_heart,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'HealthTrack',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  // ─── Sidebar Content ──────────────────────────────────────────────────────
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-            child: Text(
-              'MENU',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textLight,
-                letterSpacing: 1.2,
+  Widget _buildSidebarContent({required bool isMobile}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Logo
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.mintGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.monitor_heart,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
+              const SizedBox(width: 12),
+              const Text(
+                'HealthTrack',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Text(
+            'MENU',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textLight,
+              letterSpacing: 1.2,
             ),
           ),
+        ),
 
-          _buildNavItem(0, Icons.grid_view_rounded, 'Dashboard'),
-          _buildNavItem(1, Icons.people_outline_rounded, 'All Patients'),
-          _buildNavItem(2, Icons.warning_amber_rounded, 'High Risk Alerts'),
-          _buildNavItem(3, Icons.analytics_outlined, 'Analytics'),
+        _buildNavItem(0, Icons.grid_view_rounded, 'Dashboard'),
+        _buildNavItem(1, Icons.people_outline_rounded, 'All Patients'),
+        _buildNavItem(2, Icons.warning_amber_rounded, 'High Risk Alerts'),
+        _buildNavItem(3, Icons.analytics_outlined, 'Analytics'),
 
-          const Spacer(),
+        const Spacer(),
 
-          Container(
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.lightMint,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Need Help?',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTeal,
-                  ),
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.lightMint,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Need Help?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTeal,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Contact system admin for technical support.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.darkTeal),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Contact system admin for technical support.',
+                style: TextStyle(fontSize: 12, color: AppTheme.darkTeal),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text('Support'),
                   ),
+                  child: const Text('Support'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
-    bool isSelected = _selectedIndex == index;
+    final isSelected = _selectedIndex == index;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: InkWell(
-        onTap: () => setState(() => _selectedIndex = index),
+        onTap: () => _navigate(index),
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -246,7 +332,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTopNav() {
+  // ─── Top Navs ─────────────────────────────────────────────────────────────
+
+  Widget _buildTopNavMobile() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.menu, color: AppTheme.textDark),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
+            const Spacer(),
+            const Text(
+              'HealthTrack',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppTheme.textDark,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh, color: AppTheme.textLight),
+            ),
+            const CircleAvatar(
+              radius: 16,
+              backgroundColor: AppTheme.primaryTeal,
+              child: Icon(Icons.person, color: Colors.white, size: 18),
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
+              tooltip: 'Logout',
+              onPressed: _logout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopNavDesktop() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       decoration: BoxDecoration(
@@ -307,26 +440,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.redAccent),
                 tooltip: 'Logout',
-                onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  if (mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            const LoginScreen(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                      ),
-                      (route) => false,
-                    );
-                  }
-                },
+                onPressed: _logout,
               ),
             ],
           ),
@@ -335,116 +449,121 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, _) => const LoginScreen(),
+          transitionsBuilder: (context, animation, _, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
+  // ─── Content Router ───────────────────────────────────────────────────────
+
+  Widget _buildContent({required bool isMobile}) {
     switch (_selectedIndex) {
       case 0:
-        return _buildOverview();
+        return _buildOverview(isMobile: isMobile);
       case 1:
-        return _buildPatientsView('All Managed Patients', _patients);
+        return _buildPatientsView(
+          'All Managed Patients',
+          _patients,
+          isMobile: isMobile,
+        );
       case 2:
         final highRisk = _patients
             .where(
               (p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE',
             )
             .toList();
-        return _buildPatientsView('High Risk Action Required', highRisk);
+        return _buildPatientsView(
+          'High Risk — Action Required',
+          highRisk,
+          isMobile: isMobile,
+        );
+      case 3:
+        return _buildAnalytics(isMobile: isMobile);
       default:
-        return _buildOverview();
+        return _buildOverview(isMobile: isMobile);
     }
   }
 
-  Widget _buildOverview() {
+  // ─── Overview ─────────────────────────────────────────────────────────────
+
+  Widget _buildOverview({required bool isMobile}) {
+    final pad = isMobile ? 16.0 : 40.0;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(pad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Hero Banner
-          Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              gradient: AppTheme.mintGradient,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryTeal.withOpacity(0.3),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          _buildHeroBanner(isMobile: isMobile),
+          SizedBox(height: isMobile ? 20 : 40),
+
+          // Stat cards
+          if (isMobile)
+            Column(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back, Dr. ${widget.providerName}!',
-                      style: Theme.of(context).textTheme.displayMedium
-                          ?.copyWith(color: Colors.white, fontSize: 32),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Here is what is happening with your patients today.',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primaryTeal,
-                      ),
-                      onPressed: () => setState(() => _selectedIndex = 2),
-                      child: Text(
-                        'View Action Items ${_stats['high_risk']! > 0 ? "(${_stats['high_risk']})" : ""}',
-                      ),
-                    ),
-                  ],
+                _buildStatCardFull(
+                  'Total Patients',
+                  _stats['total_patients'].toString(),
+                  Icons.people_outline,
+                  Colors.blueAccent,
                 ),
-                if (MediaQuery.of(context).size.width > 900)
-                  Icon(
-                    Icons.monitor_heart,
-                    size: 140,
-                    color: Colors.white.withOpacity(0.3),
-                  ).animate().scale(curve: Curves.easeOutBack),
+                const SizedBox(height: 12),
+                _buildStatCardFull(
+                  'High Risk Level',
+                  _stats['high_risk'].toString(),
+                  Icons.warning_amber_rounded,
+                  Colors.redAccent,
+                ),
+                const SizedBox(height: 12),
+                _buildStatCardFull(
+                  'Overall Check-ins',
+                  _stats['total_checkins'].toString(),
+                  Icons.fact_check_outlined,
+                  AppTheme.primaryTeal,
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                _buildStatCard(
+                  'Total Patients',
+                  _stats['total_patients'].toString(),
+                  Icons.people_outline,
+                  Colors.blueAccent,
+                ),
+                const SizedBox(width: 24),
+                _buildStatCard(
+                  'High Risk Level',
+                  _stats['high_risk'].toString(),
+                  Icons.warning_amber_rounded,
+                  Colors.redAccent,
+                ),
+                const SizedBox(width: 24),
+                _buildStatCard(
+                  'Overall Check-ins',
+                  _stats['total_checkins'].toString(),
+                  Icons.fact_check_outlined,
+                  AppTheme.primaryTeal,
+                ),
               ],
             ),
-          ).animate().fadeIn().slideY(begin: 0.1),
 
-          const SizedBox(height: 40),
+          SizedBox(height: isMobile ? 20 : 40),
 
-          // Stat Cards
-          Row(
-            children: [
-              _buildStatCard(
-                'Total Patients',
-                _stats['total_patients'].toString(),
-                Icons.people_outline,
-                Colors.blueAccent,
-              ),
-              const SizedBox(width: 24),
-              _buildStatCard(
-                'High Risk Level',
-                _stats['high_risk'].toString(),
-                Icons.warning_amber_rounded,
-                Colors.redAccent,
-              ),
-              const SizedBox(width: 24),
-              _buildStatCard(
-                'Overall Check-ins',
-                _stats['total_checkins'].toString(),
-                Icons.fact_check_outlined,
-                AppTheme.primaryTeal,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 40),
-
-          // Recent Activity Table
+          // Recent Activity
           Container(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(isMobile ? 16 : 32),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -464,7 +583,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const Text(
                       'Recent Patient Updates',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textDark,
                       ),
@@ -481,8 +600,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                _buildPatientTable(_patients.take(6).toList()),
+                const SizedBox(height: 16),
+                isMobile
+                    ? _buildPatientCards(_patients.take(5).toList())
+                    : _buildPatientTable(_patients.take(6).toList()),
               ],
             ),
           ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -491,82 +612,479 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildHeroBanner({required bool isMobile}) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
+      decoration: BoxDecoration(
+        gradient: AppTheme.mintGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryTeal.withOpacity(0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back,\nDr. ${widget.providerName}!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isMobile ? 20 : 32,
+                    fontWeight: FontWeight.bold,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Here is what is happening with your patients today.',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryTeal,
+                  ),
+                  onPressed: () => setState(() => _selectedIndex = 2),
+                  child: Text(
+                    'View Action Items'
+                    '${_stats['high_risk']! > 0 ? " (${_stats['high_risk']})" : ""}',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isMobile)
+            Icon(
+              Icons.monitor_heart,
+              size: 140,
+              color: Colors.white.withOpacity(0.3),
+            ).animate().scale(curve: Curves.easeOutBack),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1);
+  }
+
+  // ─── Stat Cards ───────────────────────────────────────────────────────────
+
   Widget _buildStatCard(
     String title,
     String value,
     IconData icon,
     Color color,
   ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 32),
-            ),
-            const SizedBox(width: 24),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textLight,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+    return Expanded(child: _statCardBody(title, value, icon, color));
+  }
+
+  Widget _buildStatCardFull(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: _statCardBody(title, value, icon, color),
     );
   }
 
-  Widget _buildPatientsView(String title, List<Patient> patients) {
+  Widget _statCardBody(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textLight,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
+  }
+
+  // ─── Analytics Page ───────────────────────────────────────────────────────
+
+  Widget _buildAnalytics({required bool isMobile}) {
+    final pad = isMobile ? 16.0 : 40.0;
+    final total = _stats['total_patients'] ?? 0;
+    final highRisk = _stats['high_risk'] ?? 0;
+    final checkins = _stats['total_checkins'] ?? 0;
+    final lowRisk = total - highRisk;
+
+    // Condition breakdown
+    final conditionCounts = <String, int>{};
+    for (final p in _patients) {
+      conditionCounts[p.condition] = (conditionCounts[p.condition] ?? 0) + 1;
+    }
+
+    // Risk level breakdown
+    final riskCounts = <String, int>{
+      'GREEN': 0,
+      'YELLOW': 0,
+      'ORANGE': 0,
+      'RED': 0,
+      'Unknown': 0,
+    };
+    for (final p in _patients) {
+      final level = p.lastRiskLevel ?? 'Unknown';
+      if (riskCounts.containsKey(level)) {
+        riskCounts[level] = riskCounts[level]! + 1;
+      } else {
+        riskCounts['Unknown'] = riskCounts['Unknown']! + 1;
+      }
+    }
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(pad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Analytics',
+            style: TextStyle(
+              fontSize: isMobile ? 22 : 32,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Summary of patient data across your practice.',
+            style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+          ),
+          SizedBox(height: isMobile ? 20 : 32),
+
+          // Summary KPI row
+          if (isMobile)
+            Column(
+              children: [
+                _buildStatCardFull(
+                  'Total Patients',
+                  total.toString(),
+                  Icons.people_outline,
+                  Colors.blueAccent,
+                ),
+                const SizedBox(height: 12),
+                _buildStatCardFull(
+                  'High Risk',
+                  highRisk.toString(),
+                  Icons.warning_amber_rounded,
+                  Colors.redAccent,
+                ),
+                const SizedBox(height: 12),
+                _buildStatCardFull(
+                  'Low / Med Risk',
+                  lowRisk.toString(),
+                  Icons.check_circle_outline,
+                  Colors.green,
+                ),
+                const SizedBox(height: 12),
+                _buildStatCardFull(
+                  'Total Check-ins',
+                  checkins.toString(),
+                  Icons.fact_check_outlined,
+                  AppTheme.primaryTeal,
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                _buildStatCard(
+                  'Total Patients',
+                  total.toString(),
+                  Icons.people_outline,
+                  Colors.blueAccent,
+                ),
+                const SizedBox(width: 20),
+                _buildStatCard(
+                  'High Risk',
+                  highRisk.toString(),
+                  Icons.warning_amber_rounded,
+                  Colors.redAccent,
+                ),
+                const SizedBox(width: 20),
+                _buildStatCard(
+                  'Low / Med Risk',
+                  lowRisk.toString(),
+                  Icons.check_circle_outline,
+                  Colors.green,
+                ),
+                const SizedBox(width: 20),
+                _buildStatCard(
+                  'Total Check-ins',
+                  checkins.toString(),
+                  Icons.fact_check_outlined,
+                  AppTheme.primaryTeal,
+                ),
+              ],
+            ),
+
+          SizedBox(height: isMobile ? 20 : 32),
+
+          // Two panels: Risk breakdown + Condition breakdown
+          if (isMobile)
+            Column(
+              children: [
+                _buildRiskPanel(riskCounts),
+                const SizedBox(height: 16),
+                _buildConditionPanel(conditionCounts),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildRiskPanel(riskCounts)),
+                const SizedBox(width: 24),
+                Expanded(child: _buildConditionPanel(conditionCounts)),
+              ],
+            ),
+        ],
+      ),
+    ).animate().fadeIn();
+  }
+
+  Widget _buildRiskPanel(Map<String, int> riskCounts) {
+    final colors = {
+      'GREEN': Colors.green,
+      'YELLOW': Colors.yellow[700]!,
+      'ORANGE': Colors.orange,
+      'RED': Colors.red,
+      'Unknown': Colors.grey,
+    };
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Risk Level Distribution',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ...riskCounts.entries.map((e) {
+            final color = colors[e.key] ?? Colors.grey;
+            final pct = _patients.isEmpty ? 0.0 : e.value / _patients.length;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: AppTheme.textDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${e.value}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      backgroundColor: color.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 8,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConditionPanel(Map<String, int> conditionCounts) {
+    final sorted = conditionCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Condition Breakdown',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (sorted.isEmpty)
+            const Text(
+              'No data available',
+              style: TextStyle(color: AppTheme.textLight),
+            )
+          else
+            ...sorted.take(8).map((e) {
+              final pct = _patients.isEmpty ? 0.0 : e.value / _patients.length;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: AppTheme.textDark,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          '${e.value}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        backgroundColor: AppTheme.primaryTeal.withOpacity(0.1),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppTheme.primaryTeal,
+                        ),
+                        minHeight: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // ─── Patients View ────────────────────────────────────────────────────────
+
+  Widget _buildPatientsView(
+    String title,
+    List<Patient> patients, {
+    required bool isMobile,
+  }) {
+    final pad = isMobile ? 16.0 : 40.0;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(pad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 32,
+            style: TextStyle(
+              fontSize: isMobile ? 20 : 32,
               fontWeight: FontWeight.bold,
               color: AppTheme.textDark,
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: isMobile ? 16 : 32),
           Container(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(isMobile ? 16 : 32),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -577,12 +1095,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            child: _buildPatientTable(patients),
+            child: isMobile
+                ? _buildPatientCards(patients)
+                : _buildPatientTable(patients),
           ),
         ],
       ),
     ).animate().fadeIn();
   }
+
+  // ─── Desktop Table ────────────────────────────────────────────────────────
 
   Widget _buildPatientTable(List<Patient> patients) {
     if (patients.isEmpty) {
@@ -596,7 +1118,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -607,28 +1128,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         5: FlexColumnWidth(2),
       },
       children: [
-        // Header row
         TableRow(
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Color(0xFFEDF2F7))),
           ),
           children: [
-            _buildTableHeader('Patient ID'),
-            _buildTableHeader('Condition'),
-            _buildTableHeader('Risk Status'),
-            _buildTableHeader('Logs'),
-            _buildTableHeader('Last Update'),
-            _buildTableHeader('Action'),
+            _th('Patient ID'),
+            _th('Condition'),
+            _th('Risk Status'),
+            _th('Logs'),
+            _th('Last Update'),
+            _th('Action'),
           ],
         ),
-        // Data rows
         ...patients.map(
           (p) => TableRow(
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFF7FAFC))),
             ),
             children: [
-              _buildTableCell(
+              _td(
                 Text(
                   p.patientId,
                   style: const TextStyle(
@@ -637,26 +1156,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-              _buildTableCell(
+              _td(
                 Text(
                   p.condition,
                   style: const TextStyle(color: AppTheme.textDark),
                 ),
               ),
-              _buildTableCell(_buildRiskPill(p.lastRiskLevel, p.lastRiskColor)),
-              _buildTableCell(
+              _td(_buildRiskPill(p.lastRiskLevel, p.lastRiskColor)),
+              _td(
                 Text(
                   '${p.totalCheckins}',
                   style: const TextStyle(color: AppTheme.textLight),
                 ),
               ),
-              _buildTableCell(
+              _td(
                 Text(
                   p.lastCheckin != null ? _formatDate(p.lastCheckin!) : 'Never',
                   style: const TextStyle(color: AppTheme.textLight),
                 ),
               ),
-              _buildTableCell(
+              _td(
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -670,12 +1189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     if (!kIsWeb)
                       TextButton(
-                        onPressed: () async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Downloading patient records...'),
-                            ),
-                          );
+                        onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
@@ -702,34 +1216,126 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTableHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: AppTheme.textLight,
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-          letterSpacing: 0.5,
+  Widget _th(String t) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+    child: Text(
+      t,
+      style: const TextStyle(
+        color: AppTheme.textLight,
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
+
+  Widget _td(Widget child) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+    child: Align(alignment: Alignment.centerLeft, child: child),
+  );
+
+  // ─── Mobile Patient Cards ─────────────────────────────────────────────────
+
+  Widget _buildPatientCards(List<Patient> patients) {
+    if (patients.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'No patient data available',
+            style: TextStyle(color: AppTheme.textLight, fontSize: 16),
+          ),
         ),
+      );
+    }
+    return Column(children: patients.map((p) => _buildPatientCard(p)).toList());
+  }
+
+  Widget _buildPatientCard(Patient p) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  p.patientId,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppTheme.textDark,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildRiskPill(p.lastRiskLevel, p.lastRiskColor),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _infoRow(Icons.medical_services_outlined, p.condition),
+          const SizedBox(height: 4),
+          _infoRow(
+            Icons.access_time,
+            p.lastCheckin != null
+                ? _formatDate(p.lastCheckin!)
+                : 'No check-in yet',
+          ),
+          const SizedBox(height: 4),
+          _infoRow(Icons.fact_check_outlined, '${p.totalCheckins} check-ins'),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.message, size: 16),
+              label: const Text('Message Patient'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryTeal,
+                side: const BorderSide(color: AppTheme.primaryTeal),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => _openMessageDrawer(p),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTableCell(Widget child) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-      child: Align(alignment: Alignment.centerLeft, child: child),
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppTheme.textLight),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
+  // ─── Shared Helpers ───────────────────────────────────────────────────────
+
   Widget _buildRiskPill(String? riskLevel, String? color) {
     if (riskLevel == null) return const Text('N/A');
-    Color riskColor = _getRiskColor(color);
-
+    final riskColor = _getRiskColor(color);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: riskColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -738,17 +1344,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             decoration: BoxDecoration(color: riskColor, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
             riskLevel,
             style: TextStyle(
               color: riskColor,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],
@@ -758,16 +1364,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Color _getRiskColor(String? color) {
     if (color == null) return Colors.grey;
-    if (color.toLowerCase() == 'green') return Colors.green;
-    if (color.toLowerCase() == 'yellow') return Colors.yellow[700]!;
-    if (color.toLowerCase() == 'orange') return Colors.orange;
-    if (color.toLowerCase() == 'red') return Colors.red;
-    return Colors.grey;
+    switch (color.toLowerCase()) {
+      case 'green':
+        return Colors.green;
+      case 'yellow':
+        return Colors.yellow[700]!;
+      case 'orange':
+        return Colors.orange;
+      case 'red':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
-  String _formatDate(DateTime date) {
-    return DateFormat('MMM d, yyyy h:mm a').format(date);
-  }
+  String _formatDate(DateTime date) =>
+      DateFormat('MMM d, yyyy h:mm a').format(date);
 
   void _openMessageDrawer(Patient patient) {
     showGeneralDialog(
@@ -804,10 +1416,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
+// ─── Message Panel ──────────────────────────────────────────────────────────
+
 class _MessagePanel extends StatefulWidget {
   final Patient patient;
   final DashboardApiService apiService;
-
   const _MessagePanel({
     Key? key,
     required this.patient,
@@ -860,9 +1473,7 @@ class _MessagePanelState extends State<_MessagePanel> {
 
   void _onMessageChanged(String text) {
     if (_typingDebounce?.isActive ?? false) _typingDebounce!.cancel();
-
     widget.apiService.updateTypingStatus(widget.patient.patientId, true);
-
     _typingDebounce = Timer(const Duration(seconds: 2), () {
       widget.apiService.updateTypingStatus(widget.patient.patientId, false);
     });
@@ -870,15 +1481,12 @@ class _MessagePanelState extends State<_MessagePanel> {
 
   Future<void> _sendMessage() async {
     if (_msgController.text.trim().isEmpty) return;
-
     _typingDebounce?.cancel();
     widget.apiService.updateTypingStatus(widget.patient.patientId, false);
-
     final success = await widget.apiService.sendMessage(
       widget.patient.patientId,
       _msgController.text.trim(),
     );
-
     if (success) {
       _msgController.clear();
       _loadMessages();
@@ -891,13 +1499,8 @@ class _MessagePanelState extends State<_MessagePanel> {
       children: [
         // Header
         Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryTeal,
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-            ],
-          ),
+          padding: const EdgeInsets.all(16),
+          color: AppTheme.primaryTeal,
           child: SafeArea(
             bottom: false,
             child: Row(
@@ -906,28 +1509,30 @@ class _MessagePanelState extends State<_MessagePanel> {
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Chat: ${widget.patient.patientId}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chat: ${widget.patient.patientId}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      widget.patient.condition,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
+                      Text(
+                        widget.patient.condition,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.white),
                   onPressed: _loadMessages,
@@ -937,7 +1542,7 @@ class _MessagePanelState extends State<_MessagePanel> {
           ),
         ),
 
-        // Chat List
+        // Chat list
         Expanded(
           child: _isLoading
               ? const Center(
@@ -951,35 +1556,36 @@ class _MessagePanelState extends State<_MessagePanel> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(16),
                   reverse: true,
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
-                    // Reverse the list view layout so newest is at bottom
                     final msg = _messages[_messages.length - 1 - index];
                     final isProvider = msg.senderId == 'provider';
-
                     return Align(
                       alignment: isProvider
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
                         decoration: BoxDecoration(
                           color: isProvider
                               ? AppTheme.lightMint
                               : Colors.grey[100],
-                          borderRadius: BorderRadius.circular(20).copyWith(
+                          borderRadius: BorderRadius.circular(18).copyWith(
                             bottomRight: isProvider
                                 ? const Radius.circular(0)
-                                : const Radius.circular(20),
+                                : const Radius.circular(18),
                             bottomLeft: !isProvider
                                 ? const Radius.circular(0)
-                                : const Radius.circular(20),
+                                : const Radius.circular(18),
                           ),
                         ),
                         child: Column(
@@ -993,10 +1599,10 @@ class _MessagePanelState extends State<_MessagePanel> {
                                 color: isProvider
                                     ? AppTheme.darkTeal
                                     : AppTheme.textDark,
-                                fontSize: 15,
+                                fontSize: 14,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Text(
                               DateFormat('h:mm a').format(msg.timestamp),
                               style: TextStyle(
@@ -1014,14 +1620,14 @@ class _MessagePanelState extends State<_MessagePanel> {
                 ),
         ),
 
-        // Input Field
+        // Typing + input
         Column(
           children: [
             if (_isPatientTyping)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
+                  horizontal: 16,
+                  vertical: 6,
                 ),
                 alignment: Alignment.centerLeft,
                 child: Row(
@@ -1039,7 +1645,7 @@ class _MessagePanelState extends State<_MessagePanel> {
                       'Patient is typing...',
                       style: TextStyle(
                         color: AppTheme.textLight,
-                        fontSize: 13,
+                        fontSize: 12,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -1047,7 +1653,7 @@ class _MessagePanelState extends State<_MessagePanel> {
                 ),
               ),
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -1075,14 +1681,14 @@ class _MessagePanelState extends State<_MessagePanel> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
+                            horizontal: 18,
+                            vertical: 12,
                           ),
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 10),
                     Container(
                       decoration: BoxDecoration(
                         gradient: AppTheme.mintGradient,

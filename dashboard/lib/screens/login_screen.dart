@@ -100,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width <= 800;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Row(
@@ -167,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: SingleChildScrollView(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 480),
-                  padding: const EdgeInsets.all(48.0),
+                  padding: EdgeInsets.all(isMobile ? 24.0 : 48.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -195,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Welcome Back',
                             style: Theme.of(context).textTheme.displayMedium
                                 ?.copyWith(
-                                  fontSize: 40,
+                                  fontSize: isMobile ? 26 : 40,
                                   color: AppTheme.textDark,
                                 ),
                           ),
