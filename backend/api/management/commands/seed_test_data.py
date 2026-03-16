@@ -1,296 +1,104 @@
 from django.core.management.base import BaseCommand
-from api.models import Patient, CheckIn, Provider, Appointment, Notification
+from api.models import Patient, CheckIn
 from datetime import datetime, timedelta
-import random
 
 
 class Command(BaseCommand):
-    help = 'Seed database with test data for demo and testing'
+    help = 'Seed database with test data - ensures test patients exist with proper credentials'
 
     def handle(self, *args, **options):
-        self.stdout.write("🌱 Starting database seeding...")
+        self.stdout.write("🌱 Seeding test patients with credentials...")
         
-        # Clear existing data (optional)
-        # Patient.objects.all().delete()
-        # CheckIn.objects.all().delete()
-        # Provider.objects.all().delete()
-        
-        # Create providers (admin/doctors)
-        print("\n📋 Creating providers...")
-        providers = [
-            {'name': 'Dr. Smith', 'specialty': 'Cardiology', 'user_id': 1},
-            {'name': 'Dr. Johnson', 'specialty': 'Endocrinology', 'user_id': 2},
-            {'name': 'Dr. Williams', 'specialty': 'Internal Medicine', 'user_id': 3},
-        ]
-        
-        for provider_data in providers:
-            try:
-                provider = Provider.objects.get(name=provider_data['name'])
-                self.stdout.write(f"✓ Provider {provider_data['name']} exists")
-            except Provider.DoesNotExist:
-                provider = Provider.objects.create(**provider_data)
-                self.stdout.write(f"✓ Created provider: {provider_data['name']}")
-        
-        # Create test patients
-        print("\n👥 Creating test patients...")
+        # Test patients - matching the actual dashboard patient names
         patients_data = [
             {
-                'patient_id': 'PT001',
-                'name': 'John Doe',
-                'date_of_birth': '1970-05-15',
+                'patient_id': 'Judy',
                 'condition': 'Hypertension',
                 'password': 'test123',
                 'weight_kg': 85.5,
                 'blood_pressure_systolic': 140,
                 'blood_pressure_diastolic': 90,
-                'blood_glucose_baseline': None,
-                'medical_history': 'Hypertension for 10 years',
-                'medications': 'Lisinopril 10mg daily',
             },
             {
-                'patient_id': 'PT002',
-                'name': 'Jane Smith',
-                'date_of_birth': '1965-03-22',
-                'condition': 'Diabetes',
-                'password': 'test123',
-                'weight_kg': 72.0,
-                'blood_pressure_systolic': 130,
-                'blood_pressure_diastolic': 85,
-                'blood_glucose_baseline': 156,
-                'medical_history': 'Type 2 Diabetes for 5 years',
-                'medications': 'Metformin 500mg twice daily',
-            },
-            {
-                'patient_id': 'PT003',
-                'name': 'Robert Wilson',
-                'date_of_birth': '1955-07-10',
-                'condition': 'Cardiovascular',
-                'password': 'test123',
-                'weight_kg': 92.0,
-                'blood_pressure_systolic': 145,
-                'blood_pressure_diastolic': 95,
-                'blood_glucose_baseline': None,
-                'medical_history': 'CAD, heart attack 2020',
-                'medications': 'Aspirin 81mg, Atorvastatin 40mg daily',
-            },
-            {
-                'patient_id': 'PT004',
-                'name': 'Maria Garcia',
-                'date_of_birth': '1975-11-30',
+                'patient_id': 'Ivan',
                 'condition': 'Hypertension',
                 'password': 'test123',
-                'weight_kg': 68.5,
-                'blood_pressure_systolic': 138,
-                'blood_pressure_diastolic': 88,
-                'blood_glucose_baseline': None,
-                'medical_history': 'Hypertension, mild obesity',
-                'medications': 'Amlodipine 5mg daily',
+                'weight_kg': 88.0,
+                'blood_pressure_systolic': 145,
+                'blood_pressure_diastolic': 95,
             },
             {
-                'patient_id': 'PT005',
-                'name': 'James Brown',
-                'date_of_birth': '1960-02-14',
+                'patient_id': 'Heidi',
+                'condition': 'Asthma',
+                'password': 'test123',
+                'weight_kg': 65.0,
+                'blood_pressure_systolic': 120,
+                'blood_pressure_diastolic': 80,
+            },
+            {
+                'patient_id': 'Grace',
+                'condition': 'Heart Disease',
+                'password': 'test123',
+                'weight_kg': 70.0,
+                'blood_pressure_systolic': 130,
+                'blood_pressure_diastolic': 85,
+            },
+            {
+                'patient_id': 'Frank',
                 'condition': 'Diabetes',
                 'password': 'test123',
-                'weight_kg': 95.0,
+                'weight_kg': 90.0,
                 'blood_pressure_systolic': 135,
                 'blood_pressure_diastolic': 87,
-                'blood_glucose_baseline': 172,
-                'medical_history': 'Type 2 Diabetes, hypertension',
-                'medications': 'Metformin, Gliclazide',
+                'blood_glucose_baseline': 156,
             },
         ]
         
-        patients = {}
+        now = datetime.now()
+        patients_created = []
+        
         for patient_data in patients_data:
             patient, created = Patient.objects.get_or_create(
                 patient_id=patient_data['patient_id'],
                 defaults=patient_data
             )
-            patients[patient_data['patient_id']] = patient
-            status = "Created" if created else "Exists"
-            self.stdout.write(f"✓ {status}: {patient.name} ({patient.patient_id}) - {patient.condition}")
+            
+            # If patient already exists, update password and vitals
+            if not created:
+                patient.password = patient_data['password']
+                patient.weight_kg = patient_data['weight_kg']
+                patient.blood_pressure_systolic = patient_data['blood_pressure_systolic']
+                patient.blood_pressure_diastolic = patient_data['blood_pressure_diastolic']
+                if 'blood_glucose_baseline' in patient_data:
+                    patient.blood_glucose_baseline = patient_data['blood_glucose_baseline']
+                patient.save()
+            
+            status = "✓ Created" if created else "✓ Updated"
+            self.stdout.write(f"{status}: {patient.patient_id} - {patient.condition}")
+            patients_created.append(patient)
+            
+            # Ensure each patient has at least 5 check-ins (for dashboard history)
+            existing_checkins = CheckIn.objects.filter(patient=patient).count()
+            if existing_checkins == 0:
+                self.stdout.write(f"  Creating check-in history for {patient.patient_id}...")
+                # Create 5 check-ins with varied risk levels
+                risk_levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED', 'GREEN']
+                for i, risk in enumerate(risk_levels):
+                    CheckIn.objects.create(
+                        patient=patient,
+                        condition=patient.condition,
+                        date=now - timedelta(days=i),
+                        answers={
+                            'q1': i, 'q2': i, 'q3': i,
+                            'q4': i, 'q5': i, 'q6': i,
+                            'q7': i, 'q8': i, 'q9': i,
+                            'q10': i, 'q11': i, 'q12': None
+                        },
+                        risk_level=risk,
+                        risk_color=risk.lower(),
+                    )
         
-        # Create sample check-ins with varied risk levels
-        print("\n📊 Creating sample check-ins...")
-        
-        now = datetime.now()
-        
-        # PT001 - GREEN (low risk) check-in from today
-        CheckIn.objects.get_or_create(
-            patient=patients['PT001'],
-            date=now,
-            defaults={
-                'condition': 'Hypertension',
-                'answers': {
-                    'q1': 0, 'q2': 0, 'q3': 1,
-                    'q4': 0, 'q5': 0, 'q6': 1,
-                    'q7': 0, 'q8': 1, 'q9': 0,
-                    'q10': 0, 'q11': 0, 'q12': None
-                },
-                'risk_level': 'GREEN',
-                'risk_color': 'green',
-            }
-        )
-        self.stdout.write("✓ PT001: GREEN risk checkin (today)")
-        
-        # PT001 - YELLOW (medium risk) from 3 days ago
-        CheckIn.objects.get_or_create(
-            patient=patients['PT001'],
-            date=now - timedelta(days=3),
-            defaults={
-                'condition': 'Hypertension',
-                'answers': {
-                    'q1': 1, 'q2': 2, 'q3': 2,
-                    'q4': 1, 'q5': 0, 'q6': 2,
-                    'q7': 0, 'q8': 1, 'q9': 0,
-                    'q10': 2, 'q11': 2, 'q12': None
-                },
-                'risk_level': 'YELLOW',
-                'risk_color': 'yellow',
-            }
-        )
-        self.stdout.write("✓ PT001: YELLOW risk checkin (3 days ago)")
-        
-        # PT002 - YELLOW from today
-        CheckIn.objects.get_or_create(
-            patient=patients['PT002'],
-            date=now,
-            defaults={
-                'condition': 'Diabetes',
-                'answers': {
-                    'q1': 1, 'q2': 2, 'q3': 1,
-                    'q4': 2, 'q5': 0, 'q6': 0,
-                    'q7': 0, 'q8': 1, 'q9': 1,
-                    'q10': 2, 'q11': 2, 'q12': None
-                },
-                'risk_level': 'YELLOW',
-                'risk_color': 'yellow',
-            }
-        )
-        self.stdout.write("✓ PT002: YELLOW risk checkin (today)")
-        
-        # PT003 - ORANGE (high risk) from today - should trigger alert
-        CheckIn.objects.get_or_create(
-            patient=patients['PT003'],
-            date=now,
-            defaults={
-                'condition': 'Cardiovascular',
-                'answers': {
-                    'q1': 3, 'q2': 2, 'q3': 2,
-                    'q4': 2, 'q5': 2, 'q6': 2,
-                    'q7': 1, 'q8': 3, 'q9': 2,
-                    'q10': 2, 'q11': 3, 'q12': None
-                },
-                'risk_level': 'ORANGE',
-                'risk_color': 'orange',
-            }
-        )
-        self.stdout.write("✓ PT003: ORANGE risk checkin (today) - HIGH RISK!")
-        
-        # PT004 - GREEN from today
-        CheckIn.objects.get_or_create(
-            patient=patients['PT004'],
-            date=now,
-            defaults={
-                'condition': 'Hypertension',
-                'answers': {
-                    'q1': 0, 'q2': 0, 'q3': 0,
-                    'q4': 0, 'q5': 0, 'q6': 0,
-                    'q7': 0, 'q8': 0, 'q9': 0,
-                    'q10': 0, 'q11': 0, 'q12': None
-                },
-                'risk_level': 'GREEN',
-                'risk_color': 'green',
-            }
-        )
-        self.stdout.write("✓ PT004: GREEN risk checkin (today)")
-        
-        # PT005 - RED (critical risk) - should definitely trigger alert
-        CheckIn.objects.get_or_create(
-            patient=patients['PT005'],
-            date=now,
-            defaults={
-                'condition': 'Diabetes',
-                'answers': {
-                    'q1': 3, 'q2': 3, 'q3': 3,
-                    'q4': 3, 'q5': 3, 'q6': 3,
-                    'q7': 3, 'q8': 3, 'q9': 3,
-                    'q10': 3, 'q11': 3, 'q12': None
-                },
-                'risk_level': 'RED',
-                'risk_color': 'red',
-            }
-        )
-        self.stdout.write("✓ PT005: RED risk checkin (today) - CRITICAL!")
-        
-        # Create appointments
-        print("\n📅 Creating sample appointments...")
-        
-        Appointment.objects.get_or_create(
-            patient_id='PT001',
-            scheduled_date=now.date() + timedelta(days=7),
-            scheduled_time='14:30',
-            defaults={
-                'provider_id': 1,
-                'appointment_type': 'FOLLOW_UP',
-                'reason': 'BP monitoring follow-up',
-                'status': 'SCHEDULED',
-                'notes': 'Check recent readings, adjust medication if needed',
-                'created_at': now,
-                'updated_at': now,
-            }
-        )
-        self.stdout.write("✓ Appointment created: PT001 on " + str(now.date() + timedelta(days=7)))
-        
-        Appointment.objects.get_or_create(
-            patient_id='PT003',
-            scheduled_date=now.date() + timedelta(days=2),
-            scheduled_time='10:00',
-            defaults={
-                'provider_id': 1,
-                'appointment_type': 'EMERGENCY',
-                'reason': 'High-risk patient review',
-                'status': 'SCHEDULED',
-                'notes': 'RED risk alert - urgent review needed',
-                'created_at': now,
-                'updated_at': now,
-            }
-        )
-        self.stdout.write("✓ Appointment created: PT003 on " + str(now.date() + timedelta(days=2)) + " (EMERGENCY)")
-        
-        # Create some notifications
-        print("\n🔔 Creating sample notifications...")
-        
-        Notification.objects.get_or_create(
-            user_id=1,
-            notification_type='HIGH_RISK_ALERT',
-            defaults={
-                'message': 'Patient PT005 (James Brown) has RED risk level (score: 27)',
-                'is_read': False,
-                'created_at': now,
-            }
-        )
-        self.stdout.write("✓ Notification: HIGH_RISK_ALERT for PT005")
-        
-        Notification.objects.get_or_create(
-            user_id=1,
-            notification_type='HIGH_RISK_ALERT',
-            defaults={
-                'message': 'Patient PT003 (Robert Wilson) has ORANGE risk level (score: 18)',
-                'is_read': False,
-                'created_at': now,
-            }
-        )
-        self.stdout.write("✓ Notification: HIGH_RISK_ALERT for PT003")
-        
-        print("\n✅ Database seeding complete!")
-        print("\n📋 TEST CREDENTIALS:")
-        print("=" * 50)
-        print("MOBILE APP - Patient Login:")
-        print("  Patient ID: PT001, PT002, PT003, PT004, PT005")
-        print("  Password: test123")
-        print("\nDASHBOARD - Admin Login:")
-        print("  Username: admin")
-        print("  Password: admin123")
-        print("=" * 50)
+        self.stdout.write(self.style.SUCCESS(f"\n✅ Successfully seeded {len(patients_created)} test patients!"))
+        self.stdout.write("\n📱 Mobile App Login Test Credentials:")
+        self.stdout.write("Patient ID: Judy (or Ivan, Heidi, Grace, Frank)")
+        self.stdout.write("Password: test123")
