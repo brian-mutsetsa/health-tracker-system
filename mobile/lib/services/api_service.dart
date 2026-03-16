@@ -62,6 +62,38 @@ class ApiService {
     }
   }
 
+  // Register new patient
+  Future<Map<String, dynamic>?> registerPatient(Map<String, dynamic> registrationData) async {
+    try {
+      print('📝 Attempting patient registration...');
+      print('📦 Registration data: $registrationData');
+      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/patients/register/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(registrationData),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('📨 Response status: ${response.statusCode}');
+      print('📨 Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final patientData = jsonDecode(response.body);
+        print('✅ Registration successful: ${patientData['patient_id']}');
+        return patientData;
+      } else {
+        print('❌ Registration failed: ${response.statusCode}');
+        print('Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Registration error: $e');
+      return null;
+    }
+  }
+
   // Upload check-in to Django API
   Future<bool> uploadCheckin(CheckinModel checkin, String patientId) async {
     final condition = Hive.box(
