@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
-import 'history_screen.dart';
+import 'checkin_history_screen.dart';
 
 class DailyCheckinScreen extends StatefulWidget {
   final String condition;
@@ -176,7 +176,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.history, color: AppTheme.primaryTeal, size: 22),
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckInHistoryScreen()));
                       },
                     ),
                   ),

@@ -11,6 +11,8 @@ import 'condition_selection_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'messages_screen.dart';
 import 'appointments_screen.dart';
+import 'profile_screen.dart';
+import 'checkin_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -83,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody(String condition) {
     if (_currentIndex == 1) return const AppointmentsScreen();
     if (_currentIndex == 2) return const MessagesScreen();
-    if (_currentIndex == 3) return const ProfileMockScreen(condition: 'condition');
+    if (_currentIndex == 3) return const ProfileScreen();
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
@@ -172,6 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildHeader(context, 'Categories', 'See All'),
                       const SizedBox(height: 16),
                       _buildCategoriesRow(context),
+
+                      const SizedBox(height: 32),
+
+                      // History Quick Access
+                      _buildHistoryCard(context),
 
                       const SizedBox(height: 32),
 
@@ -472,6 +479,74 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildHistoryCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CheckInHistoryScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: AppTheme.mintGradient,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryTeal.withOpacity(0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'View Check-in History',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Track your health progress',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.history,
+                  color: AppTheme.primaryTeal,
+                  size: 24,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 250.ms).slideX(begin: -0.1);
+  }
+
   Widget _buildDoctorCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -622,7 +697,6 @@ class _ProfileMockScreenState extends State<ProfileMockScreen> {
           ),
           TextButton(
             onPressed: () {
-              // Clear all stored data
               _settingsBox.clear();
               Hive.box<CheckinModel>('checkins').clear();
               Navigator.pop(ctx);
@@ -637,64 +711,10 @@ class _ProfileMockScreenState extends State<ProfileMockScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final patientName = _settingsBox.get('patient_name', defaultValue: 'Patient');
-    final patientId = _settingsBox.get('patient_id', defaultValue: 'Unknown');
-    final condition = _settingsBox.get('condition', defaultValue: 'Unknown');
-    
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryTeal,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 50),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  patientName,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'ID: $patientId',
-                  style: const TextStyle(fontSize: 14, color: AppTheme.textLight),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Condition: $condition',
-                  style: const TextStyle(fontSize: 14, color: AppTheme.textLight),
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton.icon(
-                  onPressed: _logout,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'App Version: 1.0.0\nPhase 1&2 Complete',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textLight, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return const Scaffold(
+      body: Center(
+        child: Text('Use ProfileScreen instead'),
       ),
     );
   }
+}
