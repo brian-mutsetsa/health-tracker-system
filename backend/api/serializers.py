@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient, CheckIn, Message, Provider, TypingStatus
+from .models import Patient, CheckIn, Message, Provider, TypingStatus, Appointment, Notification
 
 
 class ProviderSerializer(serializers.ModelSerializer):
@@ -16,22 +16,116 @@ class ProviderSerializer(serializers.ModelSerializer):
 class CheckInSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckIn
-        fields = ['id', 'patient', 'condition', 'date', 'answers', 'risk_level', 'risk_color', 'uploaded_at']
+        fields = ['id', 'patient', 'condition', 'date', 'answers', 'blood_pressure_systolic', 
+                  'blood_pressure_diastolic', 'blood_glucose_reading', 'risk_level', 'risk_color', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+    
+    def validate_answers(self, value):
+        """Validate that answers contains exactly 12 questions with values 0-3"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Answers must be a dictionary")
+        if len(value) != 12:
+            raise serializers.ValidationError(f"Expected 12 answers, got {len(value)}")
+        for question_id, answer_value in value.items():
+            if not question_id.startswith('q'):
+                raise serializers.ValidationError(f"Invalid question ID: {question_id}")
+            if answer_value not in [0, 1, 2, 3]:
+                raise serializers.ValidationError(f"Answer values must be 0-3, got {answer_value} for {question_id}")
+        return value
+    
+    def validate_blood_pressure_systolic(self, value):
+        if value and (value < 60 or value > 220):
+            raise serializers.ValidationError("Systolic BP must be between 60 and 220")
+        return value
+    
+    def validate_blood_pressure_diastolic(self, value):
+        if value and (value < 40 or value > 130):
+            raise serializers.ValidationError("Diastolic BP must be between 40 and 130")
+        return value
+    
+    def validate_blood_glucose_reading(self, value):
+        if value and (value < 40 or value > 400):
+            raise serializers.ValidationError("Blood glucose must be between 40 and 400 mg/dL")
+        return value
 
 
 class PatientSerializer(serializers.ModelSerializer):
     checkins = CheckInSerializer(many=True, read_only=True)
     total_checkins = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
 
     class Meta:
         model = Patient
-        fields = ['id', 'patient_id', 'condition', 'last_checkin', 'last_risk_level', 
-                  'last_risk_color', 'created_at', 'updated_at', 'checkins', 'total_checkins']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'patient_id', 'name', 'condition', 'status', 'date_of_birth', 'age',
+                  'weight_kg', 'blood_pressure_systolic', 'blood_pressure_diastolic', 
+                  'blood_glucose_baseline', 'medical_history', 'medications', 'allergies',
+                  'primary_provider_id', 'last_checkin', 'last_risk_level', 'last_risk_color', 
+                  'created_at', 'updated_at', 'checkins', 'total_checkins']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'age']
 
     def get_total_checkins(self, obj):
         return obj.checkins.count()
+    
+    def get_age(self, obj):
+        return obj.get_age()
+
+
+class PatientRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for patient registration with all baseline data"""
+    class Meta:
+        model = Patient
+        fields = ['patient_id', 'name', 'condition', 'date_of_birth', 'weight_kg',
+                  'blood_pressure_systolic', 'blood_pressure_diastolic', 'blood_glucose_baseline',
+                  'medical_history', 'medications', 'allergies', 'primary_provider_id']
+    
+    def validate_date_of_birth(self, value):
+        from datetime import date
+        today = date.today()
+        age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+        if age < 0 or age > 120:
+            raise serializers.ValidationError("Invalid date of birth")
+        return value
+    
+    def validate_weight_kg(self, value):
+        if value and (value < 20 or value > 300):
+            raise serializers.ValidationError("Weight must be between 20 and 300 kg")
+        return value
+    
+    def validate_blood_pressure_systolic(self, value):
+        if value and (value < 60 or value > 220):
+            raise serializers.ValidationError("Systolic BP must be between 60 and 220")
+        return value
+    
+    def validate_blood_pressure_diastolic(self, value):
+        if value and (value < 40 or value > 130):
+            raise serializers.ValidationError("Diastolic BP must be between 40 and 130")
+        return value
+    
+    def validate_blood_glucose_baseline(self, value):
+        if value and (value < 40 or value > 400):
+            raise serializers.ValidationError("Blood glucose must be between 40 and 400 mg/dL")
+        return value
+
+
+class PatientUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating baseline data"""
+    class Meta:
+        model = Patient
+        fields = ['weight_kg', 'blood_pressure_systolic', 'blood_pressure_diastolic',
+                  'blood_glucose_baseline', 'medical_history', 'medications', 'allergies']
+
+
+class PatientListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for patient lists"""
+    age = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Patient
+        fields = ['id', 'patient_id', 'name', 'condition', 'status', 'age', 'last_risk_level', 
+                  'last_checkin', 'updated_at']
+    
+    def get_age(self, obj):
+        return obj.get_age()
 
 
 class CheckInCreateSerializer(serializers.Serializer):
@@ -39,8 +133,22 @@ class CheckInCreateSerializer(serializers.Serializer):
     condition = serializers.CharField(max_length=50)
     date = serializers.DateTimeField()
     answers = serializers.JSONField()
+    blood_pressure_systolic = serializers.IntegerField(required=False, allow_null=True)
+    blood_pressure_diastolic = serializers.IntegerField(required=False, allow_null=True)
+    blood_glucose_reading = serializers.IntegerField(required=False, allow_null=True)
     risk_level = serializers.CharField(max_length=20)
     risk_color = serializers.CharField(max_length=20)
+
+    def validate_answers(self, value):
+        """Validate that answers contains exactly 12 questions with values 0-3"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Answers must be a dictionary")
+        if len(value) != 12:
+            raise serializers.ValidationError(f"Expected 12 answers, got {len(value)}")
+        for question_id, answer_value in value.items():
+            if answer_value not in [0, 1, 2, 3]:
+                raise serializers.ValidationError(f"Answer values must be 0-3, got {answer_value}")
+        return value
 
     def create(self, validated_data):
         patient_id = validated_data.pop('patient_id')
@@ -48,6 +156,22 @@ class CheckInCreateSerializer(serializers.Serializer):
         # Get or create patient
         patient, created = Patient.objects.get_or_create(
             patient_id=patient_id,
+            defaults={'condition': validated_data.get('condition')}
+        )
+        
+        # Create check-in
+        checkin = CheckIn.objects.create(
+            patient=patient,
+            **validated_data
+        )
+        
+        # Update patient's last check-in info
+        patient.last_checkin = validated_data.get('date')
+        patient.last_risk_level = validated_data.get('risk_level')
+        patient.last_risk_color = validated_data.get('risk_color')
+        patient.save()
+        
+        return checkin
             defaults={'condition': validated_data['condition']}
         )
         
@@ -74,3 +198,22 @@ class TypingStatusSerializer(serializers.ModelSerializer):
         model = TypingStatus
         fields = ['user_id', 'chat_partner_id', 'is_typing', 'updated_at']
         read_only_fields = ['updated_at']
+
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source='patient.name', read_only=True)
+    
+    class Meta:
+        model = Appointment
+        fields = ['id', 'patient', 'patient_name', 'provider_id', 'scheduled_date', 
+                  'scheduled_time', 'duration_minutes', 'reason', 'notes', 'status', 
+                  'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'user_id', 'notification_type', 'message', 'is_read', 
+                  'related_patient_id', 'related_object_id', 'created_at', 'read_at']
+        read_only_fields = ['id', 'created_at']

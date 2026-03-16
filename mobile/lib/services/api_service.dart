@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/checkin_model.dart';
@@ -24,6 +23,42 @@ class ApiService {
     }
 
     return patientId;
+  }
+
+  // Patient login - returns patient data if successful
+  Future<Map<String, dynamic>?> patientLogin(
+      String patientId, String password) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/patient-login/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'patient_id': patientId,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final patientData = jsonDecode(response.body);
+        // Save to Hive for session
+        final settingsBox = Hive.box('settings');
+        await settingsBox.put('patient_id', patientId);
+        await settingsBox.put('patient_name', patientData['name']);
+        await settingsBox.put('condition', patientData['condition']);
+        await settingsBox.put('session_token', patientData['session_token']);
+        print('✅ Login successful: ${patientData['name']}');
+        return patientData;
+      } else {
+        print('❌ Login failed: ${response.statusCode}');
+        print('Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Login error: $e');
+      return null;
+    }
   }
 
   // Upload check-in to Django API

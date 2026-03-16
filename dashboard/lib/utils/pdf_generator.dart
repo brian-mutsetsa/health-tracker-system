@@ -254,7 +254,7 @@ class PdfGenerator {
                   ],
                 ),
               );
-            }).toList(),
+            }),
 
             pw.SizedBox(height: 30),
             pw.Text(
