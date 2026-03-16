@@ -308,11 +308,23 @@ def trigger_seed(request):
             """)
             print("✓ Recreated api_patient table with all columns")
         
-        # Clear other tables
-        CheckIn.objects.all().delete()
-        Message.objects.all().delete()
-        Appointment.objects.all().delete()
-        Notification.objects.all().delete()
+        # Clear other tables (ignore if they don't exist)
+        try:
+            CheckIn.objects.all().delete()
+        except:
+            pass
+        try:
+            Message.objects.all().delete()
+        except:
+            pass
+        try:
+            Appointment.objects.all().delete()
+        except:
+            pass
+        try:
+            Notification.objects.all().delete()
+        except:
+            pass
         
         print("🌱 Seeding test patients...")
         
