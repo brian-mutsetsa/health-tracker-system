@@ -270,17 +270,20 @@ def trigger_seed(request):
         from datetime import datetime, timedelta
         from django.db import connection
         
-        print("🗑️ Clearing old database records...")
+        print("🗑️ NUCLEAR RESET: Dropping and recreating ALL tables...")
         
-        # Drop and recreate Patient table with all columns (bypass migration issues)
         with connection.cursor() as cursor:
-            try:
-                cursor.execute("DROP TABLE IF EXISTS api_patient CASCADE;")
-                print("✓ Dropped old api_patient table")
-            except Exception as e:
-                print(f"⚠️ Could not drop table: {e}")
+            # Drop all tables in correct order (respecting foreign keys)
+            cursor.execute("DROP TABLE IF EXISTS api_typingstatus CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_notification CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_appointment CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_checkin CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_message CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_provider CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_patient CASCADE;")
+            print("✓ Dropped all tables")
             
-            # Recreate with all columns
+            # Recreate Patient table
             cursor.execute("""
                 CREATE TABLE api_patient (
                     id BIGSERIAL PRIMARY KEY,
@@ -306,27 +309,87 @@ def trigger_seed(request):
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            print("✓ Recreated api_patient table with all columns")
+            print("✓ Recreated api_patient table")
+            
+            # Recreate CheckIn table
+            cursor.execute("""
+                CREATE TABLE api_checkin (
+                    id BIGSERIAL PRIMARY KEY,
+                    patient_id BIGINT NOT NULL REFERENCES api_patient(id) ON DELETE CASCADE,
+                    condition VARCHAR(50) NOT NULL,
+                    date TIMESTAMP NOT NULL,
+                    answers JSONB NOT NULL,
+                    blood_pressure_systolic INTEGER,
+                    blood_pressure_diastolic INTEGER,
+                    blood_glucose_reading INTEGER,
+                    risk_level VARCHAR(20) NOT NULL,
+                    risk_color VARCHAR(20) NOT NULL,
+                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✓ Recreated api_checkin table")
+            
+            # Recreate Message table
+            cursor.execute("""
+                CREATE TABLE api_message (
+                    id BIGSERIAL PRIMARY KEY,
+                    sender_id VARCHAR(100) NOT NULL,
+                    receiver_id VARCHAR(100) NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_read BOOLEAN DEFAULT FALSE
+                );
+            """)
+            print("✓ Recreated api_message table")
+            
+            # Recreate Appointment table
+            cursor.execute("""
+                CREATE TABLE api_appointment (
+                    id BIGSERIAL PRIMARY KEY,
+                    patient_id BIGINT NOT NULL REFERENCES api_patient(id) ON DELETE CASCADE,
+                    provider_id VARCHAR(100) NOT NULL,
+                    scheduled_date DATE NOT NULL,
+                    scheduled_time TIME NOT NULL,
+                    duration_minutes INTEGER DEFAULT 30,
+                    reason VARCHAR(200),
+                    notes TEXT,
+                    status VARCHAR(20) DEFAULT 'SCHEDULED',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✓ Recreated api_appointment table")
+            
+            # Recreate Notification table
+            cursor.execute("""
+                CREATE TABLE api_notification (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id VARCHAR(100) NOT NULL,
+                    notification_type VARCHAR(30) NOT NULL,
+                    message TEXT NOT NULL,
+                    is_read BOOLEAN DEFAULT FALSE,
+                    related_patient_id VARCHAR(100),
+                    related_object_id VARCHAR(100),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read_at TIMESTAMP
+                );
+            """)
+            print("✓ Recreated api_notification table")
+            
+            # Recreate TypingStatus table
+            cursor.execute("""
+                CREATE TABLE api_typingstatus (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id VARCHAR(100) NOT NULL,
+                    chat_partner_id VARCHAR(100) NOT NULL,
+                    is_typing BOOLEAN DEFAULT FALSE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, chat_partner_id)
+                );
+            """)
+            print("✓ Recreated api_typingstatus table")
         
-        # Clear other tables (ignore if they don't exist)
-        try:
-            CheckIn.objects.all().delete()
-        except:
-            pass
-        try:
-            Message.objects.all().delete()
-        except:
-            pass
-        try:
-            Appointment.objects.all().delete()
-        except:
-            pass
-        try:
-            Notification.objects.all().delete()
-        except:
-            pass
-        
-        print("🌱 Seeding test patients...")
+        print("🌱 Now seeding test patients...")
         
         patients_data = [
             {
@@ -401,27 +464,26 @@ def trigger_seed(request):
             print(f"✓ {patient.patient_id} - {patient.name} ({patient.condition})")
             
             # Create check-in history
-            existing_checkins = CheckIn.objects.filter(patient=patient).count()
-            if existing_checkins == 0:
-                risk_levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED', 'GREEN']
-                for i, risk in enumerate(risk_levels):
-                    CheckIn.objects.create(
-                        patient=patient,
-                        condition=patient.condition,
-                        date=now - timedelta(days=i),
-                        answers={
-                            'q1': i, 'q2': i, 'q3': i,
-                            'q4': i, 'q5': i, 'q6': i,
-                            'q7': i, 'q8': i, 'q9': i,
-                            'q10': i, 'q11': i, 'q12': 0
-                        },
-                        risk_level=risk,
-                        risk_color=risk.lower(),
-                    )
+            risk_levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED', 'GREEN']
+            for i, risk in enumerate(risk_levels):
+                CheckIn.objects.create(
+                    patient=patient,
+                    condition=patient.condition,
+                    date=now - timedelta(days=i),
+                    answers={
+                        'q1': i, 'q2': i, 'q3': i,
+                        'q4': i, 'q5': i, 'q6': i,
+                        'q7': i, 'q8': i, 'q9': i,
+                        'q10': i, 'q11': i, 'q12': 0
+                    },
+                    risk_level=risk,
+                    risk_color=risk.lower(),
+                )
+                print(f"  ✓ Check-in {i+1}/5 for {patient.patient_id}")
         
         return Response({
             'status': 'success',
-            'message': f'Database seeded with {len(patients_created)} test patients',
+            'message': f'✅ Database RESET and seeded with {len(patients_created)} test patients',
             'patients': [p.patient_id for p in patients_created]
         }, status=status.HTTP_200_OK)
     except Exception as e:
