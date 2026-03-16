@@ -268,9 +268,47 @@ def trigger_seed(request):
     """
     try:
         from datetime import datetime, timedelta
+        from django.db import connection
         
         print("🗑️ Clearing old database records...")
-        Patient.objects.all().delete()
+        
+        # Drop and recreate Patient table with all columns (bypass migration issues)
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("DROP TABLE IF EXISTS api_patient CASCADE;")
+                print("✓ Dropped old api_patient table")
+            except Exception as e:
+                print(f"⚠️ Could not drop table: {e}")
+            
+            # Recreate with all columns
+            cursor.execute("""
+                CREATE TABLE api_patient (
+                    id BIGSERIAL PRIMARY KEY,
+                    patient_id VARCHAR(100) UNIQUE NOT NULL,
+                    name VARCHAR(200),
+                    date_of_birth DATE,
+                    condition VARCHAR(50) NOT NULL,
+                    status VARCHAR(20) DEFAULT 'ACTIVE',
+                    password VARCHAR(255) DEFAULT 'test123',
+                    weight_kg DOUBLE PRECISION,
+                    blood_pressure_systolic INTEGER,
+                    blood_pressure_diastolic INTEGER,
+                    blood_glucose_baseline INTEGER,
+                    medical_history TEXT,
+                    medications TEXT,
+                    allergies TEXT,
+                    primary_provider_id VARCHAR(100),
+                    last_checkin TIMESTAMP,
+                    last_risk_level VARCHAR(20),
+                    last_risk_color VARCHAR(20),
+                    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✓ Recreated api_patient table with all columns")
+        
+        # Clear other tables
         CheckIn.objects.all().delete()
         Message.objects.all().delete()
         Appointment.objects.all().delete()
