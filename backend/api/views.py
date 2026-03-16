@@ -267,10 +267,122 @@ def trigger_seed(request):
     Needed because Render free tier does not provide SSH/terminal access.
     """
     try:
-        call_command('seed_test_data')
-        return Response({'status': 'success', 'message': 'Database seeded successfully'}, status=status.HTTP_200_OK)
+        from datetime import datetime, timedelta
+        
+        print("🗑️ Clearing old database records...")
+        Patient.objects.all().delete()
+        CheckIn.objects.all().delete()
+        Message.objects.all().delete()
+        Appointment.objects.all().delete()
+        Notification.objects.all().delete()
+        
+        print("🌱 Seeding test patients...")
+        
+        patients_data = [
+            {
+                'patient_id': 'PT001',
+                'name': 'Judy',
+                'condition': 'Hypertension',
+                'password': 'test123',
+                'weight_kg': 85.5,
+                'blood_pressure_systolic': 140,
+                'blood_pressure_diastolic': 90,
+            },
+            {
+                'patient_id': 'PT002',
+                'name': 'Ivan',
+                'condition': 'Hypertension',
+                'password': 'test123',
+                'weight_kg': 88.0,
+                'blood_pressure_systolic': 145,
+                'blood_pressure_diastolic': 95,
+            },
+            {
+                'patient_id': 'PT003',
+                'name': 'Heidi',
+                'condition': 'Asthma',
+                'password': 'test123',
+                'weight_kg': 65.0,
+                'blood_pressure_systolic': 120,
+                'blood_pressure_diastolic': 80,
+            },
+            {
+                'patient_id': 'PT004',
+                'name': 'Grace',
+                'condition': 'Heart Disease',
+                'password': 'test123',
+                'weight_kg': 70.0,
+                'blood_pressure_systolic': 130,
+                'blood_pressure_diastolic': 85,
+            },
+            {
+                'patient_id': 'PT005',
+                'name': 'Frank',
+                'condition': 'Diabetes',
+                'password': 'test123',
+                'weight_kg': 90.0,
+                'blood_pressure_systolic': 135,
+                'blood_pressure_diastolic': 87,
+                'blood_glucose_baseline': 156,
+            },
+        ]
+        
+        now = datetime.now()
+        patients_created = []
+        
+        for patient_data in patients_data:
+            patient, created = Patient.objects.get_or_create(
+                patient_id=patient_data['patient_id'],
+                defaults=patient_data
+            )
+            
+            if not created:
+                patient.name = patient_data['name']
+                patient.password = patient_data['password']
+                patient.condition = patient_data['condition']
+                patient.weight_kg = patient_data['weight_kg']
+                patient.blood_pressure_systolic = patient_data['blood_pressure_systolic']
+                patient.blood_pressure_diastolic = patient_data['blood_pressure_diastolic']
+                if 'blood_glucose_baseline' in patient_data:
+                    patient.blood_glucose_baseline = patient_data['blood_glucose_baseline']
+                patient.save()
+            
+            patients_created.append(patient)
+            print(f"✓ {patient.patient_id} - {patient.name} ({patient.condition})")
+            
+            # Create check-in history
+            existing_checkins = CheckIn.objects.filter(patient=patient).count()
+            if existing_checkins == 0:
+                risk_levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED', 'GREEN']
+                for i, risk in enumerate(risk_levels):
+                    CheckIn.objects.create(
+                        patient=patient,
+                        condition=patient.condition,
+                        date=now - timedelta(days=i),
+                        answers={
+                            'q1': i, 'q2': i, 'q3': i,
+                            'q4': i, 'q5': i, 'q6': i,
+                            'q7': i, 'q8': i, 'q9': i,
+                            'q10': i, 'q11': i, 'q12': 0
+                        },
+                        risk_level=risk,
+                        risk_color=risk.lower(),
+                    )
+        
+        return Response({
+            'status': 'success',
+            'message': f'Database seeded with {len(patients_created)} test patients',
+            'patients': [p.patient_id for p in patients_created]
+        }, status=status.HTTP_200_OK)
     except Exception as e:
-        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"❌ Seeding error: {error_detail}")
+        return Response({
+            'status': 'error',
+            'message': str(e),
+            'details': error_detail
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
