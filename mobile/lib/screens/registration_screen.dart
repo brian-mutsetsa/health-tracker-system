@@ -383,7 +383,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   labelText: 'Current Medications',
                   hintText: 'List all current medications',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  prefixIcon: const Icon(Icons.medical_services),
+                  prefixIcon: const Icon(Icons.local_pharmacy),
                 ),
               ),
               const SizedBox(height: 16),
