@@ -763,67 +763,26 @@ def check_high_risk_alerts(request):
     )
     
     for patient in high_risk_patients:
-        if patient.primary_provider_id:
-            # Check if alert already exists
-            existing = Notification.objects.filter(
-                user_id=patient.primary_provider_id,
+        # Check if alert already exists for this patient
+        existing_alert = Notification.objects.filter(
+            user_id=patient.primary_provider_id or 'admin',
+            related_patient_id=patient.patient_id,
+            notification_type='HIGH_RISK_ALERT'
+        ).first()
+        
+        if not existing_alert:
+            alert = Notification.objects.create(
+                user_id=patient.primary_provider_id or 'admin',
                 notification_type='HIGH_RISK_ALERT',
-                related_patient_id=patient.patient_id,
-                created_at__gte=cutoff_time
-            ).exists()
-            
-            if not existing:
-                alert = Notification.objects.create(
-                    user_id=patient.primary_provider_id,
-                    notification_type='HIGH_RISK_ALERT',
-                    message=f'{patient.name or patient.patient_id} is at HIGH RISK - Immediate attention needed',
-                    related_patient_id=patient.patient_id
-                )
-                alerts_created.append(NotificationSerializer(alert).data)
+                message=f'⚠️ HIGH RISK ALERT: Patient {patient.patient_id} ({patient.name}) has RED risk level',
+                related_patient_id=patient.patient_id
+            )
+            alerts_created.append(alert)
+            print(f"🚨 Alert created for {patient.patient_id}")
     
+    serializer = NotificationSerializer(alerts_created, many=True)
     return Response({
+        'status': 'success',
         'alerts_created': len(alerts_created),
-        'results': alerts_created
-    })
-
-@api_view(['GET'])
-def list_all_patients(request):
-    """
-    List all patients with pagination and filters.
-    Query parameters:
-        - page: Page number (default 1)
-        - page_size: Results per page (default 20)
-        - status: Filter by status (ACTIVE, INACTIVE, DISCHARGED)
-        - condition: Filter by condition
-    """
-    page = int(request.query_params.get('page', 1))
-    page_size = int(request.query_params.get('page_size', 20))
-    status_filter = request.query_params.get('status', '')
-    condition_filter = request.query_params.get('condition', '')
-    
-    queryset = Patient.objects.all()
-    
-    if status_filter:
-        queryset = queryset.filter(status=status_filter)
-    
-    if condition_filter:
-        queryset = queryset.filter(condition=condition_filter)
-    
-    # Sort by risk level (RED first), then by most recent check-in
-    queryset = queryset.order_by('-last_risk_level', '-last_checkin')
-    
-    # Pagination
-    start = (page - 1) * page_size
-    end = start + page_size
-    total_count = queryset.count()
-    
-    patients = queryset[start:end]
-    serializer = PatientListSerializer(patients, many=True)
-    
-    return Response({
-        'count': total_count,
-        'page': page,
-        'page_size': page_size,
-        'total_pages': (total_count + page_size - 1) // page_size,
-        'results': serializer.data
-    })
+        'alerts': serializer.data
+    }, status=status.HTTP_200_OK)
