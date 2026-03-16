@@ -118,132 +118,108 @@ class Command(BaseCommand):
         
         # PT001 - GREEN (low risk) check-in from today
         CheckIn.objects.get_or_create(
-            patient_id='PT001',
-            date=now.date(),
+            patient=patients['PT001'],
+            date=now,
             defaults={
                 'condition': 'Hypertension',
                 'answers': {
-                    'q1': 'None', 'q2': 'None', 'q3': 'Mild',
-                    'q4': 'None', 'q5': 'None', 'q6': 'Mild',
-                    'q7': 'None', 'q8': 'Mild', 'q9': 'Yes',
-                    'q10': 'None', 'q11': 'Low', 'q12': 'None'
+                    'q1': 0, 'q2': 0, 'q3': 1,
+                    'q4': 0, 'q5': 0, 'q6': 1,
+                    'q7': 0, 'q8': 1, 'q9': 0,
+                    'q10': 0, 'q11': 0, 'q12': None
                 },
                 'risk_level': 'GREEN',
                 'risk_color': 'green',
-                'risk_score': 5,
-                'synced': True,
-                'created_at': now,
-                'updated_at': now,
             }
         )
         self.stdout.write("✓ PT001: GREEN risk checkin (today)")
         
         # PT001 - YELLOW (medium risk) from 3 days ago
         CheckIn.objects.get_or_create(
-            patient_id='PT001',
-            date=(now - timedelta(days=3)).date(),
+            patient=patients['PT001'],
+            date=now - timedelta(days=3),
             defaults={
                 'condition': 'Hypertension',
                 'answers': {
-                    'q1': 'Mild', 'q2': 'Moderate', 'q3': 'Moderate',
-                    'q4': 'Mild', 'q5': 'None', 'q6': 'Moderate',
-                    'q7': 'None', 'q8': 'Mild', 'q9': 'Yes',
-                    'q10': 'Moderate', 'q11': 'Moderate', 'q12': 'None'
+                    'q1': 1, 'q2': 2, 'q3': 2,
+                    'q4': 1, 'q5': 0, 'q6': 2,
+                    'q7': 0, 'q8': 1, 'q9': 0,
+                    'q10': 2, 'q11': 2, 'q12': None
                 },
                 'risk_level': 'YELLOW',
                 'risk_color': 'yellow',
-                'risk_score': 11,
-                'synced': True,
-                'created_at': now - timedelta(days=3),
-                'updated_at': now - timedelta(days=3),
             }
         )
         self.stdout.write("✓ PT001: YELLOW risk checkin (3 days ago)")
         
         # PT002 - YELLOW from today
         CheckIn.objects.get_or_create(
-            patient_id='PT002',
-            date=now.date(),
+            patient=patients['PT002'],
+            date=now,
             defaults={
                 'condition': 'Diabetes',
                 'answers': {
-                    'q1': 'Mild', 'q2': 'Moderate', 'q3': 'Mild',
-                    'q4': 'Moderate', 'q5': 'None', 'q6': 'None',
-                    'q7': 'None', 'q8': 'Mild', 'q9': 'Missed once',
-                    'q10': 'Moderate', 'q11': 'Moderate', 'q12': None
+                    'q1': 1, 'q2': 2, 'q3': 1,
+                    'q4': 2, 'q5': 0, 'q6': 0,
+                    'q7': 0, 'q8': 1, 'q9': 1,
+                    'q10': 2, 'q11': 2, 'q12': None
                 },
                 'risk_level': 'YELLOW',
                 'risk_color': 'yellow',
-                'risk_score': 10,
-                'synced': True,
-                'created_at': now,
-                'updated_at': now,
             }
         )
         self.stdout.write("✓ PT002: YELLOW risk checkin (today)")
         
         # PT003 - ORANGE (high risk) from today - should trigger alert
         CheckIn.objects.get_or_create(
-            patient_id='PT003',
-            date=now.date(),
+            patient=patients['PT003'],
+            date=now,
             defaults={
                 'condition': 'Cardiovascular',
                 'answers': {
-                    'q1': 'Severe', 'q2': 'Moderate', 'q3': 'Moderate',
-                    'q4': 'Moderate', 'q5': 'Moderate', 'q6': 'Moderate',
-                    'q7': 'Mild', 'q8': 'Severe', 'q9': 'Missed more',
-                    'q10': 'Moderate', 'q11': 'High', 'q12': None
+                    'q1': 3, 'q2': 2, 'q3': 2,
+                    'q4': 2, 'q5': 2, 'q6': 2,
+                    'q7': 1, 'q8': 3, 'q9': 2,
+                    'q10': 2, 'q11': 3, 'q12': None
                 },
                 'risk_level': 'ORANGE',
                 'risk_color': 'orange',
-                'risk_score': 18,
-                'synced': True,
-                'created_at': now,
-                'updated_at': now,
             }
         )
         self.stdout.write("✓ PT003: ORANGE risk checkin (today) - HIGH RISK!")
         
         # PT004 - GREEN from today
         CheckIn.objects.get_or_create(
-            patient_id='PT004',
-            date=now.date(),
+            patient=patients['PT004'],
+            date=now,
             defaults={
                 'condition': 'Hypertension',
                 'answers': {
-                    'q1': 'None', 'q2': 'None', 'q3': 'None',
-                    'q4': 'None', 'q5': 'None', 'q6': 'None',
-                    'q7': 'None', 'q8': 'None', 'q9': 'Yes',
-                    'q10': 'None', 'q11': 'Low', 'q12': 'None'
+                    'q1': 0, 'q2': 0, 'q3': 0,
+                    'q4': 0, 'q5': 0, 'q6': 0,
+                    'q7': 0, 'q8': 0, 'q9': 0,
+                    'q10': 0, 'q11': 0, 'q12': None
                 },
                 'risk_level': 'GREEN',
                 'risk_color': 'green',
-                'risk_score': 0,
-                'synced': True,
-                'created_at': now,
-                'updated_at': now,
             }
         )
         self.stdout.write("✓ PT004: GREEN risk checkin (today)")
         
         # PT005 - RED (critical risk) - should definitely trigger alert
         CheckIn.objects.get_or_create(
-            patient_id='PT005',
-            date=now.date(),
+            patient=patients['PT005'],
+            date=now,
             defaults={
                 'condition': 'Diabetes',
                 'answers': {
-                    'q1': 'Severe', 'q2': 'Severe', 'q3': 'Severe',
-                    'q4': 'Severe', 'q5': 'Severe', 'q6': 'Severe',
-                    'q7': 'Severe', 'q8': 'Severe', 'q9': 'Never',
-                    'q10': 'High', 'q11': 'High', 'q12': 'Very High'
+                    'q1': 3, 'q2': 3, 'q3': 3,
+                    'q4': 3, 'q5': 3, 'q6': 3,
+                    'q7': 3, 'q8': 3, 'q9': 3,
+                    'q10': 3, 'q11': 3, 'q12': None
                 },
                 'risk_level': 'RED',
                 'risk_color': 'red',
-                'risk_score': 27,
-                'synced': True,
-                'created_at': now,
-                'updated_at': now,
             }
         )
         self.stdout.write("✓ PT005: RED risk checkin (today) - CRITICAL!")
