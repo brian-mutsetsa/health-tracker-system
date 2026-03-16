@@ -7,8 +7,7 @@ import 'home_screen.dart';
 class ConditionSelectionScreen extends StatefulWidget {
   final bool isFirstTime;
 
-  const ConditionSelectionScreen({Key? key, this.isFirstTime = true})
-    : super(key: key);
+  const ConditionSelectionScreen({super.key, this.isFirstTime = true});
 
   @override
   State<ConditionSelectionScreen> createState() =>

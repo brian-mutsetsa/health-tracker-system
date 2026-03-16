@@ -26,229 +26,49 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   List<Map<String, dynamic>> getQuestions() {
     if (widget.condition == 'Hypertension') {
       return [
-        {
-          'id': 'q1',
-          'question': 'Headaches?',
-          'type': 'scale', // 0=None, 1=Mild, 2=Moderate, 3=Severe
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q2',
-          'question': 'Dizziness or lightheadedness?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q3',
-          'question': 'Blurred or disturbed vision?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q4',
-          'question': 'Chest discomfort or pressure?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q5',
-          'question': 'Shortness of breath during normal activities?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q6',
-          'question': 'Unusual fatigue or weakness?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q7',
-          'question': 'Nosebleeds?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q8',
-          'question': 'Heart palpitations (rapid or irregular heartbeat)?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q9',
-          'question': 'Medication adherence - Did you take your medication?',
-          'type': 'medication', // 0=Yes fully, 1=Missed once, 2=Missed more, 3=Did not take
-          'options': ['Yes, fully', 'Missed once', 'Missed more than once', 'Did not take'],
-        },
-        {
-          'id': 'q10',
-          'question': 'Salt intake today?',
-          'type': 'intake', // 0=None, 1=Small, 2=Moderate, 3=High
-          'options': ['None', 'Small', 'Moderate', 'High'],
-        },
-        {
-          'id': 'q11',
-          'question': 'Stress levels?',
-          'type': 'scale',
-          'options': ['None', 'Low', 'Moderate', 'High'],
-        },
-        {
-          'id': 'q12',
-          'question': 'Blood pressure reading (optional)',
-          'type': 'text',
-          'placeholder': 'e.g., 120/80',
-        },
+        {'id': 'q1', 'question': 'Did you experience headaches today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q2', 'question': 'Did you feel dizziness or lightheadedness today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q3', 'question': 'Did you experience blurred or disturbed vision?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q4', 'question': 'Did you feel chest discomfort or pressure?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q5', 'question': 'Did you experience shortness of breath during normal activities?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q6', 'question': 'Did you feel unusual fatigue or weakness today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q7', 'question': 'Did you experience nosebleeds today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q8', 'question': 'Did you feel your heart beating rapidly or irregularly (palpitations)?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q9', 'question': 'Did you take your prescribed blood pressure medication today?', 'type': 'scale', 'options': ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take']},
+        {'id': 'q10', 'question': 'Did you consume foods high in salt today?', 'type': 'scale', 'options': ['None', 'Small amount', 'Moderate', 'High intake']},
+        {'id': 'q11', 'question': 'Did you experience high levels of stress today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q12', 'question': 'Did you measure your blood pressure today? (Optional numeric entry)', 'type': 'text', 'placeholder': 'e.g., 120/80'},
       ];
     } else if (widget.condition == 'Diabetes') {
       return [
-        {
-          'id': 'q1',
-          'question': 'Excessive thirst?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q2',
-          'question': 'Frequent urination?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q3',
-          'question': 'Unusual hunger?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q4',
-          'question': 'Fatigue or tiredness?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q5',
-          'question': 'Blurred vision?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q6',
-          'question': 'Numbness or tingling in hands or feet?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q7',
-          'question': 'Slow healing of wounds?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q8',
-          'question': 'Dizziness or shakiness (signs of low blood sugar)?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q9',
-          'question': 'Medication adherence - Did you take your medication?',
-          'type': 'medication',
-          'options': ['Yes, fully', 'Missed once', 'Missed more than once', 'Did not take'],
-        },
-        {
-          'id': 'q10',
-          'question': 'Diet adherence today?',
-          'type': 'intake',
-          'options': ['Excellent', 'Good', 'Fair', 'Poor'],
-        },
-        {
-          'id': 'q11',
-          'question': 'Physical activity or exercise?',
-          'type': 'scale',
-          'options': ['None', 'Light', 'Moderate', 'Vigorous'],
-        },
-        {
-          'id': 'q12',
-          'question': 'Blood glucose reading (optional)',
-          'type': 'text',
-          'placeholder': 'e.g., 120 mg/dL',
-        },
+        {'id': 'q1', 'question': 'Did you experience excessive thirst today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q2', 'question': 'Did you urinate more frequently than usual today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q3', 'question': 'Did you feel unusually hungry today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q4', 'question': 'Did you feel tired or fatigued today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q5', 'question': 'Did you experience blurred vision today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q6', 'question': 'Did you experience numbness or tingling in your hands or feet?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q7', 'question': 'Did you notice slow healing of wounds or cuts?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q8', 'question': 'Did you feel dizziness or shakiness today? (possible low blood sugar)', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q9', 'question': 'Did you take your diabetes medication or insulin today?', 'type': 'scale', 'options': ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take']},
+        {'id': 'q10', 'question': 'Did you follow your recommended diet today?', 'type': 'scale', 'options': ['Yes fully', 'Minor deviations', 'Moderate deviations', 'Did not follow']},
+        {'id': 'q11', 'question': 'Did you perform physical activity or exercise today?', 'type': 'scale', 'options': ['None', 'Light activity', 'Moderate', 'Vigorous']},
+        {'id': 'q12', 'question': 'What was your blood glucose reading today? (Numeric entry if available)', 'type': 'text', 'placeholder': 'e.g., 120'},
       ];
     } else {
       // Cardiovascular
       return [
-        {
-          'id': 'q1',
-          'question': 'Chest pain or pressure?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q2',
-          'question': 'Shortness of breath?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q3',
-          'question': 'Swelling in legs, feet, or ankles?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q4',
-          'question': 'Unusual fatigue or weakness?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q5',
-          'question': 'Dizziness or fainting?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q6',
-          'question': 'Irregular or rapid heartbeats?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q7',
-          'question': 'Pain spreading to arm, neck, or jaw?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q8',
-          'question': 'Sudden sweating without activity?',
-          'type': 'scale',
-          'options': ['None', 'Mild', 'Moderate', 'Severe'],
-        },
-        {
-          'id': 'q9',
-          'question': 'Medication adherence - Did you take your medication?',
-          'type': 'medication',
-          'options': ['Yes, fully', 'Missed once', 'Missed more than once', 'Did not take'],
-        },
-        {
-          'id': 'q10',
-          'question': 'Physical activity today?',
-          'type': 'scale',
-          'options': ['None', 'Light', 'Moderate', 'Vigorous'],
-        },
-        {
-          'id': 'q11',
-          'question': 'Alcohol or smoking consumption?',
-          'type': 'intake',
-          'options': ['None', 'Minimal', 'Moderate', 'High'],
-        },
-        {
-          'id': 'q12',
-          'question': 'Stress or anxiety levels?',
-          'type': 'scale',
-          'options': ['None', 'Low', 'Moderate', 'High'],
-        },
+        {'id': 'q1', 'question': 'Did you experience chest pain or pressure today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q2', 'question': 'Did you feel shortness of breath today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q3', 'question': 'Did you experience swelling in your legs, feet, or ankles?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q4', 'question': 'Did you feel unusually tired or weak today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q5', 'question': 'Did you experience dizziness or fainting today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q6', 'question': 'Did you feel irregular or rapid heartbeats (palpitations)?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q7', 'question': 'Did you experience pain spreading to your arm, neck, or jaw?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q8', 'question': 'Did you experience sudden sweating without physical activity?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
+        {'id': 'q9', 'question': 'Did you take your heart medication today?', 'type': 'scale', 'options': ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take']},
+        {'id': 'q10', 'question': 'Did you perform any physical activity today?', 'type': 'scale', 'options': ['None', 'Light activity', 'Moderate', 'Vigorous']},
+        {'id': 'q11', 'question': 'Did you consume alcohol or smoke today?', 'type': 'scale', 'options': ['None', 'Small amount', 'Moderate amount', 'High amount']},
+        {'id': 'q12', 'question': 'Did you feel unusually stressed or anxious today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
       ];
     }
   }
@@ -460,7 +280,6 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   Widget _buildQuestionCard(Map<String, dynamic> question, int index) {
     String id = question['id'];
     String questionText = question['question'];
-    String questionType = question['type'];
     int? currentAnswer = answers[id];
 
     return Container(
@@ -507,8 +326,8 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   }
 
   Widget _buildAnswerOptions(Map<String, dynamic> question, int? currentAnswer) {
-    String questionType = question['type'];
     String id = question['id'];
+    String questionType = question['type'] ?? 'scale';
 
     // Text input for optional readings
     if (questionType == 'text') {
@@ -516,6 +335,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         onChanged: (value) {
           setState(() {
             answers['${id}_text'] = 0; // Mark as answered
+            // Keep the string representation separate since answers is Map<String, int>
           });
         },
         decoration: InputDecoration(
@@ -632,7 +452,9 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
           int index = entry.key;
           var q = entry.value;
           int? answer = answers[q['id']];
-          String answerLabel = ['None', 'Mild', 'Moderate', 'Severe'][answer ?? 0];
+          // We need to fetch the specific option text to accurately reflect what the user clicked.
+          List<String> options = (q['options'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['None', 'Mild', 'Moderate', 'Severe'];
+          String answerLabel = (answer != null && answer < options.length) ? options[answer] : (answers['${q['id']}_text_value']?.toString() ?? 'None');
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -728,7 +550,12 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     setState(() => isSubmitting = true);
 
     // Convert answers to strings for CheckinModel
-    Map<String, String> finalAnswers = answers.map((key, value) => MapEntry(key, value.toString()));
+    Map<String, String> processedAnswers = {};
+    answers.forEach((key, value) {
+      if (!key.endsWith('_text')) {
+        processedAnswers[key] = value.toString();
+      }
+    });
 
     String riskLevel = getRiskLevel()['level'];
     String riskColor = riskLevel.toLowerCase();
@@ -737,9 +564,12 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     final checkin = CheckinModel(
       condition: widget.condition,
       date: DateTime.now(),
-      answers: finalAnswers,
+      answers: processedAnswers,
       riskLevel: riskLevel,
       riskColor: riskColor,
+      bpSystolic: bpSystolic,
+      bpDiastolic: bpDiastolic,
+      bloodGlucose: bloodGlucose,
     );
     await box.add(checkin);
 

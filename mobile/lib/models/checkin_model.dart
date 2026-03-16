@@ -19,11 +19,23 @@ class CheckinModel extends HiveObject {
   @HiveField(4)
   final String riskColor;
 
+  @HiveField(5)
+  final double? bpSystolic;
+
+  @HiveField(6)
+  final double? bpDiastolic;
+
+  @HiveField(7)
+  final double? bloodGlucose;
+
   CheckinModel({
     required this.condition,
     required this.date,
     required this.answers,
     required this.riskLevel,
     required this.riskColor,
+    this.bpSystolic,
+    this.bpDiastolic,
+    this.bloodGlucose,
   });
 }

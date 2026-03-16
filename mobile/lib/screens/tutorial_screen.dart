@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 
 class TutorialScreen extends StatelessWidget {
-  const TutorialScreen({Key? key}) : super(key: key);
+  const TutorialScreen({super.key});
 
   void _finishTutorial(BuildContext context) async {
     final settingsBox = Hive.box('settings');

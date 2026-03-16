@@ -246,7 +246,7 @@ def patient_login(request):
         return Response({'error': 'Patient ID and password required'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        patient = Patient.objects.get(patient_id=patient_id)
+        patient = Patient.objects.get(patient_id__iexact=patient_id.strip())
         
         # Simple password check (in production, use hashed passwords)
         if patient.password == password:

@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/pdf_generator.dart';
 
 class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
+  const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +167,7 @@ class HistoryScreen extends StatelessWidget {
                               delay: Duration(milliseconds: 100 * entry.key),
                             )
                             .slideX(begin: 0.1);
-                      }).toList(),
+                      }),
 
                       const SizedBox(height: 40),
                     ],

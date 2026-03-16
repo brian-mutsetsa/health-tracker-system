@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../theme/app_theme.dart';
+import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import 'condition_selection_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'messages_screen.dart';
+import 'appointments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,6 +21,48 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  Timer? _pollingTimer;
+  final ApiService _apiService = ApiService();
+  int _lastKnownAppointmentCount = 0;
+  bool _isFirstPoll = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      try {
+        final appointments = await _apiService.getAppointments();
+        if (_isFirstPoll) {
+          _lastKnownAppointmentCount = appointments.length;
+          _isFirstPoll = false;
+        } else {
+          if (appointments.length > _lastKnownAppointmentCount) {
+            // New appointment found!
+            await NotificationService().showNotification(
+              id: 1,
+              title: 'New Appointment',
+              body: 'You have a new appointment scheduled.',
+            );
+            _lastKnownAppointmentCount = appointments.length;
+          } else if (appointments.length < _lastKnownAppointmentCount) {
+            _lastKnownAppointmentCount = appointments.length;
+          }
+        }
+      } catch (e) {
+        print('Error polling: $e');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody(String condition) {
-    if (_currentIndex == 1) return const CalendarMockScreen();
+    if (_currentIndex == 1) return const AppointmentsScreen();
     if (_currentIndex == 2) return const MessagesScreen();
-    if (_currentIndex == 3)
-      return const ProfileMockScreen(condition: 'condition');
+    if (_currentIndex == 3) return const ProfileMockScreen(condition: 'condition');
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
@@ -553,23 +598,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Mock Screens for Bottom Nav
-class CalendarMockScreen extends StatelessWidget {
-  const CalendarMockScreen({Key? key}) : super(key: key);
-  @override
-  Widget build(BuildContext context) => const Center(
-    child: Text(
-      'Calendar & Appointments\nComing Soon',
-      textAlign: TextAlign.center,
-      style: TextStyle(fontSize: 18, color: AppTheme.textLight),
-    ),
-  );
-}
-
 class ProfileMockScreen extends StatelessWidget {
   final String condition;
-  const ProfileMockScreen({Key? key, required this.condition})
-    : super(key: key);
+  const ProfileMockScreen({super.key, required this.condition});
   @override
   Widget build(BuildContext context) => const Center(
     child: Text(

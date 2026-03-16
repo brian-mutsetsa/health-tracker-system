@@ -140,14 +140,11 @@ class CheckInCreateSerializer(serializers.Serializer):
     risk_color = serializers.CharField(max_length=20)
 
     def validate_answers(self, value):
-        """Validate that answers contains exactly 12 questions with values 0-3"""
+        """Validate answers contains the 12 symptom questions"""
         if not isinstance(value, dict):
             raise serializers.ValidationError("Answers must be a dictionary")
         if len(value) != 12:
             raise serializers.ValidationError(f"Expected 12 answers, got {len(value)}")
-        for question_id, answer_value in value.items():
-            if answer_value not in [0, 1, 2, 3]:
-                raise serializers.ValidationError(f"Answer values must be 0-3, got {answer_value}")
         return value
 
     def create(self, validated_data):

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +14,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -26,15 +24,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_patientIdController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter Patient ID and password';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter Patient ID and password'),
+        ),
+      );
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -55,14 +54,20 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
-        setState(() {
-          _errorMessage = 'Invalid Patient ID or password';
-        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid Patient ID or password. Ensure backend is seeded using the /seed/ endpoint.'),
+          ),
+        );
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: ${e.toString()}';
-      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+        ),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -99,22 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
               
-              // Error message
-              if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade300),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Colors.red.shade700),
-                  ),
-                ),
-              const SizedBox(height: 20),
-
               // Patient ID field
               TextField(
                 controller: _patientIdController,

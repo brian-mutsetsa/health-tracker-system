@@ -6,7 +6,7 @@ import 'dashboard_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Invalid credentials. Try username: admin | password: password',
+            'Invalid credentials. Try admin | password. Ensure backend is seeded using /seed/.',
           ),
         ),
       );

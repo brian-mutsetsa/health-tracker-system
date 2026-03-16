@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/checkin_model.dart';
 import '../models/message_model.dart';
+import '../models/appointment_model.dart';
 
 class ApiService {
   // Change this to your computer's IP address when testing on real device
@@ -74,6 +75,9 @@ class ApiService {
       'answers': checkin.answers,
       'risk_level': checkin.riskLevel,
       'risk_color': checkin.riskColor,
+      'blood_pressure_systolic': checkin.bpSystolic,
+      'blood_pressure_diastolic': checkin.bpDiastolic,
+      'blood_glucose_reading': checkin.bloodGlucose,
     };
 
     print('📤 ATTEMPTING TO UPLOAD TO: $baseUrl/checkin/submit/');
@@ -219,6 +223,25 @@ class ApiService {
     } catch (e) {
       print('❌ Error fetching typing status: $e');
       return false;
+    }
+  }
+  
+  // Fetch appointments for the patient
+  Future<List<AppointmentModel>> getAppointments() async {
+    try {
+      final patientId = await getPatientId();
+      final response = await http.get(
+        Uri.parse('$baseUrl/appointments/?patient=$patientId'),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => AppointmentModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching appointments: $e');
+      return [];
     }
   }
 }

@@ -22,13 +22,16 @@ class CheckinModelAdapter extends TypeAdapter<CheckinModel> {
       answers: (fields[2] as Map).cast<String, String>(),
       riskLevel: fields[3] as String,
       riskColor: fields[4] as String,
+      bpSystolic: fields[5] as double?,
+      bpDiastolic: fields[6] as double?,
+      bloodGlucose: fields[7] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, CheckinModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.condition)
       ..writeByte(1)
@@ -38,7 +41,13 @@ class CheckinModelAdapter extends TypeAdapter<CheckinModel> {
       ..writeByte(3)
       ..write(obj.riskLevel)
       ..writeByte(4)
-      ..write(obj.riskColor);
+      ..write(obj.riskColor)
+      ..writeByte(5)
+      ..write(obj.bpSystolic)
+      ..writeByte(6)
+      ..write(obj.bpDiastolic)
+      ..writeByte(7)
+      ..write(obj.bloodGlucose);
   }
 
   @override

@@ -12,8 +12,7 @@ const double _kMobileBreakpoint = 768.0;
 
 class DashboardScreen extends StatefulWidget {
   final String providerName;
-  const DashboardScreen({Key? key, required this.providerName})
-    : super(key: key);
+  const DashboardScreen({super.key, required this.providerName});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -1192,20 +1191,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'PDF export available on mobile only',
-                              ),
+                              content: Text('PDF export available on mobile only'),
                             ),
                           );
                         },
-                        child: const Text(
-                          'Export PDF',
-                          style: TextStyle(
-                            color: AppTheme.primaryTeal,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: const Text('Export PDF', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
                       ),
+                    TextButton(
+                      onPressed: () => _showPatientDetailsModal(p),
+                      child: const Text('Details', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+                    ),
                   ],
                 ),
               ),
@@ -1295,17 +1290,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.message, size: 16),
-              label: const Text('Message Patient'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryTeal,
-                side: const BorderSide(color: AppTheme.primaryTeal),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.message, size: 16),
+                    label: const Text('Message'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryTeal,
+                      side: const BorderSide(color: AppTheme.primaryTeal),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => _openMessageDrawer(p),
+                  ),
                 ),
-              ),
-              onPressed: () => _openMessageDrawer(p),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.remove_red_eye, size: 16),
+                    label: const Text('Details'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => _showPatientDetailsModal(p),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1414,6 +1426,132 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     );
   }
+
+  void _showPatientDetailsModal(Patient patient) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 600,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: _getRiskColor(patient.lastRiskColor).withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+                    border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Patient Details: ${patient.patientId}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                          const SizedBox(height: 4),
+                          Text('${patient.condition} • ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                        ],
+                      ),
+                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<dynamic>>(
+                    future: _apiService.getPatientCheckinsRaw(patient.patientId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(color: AppTheme.primaryTeal));
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error loading details: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                      }
+                      final checkins = snapshot.data ?? [];
+                      if (checkins.isEmpty) {
+                        return const Center(child: Text('No check-in history found.', style: TextStyle(color: AppTheme.textLight)));
+                      }
+                      
+                      final latest = checkins.first;
+                      final answers = latest['answers'] as Map<String, dynamic>? ?? {};
+                      
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Vitals Row
+                            const Text('Latest Numeric Vitals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                _buildVitalCard('BP Systolic', latest['blood_pressure_systolic']?.toString() ?? 'N/A', 'mmHg'),
+                                const SizedBox(width: 12),
+                                _buildVitalCard('BP Diastolic', latest['blood_pressure_diastolic']?.toString() ?? 'N/A', 'mmHg'),
+                                const SizedBox(width: 12),
+                                _buildVitalCard('Glucose', latest['blood_glucose_reading']?.toString() ?? 'N/A', 'mg/dL'),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Questionnaire
+                            const Text('Latest 12-Question Symptom Checkin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            const SizedBox(height: 12),
+                            ...answers.entries.map((e) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  border: Border.all(color: Colors.grey[200]!),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(e.key.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textDark))),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(color: AppTheme.lightMint, borderRadius: BorderRadius.circular(12)),
+                                      child: Text(e.value.toString(), style: const TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVitalCard(String title, String value, String unit) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          children: [
+            Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+            Text(unit, style: const TextStyle(fontSize: 10, color: AppTheme.textLight)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Message Panel ──────────────────────────────────────────────────────────
@@ -1422,10 +1560,9 @@ class _MessagePanel extends StatefulWidget {
   final Patient patient;
   final DashboardApiService apiService;
   const _MessagePanel({
-    Key? key,
     required this.patient,
     required this.apiService,
-  }) : super(key: key);
+  });
 
   @override
   State<_MessagePanel> createState() => _MessagePanelState();

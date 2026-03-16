@@ -16,7 +16,7 @@ void main() async {
 }
 
 class ProviderDashboardApp extends StatelessWidget {
-  const ProviderDashboardApp({Key? key}) : super(key: key);
+  const ProviderDashboardApp({super.key});
 
   @override
   Widget build(BuildContext context) {
