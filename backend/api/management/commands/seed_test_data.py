@@ -1,18 +1,25 @@
 from django.core.management.base import BaseCommand
-from api.models import Patient, CheckIn
+from api.models import Patient, CheckIn, Message, Appointment, Notification, Provider
 from datetime import datetime, timedelta
-
 
 class Command(BaseCommand):
     help = 'Seed database with test data - ensures test patients exist with proper credentials'
 
     def handle(self, *args, **options):
+        self.stdout.write("🗑️ Clearing old database records...")
+        Patient.objects.all().delete()
+        CheckIn.objects.all().delete()
+        Message.objects.all().delete()
+        Appointment.objects.all().delete()
+        Notification.objects.all().delete()
+        
         self.stdout.write("🌱 Seeding test patients with credentials...")
         
         # Test patients - matching the actual dashboard patient names
         patients_data = [
             {
-                'patient_id': 'Judy',
+                'patient_id': 'PT001',
+                'name': 'Judy',
                 'condition': 'Hypertension',
                 'password': 'test123',
                 'weight_kg': 85.5,
@@ -20,7 +27,8 @@ class Command(BaseCommand):
                 'blood_pressure_diastolic': 90,
             },
             {
-                'patient_id': 'Ivan',
+                'patient_id': 'PT002',
+                'name': 'Ivan',
                 'condition': 'Hypertension',
                 'password': 'test123',
                 'weight_kg': 88.0,
@@ -28,7 +36,8 @@ class Command(BaseCommand):
                 'blood_pressure_diastolic': 95,
             },
             {
-                'patient_id': 'Heidi',
+                'patient_id': 'PT003',
+                'name': 'Heidi',
                 'condition': 'Asthma',
                 'password': 'test123',
                 'weight_kg': 65.0,
@@ -36,7 +45,8 @@ class Command(BaseCommand):
                 'blood_pressure_diastolic': 80,
             },
             {
-                'patient_id': 'Grace',
+                'patient_id': 'PT004',
+                'name': 'Grace',
                 'condition': 'Heart Disease',
                 'password': 'test123',
                 'weight_kg': 70.0,
@@ -44,7 +54,8 @@ class Command(BaseCommand):
                 'blood_pressure_diastolic': 85,
             },
             {
-                'patient_id': 'Frank',
+                'patient_id': 'PT005',
+                'name': 'Frank',
                 'condition': 'Diabetes',
                 'password': 'test123',
                 'weight_kg': 90.0,
@@ -65,7 +76,9 @@ class Command(BaseCommand):
             
             # If patient already exists, update password and vitals
             if not created:
+                patient.name = patient_data['name']
                 patient.password = patient_data['password']
+                patient.condition = patient_data['condition']
                 patient.weight_kg = patient_data['weight_kg']
                 patient.blood_pressure_systolic = patient_data['blood_pressure_systolic']
                 patient.blood_pressure_diastolic = patient_data['blood_pressure_diastolic']
@@ -74,7 +87,7 @@ class Command(BaseCommand):
                 patient.save()
             
             status = "✓ Created" if created else "✓ Updated"
-            self.stdout.write(f"{status}: {patient.patient_id} - {patient.condition}")
+            self.stdout.write(f"{status}: {patient.patient_id} - {patient.name} ({patient.condition})")
             patients_created.append(patient)
             
             # Ensure each patient has at least 5 check-ins (for dashboard history)
@@ -100,5 +113,5 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS(f"\n✅ Successfully seeded {len(patients_created)} test patients!"))
         self.stdout.write("\n📱 Mobile App Login Test Credentials:")
-        self.stdout.write("Patient ID: Judy (or Ivan, Heidi, Grace, Frank)")
+        self.stdout.write("Patient ID: PT001 (or PT002, PT003, PT004, PT005)")
         self.stdout.write("Password: test123")

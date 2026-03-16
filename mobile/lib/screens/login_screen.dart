@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _patientIdController,
                 decoration: InputDecoration(
                   labelText: 'Patient ID',
-                  hintText: 'e.g., Judy',
+                  hintText: 'e.g., PT001',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text('Patient ID: Judy, Ivan, Heidi, Grace, or Frank\nPassword: test123'),
+                    const Text('Patient ID: PT001, PT002, PT003, PT004, or PT005\nPassword: test123'),
                   ],
                 ),
               ),
