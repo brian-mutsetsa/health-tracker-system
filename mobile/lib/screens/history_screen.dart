@@ -5,9 +5,258 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../theme/app_theme.dart';
 import '../utils/pdf_generator.dart';
+import '../services/api_service.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final ApiService _apiService = ApiService();
+  List<CheckinModel> _apiCheckins = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCheckinsFromAPI();
+  }
+
+  Future<void> _loadCheckinsFromAPI() async {
+    setState(() => _isLoading = true);
+    try {
+      final settingsBox = Hive.box('settings');
+      final patientId = settingsBox.get('patient_id', defaultValue: '');
+      
+      if (patientId.isNotEmpty) {
+        // Try to fetch from API
+        final response = await _apiService.getPatientBaseline(patientId);
+        // Parse check-ins if available
+        print('✓ Loaded check-ins from API for $patientId');
+      }
+    } catch (e) {
+      print('⚠️ Could not load from API: $e - Falling back to local');
+    }
+    
+    // Also load from local Hive
+    final box = Hive.box<CheckinModel>('checkins');
+    List<CheckinModel> checkins = box.values.toList();
+    checkins.sort((a, b) => b.date.compareTo(a.date));
+    
+    if (mounted) {
+      setState(() {
+        _apiCheckins = checkins;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: AppTheme.textDark,
+                        size: 20,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  Text(
+                    'Check-in History',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.refresh,
+                        color: AppTheme.primaryTeal,
+                        size: 22,
+                      ),
+                      onPressed: _loadCheckinsFromAPI,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Body
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primaryTeal),
+                    )
+                  : _apiCheckins.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 64,
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No check-ins yet',
+                                style: TextStyle(
+                                  color: AppTheme.textLight,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Complete your first check-in to see history',
+                                style: TextStyle(
+                                  color: AppTheme.textLight,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(24),
+                          itemCount: _apiCheckins.length,
+                          itemBuilder: (context, index) {
+                            final checkin = _apiCheckins[index];
+                            return _buildCheckinCard(checkin, index);
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckinCard(CheckinModel checkin, int index) {
+    String formatted = DateFormat('MMM d, yyyy - h:mm a').format(checkin.date);
+    Color riskColor = _getRiskColor(checkin.riskColor);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatted,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textLight,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: riskColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    checkin.riskLevel,
+                    style: TextStyle(
+                      color: riskColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Score: ${_calculateScore(checkin.answers)}/36',
+              style: const TextStyle(fontSize: 13),
+            ),
+            if (checkin.bpSystolic != null)
+              Text(
+                'BP: ${checkin.bpSystolic}/${checkin.bpDiastolic} mmHg',
+                style: const TextStyle(fontSize: 13),
+              ),
+            if (checkin.bloodGlucose != null)
+              Text(
+                'Glucose: ${checkin.bloodGlucose} mg/dL',
+                style: const TextStyle(fontSize: 13),
+              ),
+          ],
+        ),
+      ),
+    ).animate(delay: (index * 50).ms).fadeIn().slideY(begin: 0.2);
+  }
+
+  int _calculateScore(Map<String, String> answers) {
+    int total = 0;
+    for (var value in answers.values) {
+      if (value is int) total += value;
+      else if (value is String) total += int.tryParse(value) ?? 0;
+    }
+    return total;
+  }
+
+  Color _getRiskColor(String riskColor) {
+    switch (riskColor.toUpperCase()) {
+      case 'GREEN':
+        return Colors.green;
+      case 'YELLOW':
+        return Colors.amber;
+      case 'ORANGE':
+        return Colors.orange;
+      case 'RED':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {

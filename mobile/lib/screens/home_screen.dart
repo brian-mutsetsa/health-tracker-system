@@ -598,15 +598,103 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class ProfileMockScreen extends StatelessWidget {
+class ProfileMockScreen extends StatefulWidget {
   final String condition;
   const ProfileMockScreen({super.key, required this.condition});
+
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Text(
-      'User Profile & Settings\nComing Soon',
-      textAlign: TextAlign.center,
-      style: TextStyle(fontSize: 18, color: AppTheme.textLight),
-    ),
-  );
+  State<ProfileMockScreen> createState() => _ProfileMockScreenState();
 }
+
+class _ProfileMockScreenState extends State<ProfileMockScreen> {
+  final _settingsBox = Hive.box('settings');
+  
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Clear all stored data
+              _settingsBox.clear();
+              Hive.box<CheckinModel>('checkins').clear();
+              Navigator.pop(ctx);
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final patientName = _settingsBox.get('patient_name', defaultValue: 'Patient');
+    final patientId = _settingsBox.get('patient_id', defaultValue: 'Unknown');
+    final condition = _settingsBox.get('condition', defaultValue: 'Unknown');
+    
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryTeal,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person, color: Colors.white, size: 50),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  patientName,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ID: $patientId',
+                  style: const TextStyle(fontSize: 14, color: AppTheme.textLight),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Condition: $condition',
+                  style: const TextStyle(fontSize: 14, color: AppTheme.textLight),
+                ),
+                const SizedBox(height: 40),
+                ElevatedButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'App Version: 1.0.0\nPhase 1&2 Complete',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.textLight, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
