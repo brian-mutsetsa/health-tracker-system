@@ -172,19 +172,6 @@ class CheckInCreateSerializer(serializers.Serializer):
         patient.save()
         
         return checkin
-            defaults={'condition': validated_data['condition']}
-        )
-        
-        # Update patient's last check-in info
-        patient.last_checkin = validated_data['date']
-        patient.last_risk_level = validated_data['risk_level']
-        patient.last_risk_color = validated_data['risk_color']
-        patient.save()
-        
-        # Create check-in
-        checkin = CheckIn.objects.create(patient=patient, **validated_data)
-        return checkin
-
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
