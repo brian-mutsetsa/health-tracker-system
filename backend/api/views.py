@@ -673,6 +673,8 @@ def check_high_risk_alerts(request):
         'alerts_created': len(alerts_created),
         'results': alerts_created
     })
+
+@api_view(['GET'])
 def list_all_patients(request):
     """
     List all patients with pagination and filters.
