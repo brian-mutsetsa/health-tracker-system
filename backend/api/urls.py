@@ -13,6 +13,7 @@ urlpatterns = [
     path('auth/patient-login/', views.patient_login, name='patient-login'),
     path('checkin/submit/', views.create_checkin, name='create-checkin'),
     path('patient/<str:patient_id>/', views.get_patient_by_id, name='get-patient'),
+    path('patient/<str:patient_id>/checkins/', views.get_patient_checkins, name='get-patient-checkins'),
     path('patient/<str:patient_id>/baseline/', views.get_patient_baseline, name='get-patient-baseline'),
     path('patient/<str:patient_id>/baseline/update/', views.update_patient_baseline, name='update-patient-baseline'),
     path('patients/register/', views.register_patient, name='register-patient'),

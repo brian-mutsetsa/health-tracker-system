@@ -51,6 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
         await settingsBox.put('patient_id', _patientIdController.text.trim());
         await settingsBox.put('patient_name', result['name'] ?? '');
         await settingsBox.put('condition', result['condition'] ?? '');
+        
+        // Fetch historical check-ins from backend and populate local Hive
+        final apiService = ApiService();
+        await apiService.fetchAndPopulateCheckinsFromAPI(_patientIdController.text.trim());
 
         if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/home');

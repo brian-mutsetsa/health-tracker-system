@@ -178,6 +178,51 @@ class ApiService {
     }
   }
 
+  // Fetch historical check-ins from backend and populate local Hive
+  Future<void> fetchAndPopulateCheckinsFromAPI(String patientId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/patient/$patientId/checkins/'),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        final checkinsBox = Hive.box<CheckinModel>('checkins');
+        
+        for (var checkinJson in data) {
+          try {
+            // Parse the check-in JSON
+            final date = DateTime.parse(checkinJson['date']);
+            final answers = Map<String, String>.from(
+              checkinJson['answers'] is Map ? checkinJson['answers'] : {}
+            );
+            
+            final checkin = CheckinModel(
+              condition: checkinJson['condition'] ?? 'Unknown',
+              date: date,
+              answers: answers,
+              riskLevel: checkinJson['risk_level'] ?? 'GREEN',
+              riskColor: (checkinJson['risk_color'] ?? 'green').toLowerCase(),
+              bpSystolic: checkinJson['blood_pressure_systolic']?.toDouble(),
+              bpDiastolic: checkinJson['blood_pressure_diastolic']?.toDouble(),
+              bloodGlucose: checkinJson['blood_glucose_reading']?.toDouble(),
+            );
+            
+            // Save to Hive (will replace if key already exists)
+            await checkinsBox.add(checkin);
+          } catch (e) {
+            print('⚠️ Error parsing check-in: $e');
+          }
+        }
+        
+        print('✅ Populated ${data.length} historical check-ins from API');
+      }
+    } catch (e) {
+      print('⚠️ Could not fetch check-ins from API (might be offline): $e');
+      // Don't fail login if API is unreachable - just log warning
+    }
+  }
+
   // Fetch messages for a specific patient
   Future<List<MessageModel>> getMessages() async {
     try {

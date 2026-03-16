@@ -209,6 +209,24 @@ def get_patient_by_id(request, patient_id):
             status=status.HTTP_404_NOT_FOUND
         )
 
+
+@api_view(['GET'])
+def get_patient_checkins(request, patient_id):
+    """
+    Get all check-ins for a specific patient (for mobile app history)
+    Returns check-ins sorted by date (newest first)
+    """
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+        checkins = CheckIn.objects.filter(patient=patient).order_by('-date')
+        serializer = CheckInSerializer(checkins, many=True)
+        return Response(serializer.data)
+    except Patient.DoesNotExist:
+        return Response(
+            {'error': 'Patient not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
 @api_view(['POST'])
 def provider_login(request):
     """

@@ -123,7 +123,11 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     int endQ = (stepNum + 1) * 3;
     
     for (int i = startQ; i <= endQ; i++) {
-      if (!answers.containsKey('q$i')) {
+      String questionKey = 'q$i';
+      // Skip q12 if it's a text input (optional vital reading)
+      if (questionKey == 'q12') continue;
+      
+      if (!answers.containsKey(questionKey)) {
         return false;
       }
     }
