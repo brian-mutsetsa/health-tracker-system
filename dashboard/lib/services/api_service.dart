@@ -154,13 +154,12 @@ class DashboardApiService {
 
   Future<List<dynamic>> getPatientCheckinsRaw(String patientId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/patients/?search=$patientId'),
+      Uri.parse('$baseUrl/patient/$patientId/checkins/'),
     );
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      if (data.isNotEmpty) {
-        // Patient models serialized have a 'checkins' array loaded into them
-        return data.first['checkins'] ?? [];
+      final data = json.decode(response.body);
+      if (data is List) {
+        return data;
       }
       return [];
     } else {

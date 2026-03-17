@@ -7,7 +7,6 @@ import '../models/checkin_model.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
-import 'condition_selection_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'messages_screen.dart';
 import 'appointments_screen.dart';
@@ -69,11 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsBox = Hive.box('settings');
-    final String? savedCondition = settingsBox.get('condition');
-
-    if (savedCondition == null) {
-      return const ConditionSelectionScreen(isFirstTime: true);
-    }
+    final String savedCondition = settingsBox.get('condition', defaultValue: 'Hypertension');
 
     return Scaffold(
       backgroundColor: AppTheme.background,

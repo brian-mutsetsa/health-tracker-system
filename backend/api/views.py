@@ -409,54 +409,112 @@ def trigger_seed(request):
         
         print("🌱 Now seeding test patients...")
         
+        from datetime import date
+        
         patients_data = [
             {
                 'patient_id': 'PT001',
-                'name': 'Judy',
+                'name': 'Judy Moyo',
                 'condition': 'Hypertension',
                 'password': 'test123',
+                'date_of_birth': date(1978, 3, 15),
                 'weight_kg': 85.5,
                 'blood_pressure_systolic': 140,
                 'blood_pressure_diastolic': 90,
+                'medical_history': 'Family history of hypertension',
+                'medications': 'Amlodipine 5mg daily',
             },
             {
                 'patient_id': 'PT002',
-                'name': 'Ivan',
+                'name': 'Ivan Chikara',
                 'condition': 'Hypertension',
                 'password': 'test123',
+                'date_of_birth': date(1965, 7, 22),
                 'weight_kg': 88.0,
                 'blood_pressure_systolic': 145,
                 'blood_pressure_diastolic': 95,
+                'medical_history': 'Diagnosed 2019, mild kidney disease',
+                'medications': 'Losartan 50mg daily',
             },
             {
                 'patient_id': 'PT003',
-                'name': 'Heidi',
+                'name': 'Heidi Nkomo',
                 'condition': 'Asthma',
                 'password': 'test123',
+                'date_of_birth': date(1990, 11, 8),
                 'weight_kg': 65.0,
                 'blood_pressure_systolic': 120,
                 'blood_pressure_diastolic': 80,
+                'medical_history': 'Childhood-onset asthma, seasonal allergies',
+                'medications': 'Salbutamol inhaler PRN',
+                'allergies': 'Dust, pollen',
             },
             {
                 'patient_id': 'PT004',
-                'name': 'Grace',
+                'name': 'Grace Zimuto',
                 'condition': 'Heart Disease',
                 'password': 'test123',
+                'date_of_birth': date(1958, 1, 30),
                 'weight_kg': 70.0,
                 'blood_pressure_systolic': 130,
                 'blood_pressure_diastolic': 85,
+                'medical_history': 'MI in 2021, stent placed',
+                'medications': 'Aspirin 75mg, Atorvastatin 40mg',
             },
             {
                 'patient_id': 'PT005',
-                'name': 'Frank',
+                'name': 'Frank Mutasa',
                 'condition': 'Diabetes',
                 'password': 'test123',
+                'date_of_birth': date(1972, 5, 12),
                 'weight_kg': 90.0,
                 'blood_pressure_systolic': 135,
                 'blood_pressure_diastolic': 87,
                 'blood_glucose_baseline': 156,
+                'medical_history': 'Type 2 diabetes diagnosed 2018',
+                'medications': 'Metformin 500mg twice daily',
             },
         ]
+        
+        # Realistic checkin data per patient (5 checkins each, most recent first)
+        # Each entry: (days_ago, risk_level, bp_sys, bp_dia, glucose, answer_pattern)
+        checkin_profiles = {
+            'PT001': [  # Hypertension - trending worse
+                (0, 'ORANGE', 152, 96, None, [2, 2, 1, 3, 2, 1, 2, 2, 1, 2, 1, 0]),
+                (3, 'YELLOW', 145, 92, None, [1, 2, 1, 2, 1, 1, 1, 2, 1, 1, 1, 0]),
+                (7, 'YELLOW', 142, 90, None, [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0]),
+                (14, 'GREEN', 135, 86, None, [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0]),
+                (21, 'GREEN', 130, 84, None, [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]),
+            ],
+            'PT002': [  # Hypertension - stable high
+                (0, 'RED', 165, 102, None, [3, 3, 2, 3, 2, 2, 3, 2, 2, 3, 2, 0]),
+                (2, 'RED', 160, 100, None, [3, 2, 2, 3, 2, 2, 2, 3, 2, 2, 2, 0]),
+                (5, 'ORANGE', 155, 97, None, [2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 2, 0]),
+                (10, 'ORANGE', 150, 95, None, [2, 2, 1, 2, 2, 1, 2, 1, 1, 2, 1, 0]),
+                (17, 'YELLOW', 148, 93, None, [1, 2, 1, 2, 1, 1, 1, 2, 1, 1, 1, 0]),
+            ],
+            'PT003': [  # Asthma - well controlled
+                (0, 'GREEN', 118, 78, None, [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
+                (4, 'GREEN', 120, 80, None, [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]),
+                (8, 'YELLOW', 122, 80, None, [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0]),
+                (15, 'GREEN', 119, 79, None, [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0]),
+                (22, 'GREEN', 120, 78, None, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            ],
+            'PT004': [  # Heart Disease - concerning trend
+                (0, 'RED', 158, 98, None, [3, 2, 3, 3, 2, 2, 3, 2, 3, 2, 2, 0]),
+                (1, 'ORANGE', 148, 92, None, [2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1, 0]),
+                (4, 'ORANGE', 145, 90, None, [2, 1, 2, 2, 1, 1, 2, 1, 2, 1, 1, 0]),
+                (9, 'YELLOW', 138, 87, None, [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0]),
+                (16, 'YELLOW', 135, 85, None, [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0]),
+            ],
+            'PT005': [  # Diabetes - fluctuating
+                (0, 'YELLOW', 138, 88, 145, [1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 0]),
+                (2, 'ORANGE', 142, 90, 210, [2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0]),
+                (6, 'GREEN', 132, 84, 120, [0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0]),
+                (12, 'YELLOW', 136, 86, 165, [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0]),
+                (20, 'RED', 148, 94, 280, [3, 2, 3, 3, 2, 2, 3, 2, 2, 3, 2, 0]),
+            ],
+        }
         
         now = datetime.now()
         patients_created = []
@@ -468,52 +526,82 @@ def trigger_seed(request):
             )
             
             if not created:
-                patient.name = patient_data['name']
-                patient.password = patient_data['password']
-                patient.condition = patient_data['condition']
-                patient.weight_kg = patient_data['weight_kg']
-                patient.blood_pressure_systolic = patient_data['blood_pressure_systolic']
-                patient.blood_pressure_diastolic = patient_data['blood_pressure_diastolic']
-                if 'blood_glucose_baseline' in patient_data:
-                    patient.blood_glucose_baseline = patient_data['blood_glucose_baseline']
+                for key, value in patient_data.items():
+                    setattr(patient, key, value)
                 patient.save()
             
             patients_created.append(patient)
-            print(f"✓ {patient.patient_id} - {patient.name} ({patient.condition})")
+            print(f"✓ {patient.patient_id} - {patient.name} ({patient.condition}), DOB: {patient.date_of_birth}")
             
-            # Create check-in history
-            risk_levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED', 'GREEN']
-            for i, risk in enumerate(risk_levels):
-                CheckIn.objects.create(
+            # Create check-in history with realistic vitals
+            profile = checkin_profiles[patient.patient_id]
+            for i, (days_ago, risk, bp_sys, bp_dia, glucose, answers_list) in enumerate(profile):
+                answers = {f'q{j+1}': v for j, v in enumerate(answers_list)}
+                checkin = CheckIn.objects.create(
                     patient=patient,
                     condition=patient.condition,
-                    date=now - timedelta(days=i),
-                    answers={
-                        'q1': i, 'q2': i, 'q3': i,
-                        'q4': i, 'q5': i, 'q6': i,
-                        'q7': i, 'q8': i, 'q9': i,
-                        'q10': i, 'q11': i, 'q12': 0
-                    },
+                    date=now - timedelta(days=days_ago),
+                    answers=answers,
+                    blood_pressure_systolic=bp_sys,
+                    blood_pressure_diastolic=bp_dia,
+                    blood_glucose_reading=glucose,
                     risk_level=risk,
                     risk_color=risk.lower(),
                 )
-                print(f"  ✓ Check-in {i+1}/5 for {patient.patient_id}")
+                print(f"  ✓ Check-in {i+1}/5 for {patient.patient_id} ({risk}, BP {bp_sys}/{bp_dia})")
+            
+            # Update patient tracking fields from most recent checkin (index 0)
+            latest = profile[0]
+            patient.last_checkin = now - timedelta(days=latest[0])
+            patient.last_risk_level = latest[1]
+            patient.last_risk_color = latest[1].lower()
+            patient.save()
+            print(f"  ✓ Updated {patient.patient_id}: last_risk={latest[1]}, last_checkin={patient.last_checkin}")
         
         # Create appointments for each patient
         print("🗓️ Creating appointments...")
-        for patient in patients_created:
+        appointment_reasons = [
+            'Blood pressure review', 'Routine follow-up', 'Medication review',
+            'Lab results discussion', 'Annual physical exam',
+        ]
+        for idx, patient in enumerate(patients_created):
             offsets = [(2, '10:00'), (5, '14:30'), (10, '09:00')]
-            for days_offset, app_time in offsets:
+            for j, (days_offset, app_time) in enumerate(offsets):
                 app_date = (now + timedelta(days=days_offset)).date()
                 Appointment.objects.create(
                     patient=patient,
                     provider_id='DR001',
                     scheduled_date=app_date,
                     scheduled_time=app_time,
-                    reason='Regular checkup',
+                    reason=appointment_reasons[(idx + j) % len(appointment_reasons)],
                     status='SCHEDULED'
                 )
                 print(f"  ✓ Appointment {app_date} {app_time} for {patient.patient_id}")
+        
+        # Create sample messages between patients and provider
+        print("💬 Creating sample messages...")
+        message_pairs = [
+            ('PT001', 'DR001', 'Good morning doctor, my BP reading was 152/96 this morning.'),
+            ('DR001', 'PT001', 'Thanks Judy. That is a bit high. Are you taking your Amlodipine?'),
+            ('PT001', 'DR001', 'Yes, every morning with breakfast.'),
+            ('DR001', 'PT001', 'Good. Please monitor for the next 3 days and let me know. Reduce salt intake.'),
+            ('PT002', 'DR001', 'Doctor, I have been having headaches and dizziness since yesterday.'),
+            ('DR001', 'PT002', 'Ivan, your last BP reading was very high. Please come in for an urgent review.'),
+            ('PT004', 'DR001', 'I felt some chest tightness after walking today.'),
+            ('DR001', 'PT004', 'Grace, please go to the nearest clinic immediately. Do not exert yourself.'),
+            ('PT004', 'DR001', 'I went to the clinic, they said it was mild. I feel better now.'),
+            ('DR001', 'PT004', 'Glad to hear. We will discuss this at your next appointment.'),
+            ('PT005', 'DR001', 'My glucose was 280 last week but its down to 145 today.'),
+            ('DR001', 'PT005', 'Good improvement Frank. Keep up the diet changes and take Metformin consistently.'),
+        ]
+        for i, (sender, receiver, content) in enumerate(message_pairs):
+            Message.objects.create(
+                sender_id=sender,
+                receiver_id=receiver,
+                content=content,
+                is_read=(i < len(message_pairs) - 4),  # Last 4 messages unread
+            )
+        print(f"  ✓ Created {len(message_pairs)} messages")
         
         return Response({
             'status': 'success',
@@ -592,11 +680,23 @@ def get_typing_status(request):
 def register_patient(request):
     """
     Register a new patient with baseline clinical data.
-    Expected fields: patient_id, name, condition, date_of_birth, weight_kg, 
+    patient_id is auto-generated (PT + sequential number).
+    Expected fields: name, condition, password, date_of_birth, weight_kg, 
                     blood_pressure_systolic, blood_pressure_diastolic, blood_glucose_baseline,
-                    medical_history, medications, allergies, primary_provider_id
+                    medical_history, medications, allergies
     """
-    serializer = PatientRegistrationSerializer(data=request.data)
+    data = request.data.copy()
+    # Auto-generate patient_id if not provided
+    if not data.get('patient_id'):
+        last_patient = Patient.objects.order_by('-id').first()
+        next_num = (last_patient.id + 1) if last_patient else 1
+        data['patient_id'] = f'PT{next_num:04d}'
+        # Ensure uniqueness
+        while Patient.objects.filter(patient_id=data['patient_id']).exists():
+            next_num += 1
+            data['patient_id'] = f'PT{next_num:04d}'
+    
+    serializer = PatientRegistrationSerializer(data=data)
     if serializer.is_valid():
         patient = serializer.save()
         print(f"✅ Patient registered: {patient.patient_id} - {patient.name}")

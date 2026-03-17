@@ -147,11 +147,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Condition Card
+                    // Condition Card with Change button
                     _buildDetailCard(
                       icon: Icons.medical_information,
                       label: 'Condition',
                       value: condition,
+                      trailing: TextButton(
+                        onPressed: _showChangeConditionDialog,
+                        child: const Text('Change', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+                      ),
                     ),
                     const SizedBox(height: 40),
 
@@ -223,10 +227,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showChangeConditionDialog() {
+    final conditions = ['Hypertension', 'Diabetes', 'Cardiovascular', 'Asthma'];
+    final current = _settingsBox.get('condition', defaultValue: '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Select Condition'),
+        children: conditions.map((c) => SimpleDialogOption(
+          onPressed: () async {
+            await _settingsBox.put('condition', c);
+            Navigator.pop(ctx);
+            setState(() {});
+          },
+          child: Row(
+            children: [
+              Icon(
+                c == current ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: c == current ? AppTheme.primaryTeal : Colors.grey,
+              ),
+              const SizedBox(width: 12),
+              Text(c, style: TextStyle(
+                fontWeight: c == current ? FontWeight.bold : FontWeight.normal,
+                fontSize: 16,
+              )),
+            ],
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
   Widget _buildDetailCard({
     required IconData icon,
     required String label,
     required String value,
+    Widget? trailing,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -281,6 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
+          if (trailing != null) trailing,
         ],
       ),
     );
