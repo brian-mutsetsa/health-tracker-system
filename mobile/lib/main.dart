@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -10,7 +11,8 @@ import 'models/checkin_model.dart';
 import 'services/notification_service.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize Notifications
   await NotificationService().init();
@@ -21,6 +23,7 @@ void main() async {
   await Hive.openBox<CheckinModel>('checkins');
   await Hive.openBox('settings');
 
+  FlutterNativeSplash.remove();
   runApp(const HealthTrackerApp());
 }
 

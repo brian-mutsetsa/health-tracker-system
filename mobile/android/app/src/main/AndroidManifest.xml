@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:label="health_tracker_v1"
+        android:label="Vitalix"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
