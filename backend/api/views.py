@@ -406,6 +406,40 @@ def trigger_seed(request):
                 );
             """)
             print("✓ Recreated api_typingstatus table")
+            
+            # Recreate Provider table
+            cursor.execute("""
+                CREATE TABLE api_provider (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL UNIQUE REFERENCES auth_user(id) ON DELETE CASCADE,
+                    provider_id VARCHAR(100) UNIQUE NOT NULL,
+                    specialty VARCHAR(100) DEFAULT '',
+                    hospital VARCHAR(100) DEFAULT ''
+                );
+            """)
+            print("✓ Recreated api_provider table")
+        
+        # Create provider Django user + Provider record
+        print("👨‍⚕️ Creating provider account...")
+        from django.contrib.auth.models import User
+        
+        # Delete existing provider user if any
+        User.objects.filter(username='admin').delete()
+        
+        provider_user = User.objects.create_user(
+            username='admin',
+            password='password',
+            first_name='James',
+            last_name='Wilson',
+            email='dr.wilson@healthtracker.co.zw'
+        )
+        Provider.objects.create(
+            user=provider_user,
+            provider_id='DR001',
+            specialty='Internal Medicine',
+            hospital='Harare Central Hospital'
+        )
+        print(f"✓ Created provider: Dr. Wilson (admin/password) - DR001")
         
         print("🌱 Now seeding test patients...")
         
