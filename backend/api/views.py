@@ -499,9 +499,25 @@ def trigger_seed(request):
                 )
                 print(f"  ✓ Check-in {i+1}/5 for {patient.patient_id}")
         
+        # Create appointments for each patient
+        print("🗓️ Creating appointments...")
+        for patient in patients_created:
+            offsets = [(2, '10:00'), (5, '14:30'), (10, '09:00')]
+            for days_offset, app_time in offsets:
+                app_date = (now + timedelta(days=days_offset)).date()
+                Appointment.objects.create(
+                    patient=patient,
+                    provider_id='DR001',
+                    scheduled_date=app_date,
+                    scheduled_time=app_time,
+                    reason='Regular checkup',
+                    status='SCHEDULED'
+                )
+                print(f"  ✓ Appointment {app_date} {app_time} for {patient.patient_id}")
+        
         return Response({
             'status': 'success',
-            'message': f'✅ Database RESET and seeded with {len(patients_created)} test patients',
+            'message': f'✅ Database RESET and seeded with {len(patients_created)} test patients + appointments',
             'patients': [p.patient_id for p in patients_created]
         }, status=status.HTTP_200_OK)
     except Exception as e:
@@ -731,7 +747,15 @@ def list_all_patients(request):
 @api_view(['POST'])
 def create_appointment(request):
     """Create a new appointment"""
-    serializer = AppointmentSerializer(data=request.data)
+    data = request.data.copy()
+    # Allow client to send patient_id (string) instead of patient (FK int)
+    if 'patient_id' in data and 'patient' not in data:
+        try:
+            patient = Patient.objects.get(patient_id=data['patient_id'])
+            data['patient'] = patient.id
+        except Patient.DoesNotExist:
+            return Response({'error': f"Patient {data['patient_id']} not found"}, status=status.HTTP_404_NOT_FOUND)
+    serializer = AppointmentSerializer(data=data)
     if serializer.is_valid():
         appointment = serializer.save()
         print(f"✅ Appointment created: {appointment.id}")

@@ -439,7 +439,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Risk Score: ${calculateRiskScore()}/36',
+                'Risk Score: ${calculateRiskScore()}/${answers.length * 3}',
                 style: const TextStyle(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.bold),
               ),
             ],

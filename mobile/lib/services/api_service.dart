@@ -189,13 +189,16 @@ class ApiService {
         List<dynamic> data = jsonDecode(response.body);
         final checkinsBox = Hive.box<CheckinModel>('checkins');
         
+        // Clear existing check-ins first to prevent duplicates on re-login
+        await checkinsBox.clear();
+        
         for (var checkinJson in data) {
           try {
             // Parse the check-in JSON
             final date = DateTime.parse(checkinJson['date']);
-            final answers = Map<String, String>.from(
-              checkinJson['answers'] is Map ? checkinJson['answers'] : {}
-            );
+            final rawAnswers = checkinJson['answers'] is Map ? checkinJson['answers'] : {};
+            final answers = <String, String>{};
+            rawAnswers.forEach((k, v) => answers[k.toString()] = v.toString());
             
             final checkin = CheckinModel(
               condition: checkinJson['condition'] ?? 'Unknown',
@@ -208,7 +211,6 @@ class ApiService {
               bloodGlucose: checkinJson['blood_glucose_reading']?.toDouble(),
             );
             
-            // Save to Hive (will replace if key already exists)
             await checkinsBox.add(checkin);
           } catch (e) {
             print('⚠️ Error parsing check-in: $e');
@@ -308,17 +310,58 @@ class ApiService {
     try {
       final patientId = await getPatientId();
       final response = await http.get(
-        Uri.parse('$baseUrl/appointments/?patient=$patientId'),
+        Uri.parse('$baseUrl/appointments/?patient_id=$patientId'),
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
+        List<dynamic> data;
+        if (decoded is List) {
+          data = decoded;
+        } else if (decoded is Map && decoded['results'] is List) {
+          data = decoded['results'];
+        } else {
+          return [];
+        }
         return data.map((json) => AppointmentModel.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
       print('❌ Error fetching appointments: $e');
       return [];
+    }
+  }
+
+  Future<bool> createAppointment({
+    required String patientId,
+    required DateTime scheduledDate,
+    required String scheduledTime,
+    String reason = 'Patient requested',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/create/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'patient_id': patientId,
+          'provider_id': 'DR001',
+          'scheduled_date': scheduledDate.toIso8601String().split('T')[0],
+          'scheduled_time': scheduledTime,
+          'reason': reason,
+          'status': 'SCHEDULED',
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        print('✅ Appointment created successfully');
+        return true;
+      } else {
+        print('❌ Failed to create appointment: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Error creating appointment: $e');
+      return false;
     }
   }
 }

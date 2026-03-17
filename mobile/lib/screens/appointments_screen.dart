@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../theme/app_theme.dart';
 import '../models/appointment_model.dart';
 import '../services/api_service.dart';
@@ -70,9 +71,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.white),
-                  onPressed: _loadAppointments,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      onPressed: _showScheduleDialog,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: _loadAppointments,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -183,6 +192,88 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             ),
           ]
         ],
+      ),
+    );
+  }
+
+  void _showScheduleDialog() {
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Schedule Appointment'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Date'),
+                  subtitle: Text(DateFormat('MMM d, yyyy').format(selectedDate)),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 90)),
+                    );
+                    if (date != null) {
+                      setDialogState(() => selectedDate = date);
+                    }
+                  },
+                ),
+                ListTile(
+                  title: const Text('Time'),
+                  subtitle: Text(selectedTime.format(dialogContext)),
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: dialogContext,
+                      initialTime: selectedTime,
+                    );
+                    if (time != null) {
+                      setDialogState(() => selectedTime = time);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
+                final hour = selectedTime.hour.toString().padLeft(2, '0');
+                final minute = selectedTime.minute.toString().padLeft(2, '0');
+                final timeStr = '$hour:$minute';
+                
+                final success = await _apiService.createAppointment(
+                  patientId: patientId,
+                  scheduledDate: selectedDate,
+                  scheduledTime: timeStr,
+                );
+                
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ Appointment scheduled')),
+                  );
+                  await _loadAppointments();
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('❌ Failed to schedule appointment')),
+                  );
+                }
+              },
+              child: const Text('Schedule'),
+            ),
+          ],
+        ),
       ),
     );
   }

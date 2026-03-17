@@ -24,13 +24,7 @@ class _CheckInHistoryScreenState extends State<CheckInHistoryScreen> {
   }
 
   void _loadCheckins() {
-    final condition = Hive.box('settings').get('condition', defaultValue: '');
     List<CheckinModel> all = _checkinsBox.values.toList();
-    
-    // Filter by condition if available
-    if (condition.isNotEmpty) {
-      all = all.where((c) => c.condition == condition).toList();
-    }
     
     // Sort by date descending
     all.sort((a, b) => b.date.compareTo(a.date));
@@ -57,11 +51,17 @@ class _CheckInHistoryScreenState extends State<CheckInHistoryScreen> {
   int _calculateScore(Map<String, String> answers) {
     int total = 0;
     for (var value in answers.values) {
-      if (value is String) {
-        total += int.tryParse(value) ?? 0;
-      }
+      total += int.tryParse(value) ?? 0;
     }
     return total;
+  }
+
+  int _calculateMaxScore(Map<String, String> answers) {
+    int numericCount = 0;
+    for (var value in answers.values) {
+      if (int.tryParse(value) != null) numericCount++;
+    }
+    return numericCount * 3;
   }
 
   @override
@@ -239,7 +239,7 @@ class _CheckInHistoryScreenState extends State<CheckInHistoryScreen> {
                       Icon(Icons.assessment, size: 18, color: AppTheme.primaryTeal),
                       const SizedBox(width: 8),
                       Text(
-                        'Score: $score / 36',
+                        'Score: $score / ${_calculateMaxScore(checkin.answers)}',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

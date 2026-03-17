@@ -19,13 +19,13 @@ class AppointmentModel {
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
-      id: json['id'],
-      providerId: json['provider_id'] ?? 'provider',
-      providerName: json['provider_name'],
-      scheduledDate: json['scheduled_date'],
-      scheduledTime: json['scheduled_time'],
-      status: json['status'] ?? 'SCHEDULED',
-      reason: json['reason'] ?? '',
+      id: json['id'] is int ? json['id'] : 0,
+      providerId: json['provider_id']?.toString() ?? 'provider',
+      providerName: json['provider_name']?.toString(),
+      scheduledDate: json['scheduled_date']?.toString() ?? '',
+      scheduledTime: json['scheduled_time']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'SCHEDULED',
+      reason: json['reason']?.toString() ?? '',
     );
   }
 }
