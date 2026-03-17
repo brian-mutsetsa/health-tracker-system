@@ -294,6 +294,46 @@ class DashboardApiService {
     }
   }
 
+  Future<bool> completeAppointment(int appointmentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/$appointmentId/complete/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error completing appointment: $e');
+      return false;
+    }
+  }
+
+  Future<bool> cancelAppointment(int appointmentId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/appointments/$appointmentId/cancel/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error cancelling appointment: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAppointmentStatus(int appointmentId, String status) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/appointments/$appointmentId/update/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': status}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error updating appointment: $e');
+      return false;
+    }
+  }
+
   Future<Map<String, int>> getStats() async {
     try {
       List<Patient> patients = await getPatients();

@@ -560,6 +560,10 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         processedAnswers[key] = value.toString();
       }
     });
+    // Ensure q12 is always included (backend requires 12 answers)
+    if (!processedAnswers.containsKey('q12')) {
+      processedAnswers['q12'] = '0';
+    }
 
     String riskLevel = getRiskLevel()['level'];
     String riskColor = riskLevel.toLowerCase();

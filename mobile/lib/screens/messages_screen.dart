@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/message_model.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -227,8 +228,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
       itemBuilder: (context, index) {
         // Since list is reversed, index 0 is the last item in the array
         final message = _messages[_messages.length - 1 - index];
-        // Patient sends to provider, so if it's not from provider, it's from current patient
-        final isMe = message.senderId != 'provider';
+        // Patient's own messages have their patient_id as sender
+        final settingsBox = Hive.box('settings');
+        final myId = settingsBox.get('patient_id', defaultValue: '');
+        final isMe = message.senderId == myId;
 
         return Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,

@@ -27,6 +27,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Patient> _patients = [];
   List<Appointment> _appointments = [];
   bool _loading = true;
+  int _scheduledAppointmentCount = 0;
+  int _highRiskCount = 0;
   Map<String, int> _stats = {
     'total_patients': 0,
     'high_risk': 0,
@@ -53,6 +55,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _patients = patients;
         _stats = stats;
         _appointments = appointments;
+        _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
+        _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
       });
     }
   }
@@ -72,6 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _patients = patients;
       _stats = stats;
       _appointments = appointments;
+      _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
+      _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
       _loading = false;
     });
   }
@@ -134,28 +140,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       unselectedItemColor: AppTheme.textLight,
       selectedFontSize: 11,
       unselectedFontSize: 11,
-      items: const [
-        BottomNavigationBarItem(
+      items: [
+        const BottomNavigationBarItem(
           icon: Icon(Icons.grid_view_rounded),
           label: 'Overview',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.people_outline_rounded),
           label: 'Patients',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_rounded),
+          icon: _buildBadgeIcon(Icons.calendar_month_rounded, _scheduledAppointmentCount),
           label: 'Appointments',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.warning_amber_rounded),
+          icon: _buildBadgeIcon(Icons.warning_amber_rounded, _highRiskCount),
           label: 'High Risk',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.analytics_outlined),
           label: 'Analytics',
         ),
       ],
+    );
+  }
+
+  Widget _buildBadgeIcon(IconData icon, int count) {
+    if (count == 0) return Icon(icon);
+    return Badge(
+      label: Text('$count', style: const TextStyle(fontSize: 10, color: Colors.white)),
+      child: Icon(icon),
     );
   }
 
@@ -255,8 +269,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         _buildNavItem(0, Icons.grid_view_rounded, 'Dashboard'),
         _buildNavItem(1, Icons.people_outline_rounded, 'All Patients'),
-        _buildNavItem(2, Icons.calendar_month_rounded, 'Appointments'),
-        _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts'),
+        _buildNavItem(2, Icons.calendar_month_rounded, 'Appointments', badgeCount: _scheduledAppointmentCount),
+        _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts', badgeCount: _highRiskCount),
         _buildNavItem(4, Icons.analytics_outlined, 'Analytics'),
 
         const Spacer(),
@@ -304,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, {int badgeCount = 0}) {
     final isSelected = _selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
@@ -326,14 +340,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 size: 22,
               ),
               const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppTheme.textLight,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  fontSize: 14,
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.textLight,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
+              if (badgeCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withAlpha(50) : Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -433,7 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Dr. ${widget.providerName}',
+                    'Dr. ${widget.providerName.replaceFirst(RegExp(r'^Dr\.?\s*'), '')}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textDark,
@@ -645,7 +677,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back,\nDr. ${widget.providerName}!',
+                  'Welcome back,\nDr. ${widget.providerName.replaceFirst(RegExp(r'^Dr\.?\s*'), '')}!',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: isMobile ? 20 : 32,
@@ -1581,6 +1613,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
+    // Sort: today first, then upcoming, then past
+    final now = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(now);
+
+    final today = _appointments.where((a) => a.scheduledDate == todayStr).toList();
+    final upcoming = _appointments.where((a) => a.scheduledDate.compareTo(todayStr) > 0).toList()
+      ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
+    final past = _appointments.where((a) => a.scheduledDate.compareTo(todayStr) < 0).toList()
+      ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+
     // Group by status
     final scheduled = _appointments.where((a) => a.status == 'SCHEDULED').toList();
     final completed = _appointments.where((a) => a.status == 'COMPLETED').toList();
@@ -1605,21 +1647,208 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Table
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10, offset: const Offset(0, 2))],
+          // Today's appointments
+          if (today.isNotEmpty) ...[
+            _buildSectionHeader('Today', Icons.today_rounded, AppTheme.primaryTeal, today.length),
+            const SizedBox(height: 12),
+            ...today.map((a) => _buildAppointmentCard(a, highlight: true)),
+            const SizedBox(height: 24),
+          ],
+
+          // Upcoming
+          if (upcoming.isNotEmpty) ...[
+            _buildSectionHeader('Upcoming', Icons.event_rounded, Colors.blue, upcoming.length),
+            const SizedBox(height: 12),
+            ...upcoming.map((a) => _buildAppointmentCard(a)),
+            const SizedBox(height: 24),
+          ],
+
+          // Past
+          if (past.isNotEmpty) ...[
+            _buildSectionHeader('Past', Icons.history_rounded, AppTheme.textLight, past.length),
+            const SizedBox(height: 12),
+            ...past.map((a) => _buildAppointmentCard(a)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, Color color, int count) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(10)),
+          child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentCard(Appointment a, {bool highlight = false}) {
+    Color statusColor;
+    IconData statusIcon;
+    switch (a.status) {
+      case 'COMPLETED':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle_outline;
+        break;
+      case 'CANCELLED':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel_outlined;
+        break;
+      default:
+        statusColor = AppTheme.primaryTeal;
+        statusIcon = Icons.schedule;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: highlight ? Border.all(color: AppTheme.primaryTeal.withAlpha(80), width: 2) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(statusIcon, color: statusColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(a.patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark)),
+                      const SizedBox(height: 2),
+                      Text(a.reason, style: const TextStyle(fontSize: 13, color: AppTheme.textLight), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(a.status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 11)),
+                ),
+              ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: isMobile ? _buildAppointmentCards() : _buildAppointmentTable(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textLight),
+                const SizedBox(width: 6),
+                Text(a.scheduledDate, style: const TextStyle(fontSize: 13, color: AppTheme.textDark, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 16),
+                Icon(Icons.access_time_rounded, size: 14, color: AppTheme.textLight),
+                const SizedBox(width: 6),
+                Text(a.scheduledTime.length >= 5 ? a.scheduledTime.substring(0, 5) : a.scheduledTime, style: const TextStyle(fontSize: 13, color: AppTheme.textDark, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 16),
+                Icon(Icons.timer_outlined, size: 14, color: AppTheme.textLight),
+                const SizedBox(width: 6),
+                Text('${a.durationMinutes} min', style: const TextStyle(fontSize: 13, color: AppTheme.textDark)),
+              ],
             ),
+            // Action buttons for SCHEDULED appointments
+            if (a.status == 'SCHEDULED') ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _cancelAppointment(a),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _completeAppointment(a),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Complete'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _completeAppointment(Appointment a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Complete Appointment'),
+        content: Text('Mark appointment with ${a.patientName} as completed?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Complete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+    if (confirmed == true) {
+      final success = await _apiService.completeAppointment(a.id);
+      if (success) _loadData();
+    }
+  }
+
+  Future<void> _cancelAppointment(Appointment a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Appointment'),
+        content: Text('Cancel appointment with ${a.patientName}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Back')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Cancel Appointment', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final success = await _apiService.cancelAppointment(a.id);
+      if (success) _loadData();
+    }
   }
 
   Widget _buildAppointmentBadge(String label, int count, Color color) {
@@ -1640,105 +1869,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
-  Widget _buildAppointmentTable() {
-    return DataTable(
-      headingRowColor: WidgetStateProperty.all(AppTheme.primaryTeal.withAlpha(15)),
-      columnSpacing: 24,
-      columns: const [
-        DataColumn(label: Text('Patient', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Duration', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Reason', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-      ],
-      rows: _appointments.map((a) {
-        Color statusColor;
-        switch (a.status) {
-          case 'COMPLETED':
-            statusColor = Colors.green;
-            break;
-          case 'CANCELLED':
-            statusColor = Colors.red;
-            break;
-          default:
-            statusColor = AppTheme.primaryTeal;
-        }
-        return DataRow(cells: [
-          DataCell(Text(a.patientName, style: const TextStyle(fontWeight: FontWeight.w600))),
-          DataCell(Text(a.scheduledDate)),
-          DataCell(Text(a.scheduledTime.substring(0, 5))),
-          DataCell(Text('${a.durationMinutes} min')),
-          DataCell(SizedBox(width: 180, child: Text(a.reason, overflow: TextOverflow.ellipsis))),
-          DataCell(
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(a.status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 12)),
-            ),
-          ),
-        ]);
-      }).toList(),
-    );
-  }
-
-  Widget _buildAppointmentCards() {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _appointments.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final a = _appointments[index];
-        Color statusColor;
-        switch (a.status) {
-          case 'COMPLETED':
-            statusColor = Colors.green;
-            break;
-          case 'CANCELLED':
-            statusColor = Colors.red;
-            break;
-          default:
-            statusColor = AppTheme.primaryTeal;
-        }
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(a.patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withAlpha(25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(a.status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 11)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('${a.scheduledDate}  \u2022  ${a.scheduledTime.substring(0, 5)}  \u2022  ${a.durationMinutes} min',
-                  style: const TextStyle(color: AppTheme.textLight, fontSize: 13)),
-              const SizedBox(height: 4),
-              Text(a.reason, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
-// ─── Message Panel ──────────────────────────────────────────────────────────
+  // ─── Message Panel ──────────────────────────────────────────────────────────
 
 class _MessagePanel extends StatefulWidget {
   final Patient patient;
@@ -1882,7 +2015,7 @@ class _MessagePanelState extends State<_MessagePanel> {
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[_messages.length - 1 - index];
-                    final isProvider = msg.senderId == 'provider';
+                    final isProvider = msg.senderId == 'DR001' || msg.senderId == (DashboardApiService.currentProviderId ?? 'DR001');
                     return Align(
                       alignment: isProvider
                           ? Alignment.centerRight

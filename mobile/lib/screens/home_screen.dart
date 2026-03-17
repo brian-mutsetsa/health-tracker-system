@@ -26,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
   int _lastKnownAppointmentCount = 0;
   bool _isFirstPoll = true;
+  int _unreadMessageCount = 0;
+  int _upcomingAppointmentCount = 0;
 
   @override
   void initState() {
@@ -40,29 +42,51 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startPolling() {
+    // Initial fetch
+    _fetchBadgeCounts();
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
-      try {
-        final appointments = await _apiService.getAppointments();
-        if (_isFirstPoll) {
-          _lastKnownAppointmentCount = appointments.length;
-          _isFirstPoll = false;
-        } else {
-          if (appointments.length > _lastKnownAppointmentCount) {
-            // New appointment found!
-            await NotificationService().showNotification(
-              id: 1,
-              title: 'New Appointment',
-              body: 'You have a new appointment scheduled.',
-            );
-            _lastKnownAppointmentCount = appointments.length;
-          } else if (appointments.length < _lastKnownAppointmentCount) {
-            _lastKnownAppointmentCount = appointments.length;
-          }
-        }
-      } catch (e) {
-        print('Error polling: $e');
-      }
+      _fetchBadgeCounts();
     });
+  }
+
+  Future<void> _fetchBadgeCounts() async {
+    try {
+      final appointments = await _apiService.getAppointments();
+      final scheduled = appointments.where((a) => a.status == 'SCHEDULED').length;
+      
+      if (_isFirstPoll) {
+        _lastKnownAppointmentCount = appointments.length;
+        _isFirstPoll = false;
+      } else {
+        if (appointments.length > _lastKnownAppointmentCount) {
+          await NotificationService().showNotification(
+            id: 1,
+            title: 'New Appointment',
+            body: 'You have a new appointment scheduled.',
+          );
+          _lastKnownAppointmentCount = appointments.length;
+        } else if (appointments.length < _lastKnownAppointmentCount) {
+          _lastKnownAppointmentCount = appointments.length;
+        }
+      }
+
+      // Get unread messages
+      int unread = 0;
+      try {
+        final messages = await _apiService.getMessages();
+        final myId = Hive.box('settings').get('patient_id', defaultValue: '');
+        unread = messages.where((m) => !m.isRead && m.senderId != myId).length;
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          _upcomingAppointmentCount = scheduled;
+          _unreadMessageCount = unread;
+        });
+      }
+    } catch (e) {
+      print('Error polling: $e');
+    }
   }
 
   @override
@@ -635,17 +659,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildNavItem(0, Icons.home_rounded),
-            _buildNavItem(1, Icons.calendar_month_rounded),
-            _buildNavItem(2, Icons.mail_outline_rounded),
-            _buildNavItem(3, Icons.person_outline_rounded),
+            _buildNavItem(0, Icons.home_rounded, 0),
+            _buildNavItem(1, Icons.calendar_month_rounded, _upcomingAppointmentCount),
+            _buildNavItem(2, Icons.mail_outline_rounded, _unreadMessageCount),
+            _buildNavItem(3, Icons.person_outline_rounded, 0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon) {
+  Widget _buildNavItem(int index, IconData icon, int badgeCount) {
     bool isSelected = _currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -653,19 +677,42 @@ class _HomeScreenState extends State<HomeScreen> {
           _currentIndex = index;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: isSelected
-            ? const BoxDecoration(
-                color: AppTheme.primaryTeal,
-                shape: BoxShape.circle,
-              )
-            : null,
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.white : AppTheme.textLight,
-          size: 26,
-        ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: isSelected
+                ? const BoxDecoration(
+                    color: AppTheme.primaryTeal,
+                    shape: BoxShape.circle,
+                  )
+                : null,
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : AppTheme.textLight,
+              size: 26,
+            ),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  badgeCount > 9 ? '9+' : '$badgeCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
