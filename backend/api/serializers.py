@@ -192,13 +192,21 @@ class TypingStatusSerializer(serializers.ModelSerializer):
 
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source='patient.name', read_only=True)
+    provider_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Appointment
-        fields = ['id', 'patient', 'patient_name', 'provider_id', 'scheduled_date', 
-                  'scheduled_time', 'duration_minutes', 'reason', 'notes', 'status', 
-                  'created_at', 'updated_at']
+        fields = ['id', 'patient', 'patient_name', 'provider_id', 'provider_name',
+                  'scheduled_date', 'scheduled_time', 'duration_minutes', 'reason', 
+                  'notes', 'status', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_provider_name(self, obj):
+        try:
+            provider = Provider.objects.get(provider_id=obj.provider_id)
+            return f"{provider.user.first_name} {provider.user.last_name}"
+        except (Provider.DoesNotExist, Exception):
+            return None
 
 
 class NotificationSerializer(serializers.ModelSerializer):
