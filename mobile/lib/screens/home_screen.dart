@@ -67,13 +67,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settingsBox = Hive.box('settings');
-    final String savedCondition = settingsBox.get('condition', defaultValue: 'Hypertension');
-
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: _buildBody(savedCondition),
-      bottomNavigationBar: _buildBottomNav(),
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (context, Box settingsBox, _) {
+        final String savedCondition = settingsBox.get('condition', defaultValue: 'Hypertension');
+        return Scaffold(
+          backgroundColor: AppTheme.background,
+          body: _buildBody(savedCondition),
+          bottomNavigationBar: _buildBottomNav(),
+        );
+      },
     );
   }
 

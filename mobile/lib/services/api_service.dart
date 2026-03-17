@@ -100,16 +100,22 @@ class ApiService {
       'settings',
     ).get('condition', defaultValue: 'Unknown');
 
+    // Convert string answers back to integers for backend validation
+    final intAnswers = <String, int>{};
+    checkin.answers.forEach((k, v) {
+      intAnswers[k] = int.tryParse(v) ?? 0;
+    });
+
     final requestBody = {
       'patient_id': patientId,
       'condition': condition,
       'date': checkin.date.toIso8601String(),
-      'answers': checkin.answers,
+      'answers': intAnswers,
       'risk_level': checkin.riskLevel,
       'risk_color': checkin.riskColor,
-      'blood_pressure_systolic': checkin.bpSystolic,
-      'blood_pressure_diastolic': checkin.bpDiastolic,
-      'blood_glucose_reading': checkin.bloodGlucose,
+      'blood_pressure_systolic': checkin.bpSystolic?.round(),
+      'blood_pressure_diastolic': checkin.bpDiastolic?.round(),
+      'blood_glucose_reading': checkin.bloodGlucose?.round(),
     };
 
     print('📤 ATTEMPTING TO UPLOAD TO: $baseUrl/checkin/submit/');
@@ -230,7 +236,7 @@ class ApiService {
     try {
       final patientId = await getPatientId();
       final response = await http.get(
-        Uri.parse('$baseUrl/messages/?user_id=$patientId&other_id=provider'),
+        Uri.parse('$baseUrl/messages/?user_id=$patientId&other_id=DR001'),
       );
 
       if (response.statusCode == 200) {
@@ -253,7 +259,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'sender_id': patientId,
-          'receiver_id': 'provider', // Hardcoded for this phase
+          'receiver_id': 'DR001',
           'content': text,
         }),
       );
@@ -274,8 +280,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': patientId,
-          'chat_partner_id':
-              'provider', // Provider is always the partner for patient
+          'chat_partner_id': 'DR001',
           'is_typing': isTyping,
         }),
       );
@@ -290,7 +295,7 @@ class ApiService {
       final patientId = await getPatientId();
       final response = await http.get(
         Uri.parse(
-          '$baseUrl/typing/status/?user_id=$patientId&partner_id=provider',
+          '$baseUrl/typing/status/?user_id=$patientId&partner_id=DR001',
         ),
       );
 
