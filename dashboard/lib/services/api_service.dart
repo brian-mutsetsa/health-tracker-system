@@ -65,6 +65,44 @@ class Message {
   }
 }
 
+class Appointment {
+  final int id;
+  final String patientName;
+  final String providerId;
+  final String? providerName;
+  final String scheduledDate;
+  final String scheduledTime;
+  final int durationMinutes;
+  final String reason;
+  final String status;
+
+  Appointment({
+    required this.id,
+    required this.patientName,
+    required this.providerId,
+    this.providerName,
+    required this.scheduledDate,
+    required this.scheduledTime,
+    required this.durationMinutes,
+    required this.reason,
+    required this.status,
+  });
+
+  factory Appointment.fromJson(Map<String, dynamic> json) {
+    return Appointment(
+      id: json['id'],
+      patientName: json['patient_name'] ?? 'Unknown',
+      providerId: json['provider_id'] ?? '',
+      providerName: json['provider_name'],
+      scheduledDate: json['scheduled_date'] ?? '',
+      scheduledTime: json['scheduled_time'] ?? '',
+      durationMinutes: json['duration_minutes'] ?? 30,
+      reason: json['reason'] ?? '',
+      status: json['status'] ?? 'SCHEDULED',
+    );
+  }
+}
+
 class DashboardApiService {
   // CHANGE THIS to your computer's IP address (same as mobile app)
   static const String baseUrl =
@@ -85,7 +123,7 @@ class DashboardApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         currentProviderId = data['provider_id'];
-        currentProviderName = 'Dr. ${data['last_name']}';
+        currentProviderName = '${data['last_name']}';
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('provider_id', currentProviderId!);
@@ -227,6 +265,32 @@ class DashboardApiService {
     } catch (e) {
       print('❌ Error fetching typing status: $e');
       return false;
+    }
+  }
+
+  Future<List<Appointment>> getAppointments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/appointments/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        List<dynamic> data;
+        if (responseData is Map && responseData.containsKey('results')) {
+          data = responseData['results'];
+        } else if (responseData is List) {
+          data = responseData;
+        } else {
+          return [];
+        }
+        return data.map((json) => Appointment.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching appointments: $e');
+      return [];
     }
   }
 
