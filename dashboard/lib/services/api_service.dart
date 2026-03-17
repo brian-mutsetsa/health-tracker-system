@@ -24,8 +24,8 @@ class Patient {
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
       id: json['id'].toString(),
-      patientId: json['patient_id'],
-      condition: json['condition'],
+      patientId: json['patient_id'] ?? 'N/A',
+      condition: json['condition'] ?? 'Unknown',
       lastCheckin: json['last_checkin'] != null
           ? DateTime.parse(json['last_checkin'])
           : null,
@@ -112,8 +112,22 @@ class DashboardApiService {
       print('📨 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
-        print('✅ Received ${data.length} patients');
+        final responseData = jsonDecode(response.body);
+        
+        // Handle paginated response: {count, page, page_size, total_pages, results}
+        List<dynamic> data;
+        if (responseData is Map && responseData.containsKey('results')) {
+          // Paginated response
+          data = responseData['results'];
+          print('✅ Received ${data.length} patients (paginated)');
+        } else if (responseData is List) {
+          // Direct array response
+          data = responseData;
+          print('✅ Received ${data.length} patients');
+        } else {
+          print('❌ Unexpected response format: $responseData');
+          return [];
+        }
 
         return data.map((json) => Patient.fromJson(json)).toList();
       } else {
