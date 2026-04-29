@@ -13,6 +13,34 @@ class Command(BaseCommand):
         Appointment.objects.all().delete()
         Notification.objects.all().delete()
         
+        self.stdout.write("🌱 Seeding test providers...")
+        from django.contrib.auth.models import User
+        User.objects.filter(username__in=['admin', 'dr_hyper', 'dr_diab', 'dr_asthma', 'dr_cardio']).delete()
+        
+        providers_data = [
+            {'username': 'admin', 'first': 'James', 'last': 'Wilson', 'spec': 'General Practice', 'id': 'DR001'},
+            {'username': 'dr_hyper', 'first': 'Sarah', 'last': 'Jones', 'spec': 'Hypertension', 'id': 'DR002'},
+            {'username': 'dr_diab', 'first': 'Michael', 'last': 'Chen', 'spec': 'Diabetes', 'id': 'DR003'},
+            {'username': 'dr_asthma', 'first': 'Emily', 'last': 'Ndlovu', 'spec': 'Asthma', 'id': 'DR004'},
+            {'username': 'dr_cardio', 'first': 'Robert', 'last': 'Smith', 'spec': 'Cardiovascular', 'id': 'DR005'},
+        ]
+
+        for p_data in providers_data:
+            p_user = User.objects.create_user(
+                username=p_data['username'],
+                password='password',
+                first_name=p_data['first'],
+                last_name=p_data['last'],
+                email=f"{p_data['username']}@healthtracker.co.zw"
+            )
+            Provider.objects.create(
+                user=p_user,
+                provider_id=p_data['id'],
+                specialty=p_data['spec'],
+                hospital='Harare Central Hospital'
+            )
+        self.stdout.write(self.style.SUCCESS('✓ Created 5 providers'))
+
         self.stdout.write("🌱 Seeding test patients with credentials...")
         
         # Test patients - matching the actual dashboard patient names

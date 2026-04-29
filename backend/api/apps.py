@@ -9,6 +9,6 @@ class ApiConfig(AppConfig):
         """Run migrations automatically on app startup"""
         try:
             call_command('migrate', verbosity=1)
-            print("✅ Database migrations completed")
+            print("Database migrations completed")
         except Exception as e:
-            print(f"⚠️ Migration error (may be normal if migrations already ran): {e}")
+            print(f"Migration error (may be normal if migrations already ran): {e}")

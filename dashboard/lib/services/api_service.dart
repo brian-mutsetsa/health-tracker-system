@@ -140,10 +140,11 @@ class DashboardApiService {
 
   Future<List<Patient>> getPatients() async {
     try {
-      print('📤 Fetching patients from: $baseUrl/patients/');
+      final providerId = currentProviderId ?? '';
+      print('📤 Fetching patients from: $baseUrl/patients/?provider_id=$providerId');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/patients/'),
+        Uri.parse('$baseUrl/patients/?provider_id=$providerId'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -270,8 +271,9 @@ class DashboardApiService {
 
   Future<List<Appointment>> getAppointments() async {
     try {
+      final providerId = currentProviderId ?? '';
       final response = await http.get(
-        Uri.parse('$baseUrl/appointments/'),
+        Uri.parse('$baseUrl/appointments/?provider_id=$providerId'),
         headers: {'Content-Type': 'application/json'},
       );
 

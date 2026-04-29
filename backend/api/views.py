@@ -20,9 +20,9 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml_models', 'risk_model.pk
 try:
     with open(MODEL_PATH, 'rb') as f:
         ml_model = pickle.load(f)
-    print("✅ ML model loaded successfully")
+    print(" ML model loaded successfully")
 except Exception as e:
-    print(f"⚠️ ML model not found: {e}")
+    print(f" ML model not found: {e}")
     ml_model = None
 
 
@@ -106,7 +106,7 @@ def predict_risk_with_ml(answers, condition, patient=None):
         
         return risk_level, risk_confidence
     except Exception as e:
-        print(f"⚠️ ML prediction error: {e}")
+        print(f" ML prediction error: {e}")
         # Fallback to score calculation
         total_score = sum(question_scores) if 'question_scores' in locals() else 12
         if total_score >= 24:
@@ -157,7 +157,7 @@ def create_checkin(request):
     Create a new check-in and update patient info
     Uses ML model for risk prediction if available
     """
-    print(f"📥 Received check-in request: {request.data}")
+    print(f" Received check-in request: {request.data}")
     
     # Try ML prediction first
     ml_risk = None
@@ -168,9 +168,9 @@ def create_checkin(request):
                 request.data.get('answers', {}),
                 request.data.get('condition', '')
             )
-            print(f"🤖 ML Prediction: {ml_risk} (confidence: {ml_confidence:.1f}%)")
+            print(f" ML Prediction: {ml_risk} (confidence: {ml_confidence:.1f}%)")
         except Exception as e:
-            print(f"⚠️ ML prediction failed: {e}")
+            print(f" ML prediction failed: {e}")
     
     # Add ML prediction to request data if available
     data = request.data.copy()
@@ -188,10 +188,10 @@ def create_checkin(request):
             response_data['ml_confidence'] = round(ml_confidence, 2)
             response_data['ml_predicted'] = True
         
-        print(f"✅ Check-in created successfully for patient: {checkin.patient.patient_id}")
+        print(f" Check-in created successfully for patient: {checkin.patient.patient_id}")
         return Response(response_data, status=status.HTTP_201_CREATED)
     
-    print(f"❌ Validation errors: {serializer.errors}")
+    print(f" Validation errors: {serializer.errors}")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -243,11 +243,23 @@ def provider_login(request):
 
     if user and hasattr(user, 'provider'):
         # Valid provider
+        if not user.is_active:
+            return Response({'error': 'Account is disabled'}, status=status.HTTP_403_FORBIDDEN)
+            
         response_data = ProviderSerializer(user.provider).data
         response_data['session_token'] = request.session.session_key  # Django session
         response_data['user_id'] = user.id
         return Response(response_data, status=status.HTTP_200_OK)
     else:
+        # Check if they failed because they are deactivated
+        from django.contrib.auth.models import User
+        try:
+            u = User.objects.get(username=username)
+            if not u.is_active and u.check_password(password):
+                return Response({'error': 'Account is disabled'}, status=status.HTTP_403_FORBIDDEN)
+        except User.DoesNotExist:
+            pass
+            
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -288,7 +300,7 @@ def trigger_seed(request):
         from datetime import datetime, timedelta
         from django.db import connection
         
-        print("🗑️ NUCLEAR RESET: Dropping and recreating ALL tables...")
+        print(" NUCLEAR RESET: Dropping and recreating ALL tables...")
         
         with connection.cursor() as cursor:
             # Drop all tables in correct order (respecting foreign keys)
@@ -299,7 +311,7 @@ def trigger_seed(request):
             cursor.execute("DROP TABLE IF EXISTS api_message CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_provider CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_patient CASCADE;")
-            print("✓ Dropped all tables")
+            print(" Dropped all tables")
             
             # Recreate Patient table
             cursor.execute("""
@@ -327,7 +339,7 @@ def trigger_seed(request):
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            print("✓ Recreated api_patient table")
+            print(" Recreated api_patient table")
             
             # Recreate CheckIn table
             cursor.execute("""
@@ -345,7 +357,7 @@ def trigger_seed(request):
                     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            print("✓ Recreated api_checkin table")
+            print(" Recreated api_checkin table")
             
             # Recreate Message table
             cursor.execute("""
@@ -358,7 +370,7 @@ def trigger_seed(request):
                     is_read BOOLEAN DEFAULT FALSE
                 );
             """)
-            print("✓ Recreated api_message table")
+            print(" Recreated api_message table")
             
             # Recreate Appointment table
             cursor.execute("""
@@ -376,7 +388,7 @@ def trigger_seed(request):
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            print("✓ Recreated api_appointment table")
+            print(" Recreated api_appointment table")
             
             # Recreate Notification table
             cursor.execute("""
@@ -392,7 +404,7 @@ def trigger_seed(request):
                     read_at TIMESTAMP
                 );
             """)
-            print("✓ Recreated api_notification table")
+            print(" Recreated api_notification table")
             
             # Recreate TypingStatus table
             cursor.execute("""
@@ -405,7 +417,7 @@ def trigger_seed(request):
                     UNIQUE(user_id, chat_partner_id)
                 );
             """)
-            print("✓ Recreated api_typingstatus table")
+            print(" Recreated api_typingstatus table")
             
             # Recreate Provider table
             cursor.execute("""
@@ -417,31 +429,40 @@ def trigger_seed(request):
                     hospital VARCHAR(100) DEFAULT ''
                 );
             """)
-            print("✓ Recreated api_provider table")
+            print(" Recreated api_provider table")
         
         # Create provider Django user + Provider record
-        print("👨‍⚕️ Creating provider account...")
+        print(" Creating provider account...")
         from django.contrib.auth.models import User
         
-        # Delete existing provider user if any
-        User.objects.filter(username='admin').delete()
+        # Delete existing provider users
+        User.objects.filter(username__in=['admin', 'dr_hyper', 'dr_diab', 'dr_asthma', 'dr_cardio']).delete()
         
-        provider_user = User.objects.create_user(
-            username='admin',
-            password='password',
-            first_name='James',
-            last_name='Wilson',
-            email='dr.wilson@healthtracker.co.zw'
-        )
-        Provider.objects.create(
-            user=provider_user,
-            provider_id='DR001',
-            specialty='Internal Medicine',
-            hospital='Harare Central Hospital'
-        )
-        print(f"✓ Created provider: Dr. Wilson (admin/password) - DR001")
+        providers_data = [
+            {'username': 'admin', 'first': 'James', 'last': 'Wilson', 'spec': 'General Practice', 'id': 'DR001'},
+            {'username': 'dr_hyper', 'first': 'Sarah', 'last': 'Jones', 'spec': 'Hypertension', 'id': 'DR002'},
+            {'username': 'dr_diab', 'first': 'Michael', 'last': 'Chen', 'spec': 'Diabetes', 'id': 'DR003'},
+            {'username': 'dr_asthma', 'first': 'Emily', 'last': 'Ndlovu', 'spec': 'Asthma', 'id': 'DR004'},
+            {'username': 'dr_cardio', 'first': 'Robert', 'last': 'Smith', 'spec': 'Cardiovascular', 'id': 'DR005'},
+        ]
+
+        for p_data in providers_data:
+            p_user = User.objects.create_user(
+                username=p_data['username'],
+                password='password',
+                first_name=p_data['first'],
+                last_name=p_data['last'],
+                email=f"{p_data['username']}@healthtracker.co.zw"
+            )
+            Provider.objects.create(
+                user=p_user,
+                provider_id=p_data['id'],
+                specialty=p_data['spec'],
+                hospital='Harare Central Hospital'
+            )
+        print(f" Created 5 providers (General Practice + Specialists)")
         
-        print("🌱 Now seeding test patients...")
+        print(" Now seeding test patients...")
         
         from datetime import date
         
@@ -565,7 +586,7 @@ def trigger_seed(request):
                 patient.save()
             
             patients_created.append(patient)
-            print(f"✓ {patient.patient_id} - {patient.name} ({patient.condition}), DOB: {patient.date_of_birth}")
+            print(f" {patient.patient_id} - {patient.name} ({patient.condition}), DOB: {patient.date_of_birth}")
             
             # Create check-in history with realistic vitals
             profile = checkin_profiles[patient.patient_id]
@@ -582,7 +603,7 @@ def trigger_seed(request):
                     risk_level=risk,
                     risk_color=risk.lower(),
                 )
-                print(f"  ✓ Check-in {i+1}/5 for {patient.patient_id} ({risk}, BP {bp_sys}/{bp_dia})")
+                print(f"   Check-in {i+1}/5 for {patient.patient_id} ({risk}, BP {bp_sys}/{bp_dia})")
             
             # Update patient tracking fields from most recent checkin (index 0)
             latest = profile[0]
@@ -590,10 +611,10 @@ def trigger_seed(request):
             patient.last_risk_level = latest[1]
             patient.last_risk_color = latest[1].lower()
             patient.save()
-            print(f"  ✓ Updated {patient.patient_id}: last_risk={latest[1]}, last_checkin={patient.last_checkin}")
+            print(f"   Updated {patient.patient_id}: last_risk={latest[1]}, last_checkin={patient.last_checkin}")
         
         # Create appointments for each patient
-        print("🗓️ Creating appointments...")
+        print(" Creating appointments...")
         appointment_reasons = [
             'Blood pressure review', 'Routine follow-up', 'Medication review',
             'Lab results discussion', 'Annual physical exam',
@@ -610,10 +631,10 @@ def trigger_seed(request):
                     reason=appointment_reasons[(idx + j) % len(appointment_reasons)],
                     status='SCHEDULED'
                 )
-                print(f"  ✓ Appointment {app_date} {app_time} for {patient.patient_id}")
+                print(f"   Appointment {app_date} {app_time} for {patient.patient_id}")
         
         # Create sample messages between patients and provider
-        print("💬 Creating sample messages...")
+        print(" Creating sample messages...")
         message_pairs = [
             ('PT001', 'DR001', 'Good morning doctor, my BP reading was 152/96 this morning.'),
             ('DR001', 'PT001', 'Thanks Judy. That is a bit high. Are you taking your Amlodipine?'),
@@ -635,17 +656,17 @@ def trigger_seed(request):
                 content=content,
                 is_read=(i < len(message_pairs) - 4),  # Last 4 messages unread
             )
-        print(f"  ✓ Created {len(message_pairs)} messages")
+        print(f"   Created {len(message_pairs)} messages")
         
         return Response({
             'status': 'success',
-            'message': f'✅ Database RESET and seeded with {len(patients_created)} test patients + appointments',
+            'message': f' Database RESET and seeded with {len(patients_created)} test patients + appointments',
             'patients': [p.patient_id for p in patients_created]
         }, status=status.HTTP_200_OK)
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
-        print(f"❌ Seeding error: {error_detail}")
+        print(f" Seeding error: {error_detail}")
         return Response({
             'status': 'error',
             'message': str(e),
@@ -733,10 +754,23 @@ def register_patient(request):
     serializer = PatientRegistrationSerializer(data=data)
     if serializer.is_valid():
         patient = serializer.save()
-        print(f"✅ Patient registered: {patient.patient_id} - {patient.name}")
+        
+        # Auto-assignment logic
+        condition = patient.condition
+        specialist = Provider.objects.filter(specialty__icontains=condition).first()
+        gp = Provider.objects.filter(specialty__icontains='General Practice').first()
+        
+        if specialist:
+            patient.primary_provider_id = specialist.provider_id
+        elif gp:
+            patient.primary_provider_id = gp.provider_id
+            
+        patient.save()
+        
+        print(f" Patient registered: {patient.patient_id} - {patient.name}")
         return Response(PatientSerializer(patient).data, status=status.HTTP_201_CREATED)
     
-    print(f"❌ Patient registration failed: {serializer.errors}")
+    print(f" Patient registration failed: {serializer.errors}")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -754,8 +788,20 @@ def search_patients(request):
     condition_filter = request.query_params.get('condition', '')
     status_filter = request.query_params.get('status', '')
     risk_filter = request.query_params.get('risk_level', '')
+    provider_id = request.query_params.get('provider_id', '')
     
     queryset = Patient.objects.all()
+    
+    # Provider-based routing
+    if provider_id:
+        try:
+            provider = Provider.objects.get(provider_id=provider_id)
+            if provider.specialty and 'General Practice' not in provider.specialty:
+                # Specialists only see patients with their matching condition
+                queryset = queryset.filter(condition__icontains=provider.specialty)
+            # GPs see everyone, so no filter needed
+        except Provider.DoesNotExist:
+            pass
     
     # Text search
     if query:
@@ -822,9 +868,9 @@ def update_patient_baseline(request, patient_id):
         serializer = PatientUpdateSerializer(patient, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            print(f"✅ Patient baseline updated: {patient.patient_id}")
+            print(f" Patient baseline updated: {patient.patient_id}")
             return Response(PatientSerializer(patient).data, status=status.HTTP_200_OK)
-        print(f"❌ Baseline update failed: {serializer.errors}")
+        print(f" Baseline update failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Patient.DoesNotExist:
         return Response(
@@ -847,8 +893,19 @@ def list_all_patients(request):
     page_size = int(request.query_params.get('page_size', 20))
     status_filter = request.query_params.get('status', '')
     condition_filter = request.query_params.get('condition', '')
+    provider_id = request.query_params.get('provider_id', '')
     
     queryset = Patient.objects.all()
+    
+    # Provider-based routing
+    if provider_id:
+        try:
+            provider = Provider.objects.get(provider_id=provider_id)
+            if provider.specialty and 'General Practice' not in provider.specialty:
+                # Specialists only see patients with their matching condition
+                queryset = queryset.filter(condition__icontains=provider.specialty)
+        except Provider.DoesNotExist:
+            pass
     
     if status_filter:
         queryset = queryset.filter(status=status_filter)
@@ -892,7 +949,7 @@ def create_appointment(request):
     serializer = AppointmentSerializer(data=data)
     if serializer.is_valid():
         appointment = serializer.save()
-        print(f"✅ Appointment created: {appointment.id}")
+        print(f" Appointment created: {appointment.id}")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1062,7 +1119,7 @@ def check_high_risk_alerts(request):
             alert = Notification.objects.create(
                 user_id=patient.primary_provider_id or 'admin',
                 notification_type='HIGH_RISK_ALERT',
-                message=f'⚠️ HIGH RISK ALERT: Patient {patient.patient_id} ({patient.name}) has RED risk level',
+                message=f' HIGH RISK ALERT: Patient {patient.patient_id} ({patient.name}) has RED risk level',
                 related_patient_id=patient.patient_id
             )
             alerts_created.append(alert)
