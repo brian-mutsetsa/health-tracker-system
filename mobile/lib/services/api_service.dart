@@ -26,6 +26,25 @@ class ApiService {
     return patientId;
   }
 
+  // Get dynamically assigned provider ID based on condition
+  Future<String> getAssignedProviderId() async {
+    final settingsBox = Hive.box('settings');
+    final String condition = settingsBox.get('condition', defaultValue: 'Unknown');
+    
+    switch (condition.toLowerCase()) {
+      case 'hypertension':
+        return 'DR002';
+      case 'diabetes':
+        return 'DR003';
+      case 'asthma':
+        return 'DR004';
+      case 'cardiovascular':
+        return 'DR005';
+      default:
+        return 'DR001'; // General Practice fallback
+    }
+  }
+
   // Patient login - returns patient data if successful
   Future<Map<String, dynamic>?> patientLogin(
       String patientId, String password) async {
@@ -235,8 +254,9 @@ class ApiService {
   Future<List<MessageModel>> getMessages() async {
     try {
       final patientId = await getPatientId();
+      final providerId = await getAssignedProviderId();
       final response = await http.get(
-        Uri.parse('$baseUrl/messages/?user_id=$patientId&other_id=DR001'),
+        Uri.parse('$baseUrl/messages/?user_id=$patientId&other_id=$providerId'),
       );
 
       if (response.statusCode == 200) {
@@ -254,12 +274,13 @@ class ApiService {
   Future<bool> sendMessage(String text) async {
     try {
       final patientId = await getPatientId();
+      final providerId = await getAssignedProviderId();
       final response = await http.post(
         Uri.parse('$baseUrl/messages/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'sender_id': patientId,
-          'receiver_id': 'DR001',
+          'receiver_id': providerId,
           'content': text,
         }),
       );
@@ -275,12 +296,13 @@ class ApiService {
   Future<void> updateTypingStatus(bool isTyping) async {
     try {
       final patientId = await getPatientId();
+      final providerId = await getAssignedProviderId();
       await http.post(
         Uri.parse('$baseUrl/typing/update/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': patientId,
-          'chat_partner_id': 'DR001',
+          'chat_partner_id': providerId,
           'is_typing': isTyping,
         }),
       );
@@ -293,9 +315,10 @@ class ApiService {
   Future<bool> getTypingStatus() async {
     try {
       final patientId = await getPatientId();
+      final providerId = await getAssignedProviderId();
       final response = await http.get(
         Uri.parse(
-          '$baseUrl/typing/status/?user_id=$patientId&partner_id=DR001',
+          '$baseUrl/typing/status/?user_id=$patientId&partner_id=$providerId',
         ),
       );
 
@@ -344,12 +367,13 @@ class ApiService {
     String reason = 'Patient requested',
   }) async {
     try {
+      final providerId = await getAssignedProviderId();
       final response = await http.post(
         Uri.parse('$baseUrl/appointments/create/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'patient_id': patientId,
-          'provider_id': 'DR001',
+          'provider_id': providerId,
           'scheduled_date': scheduledDate.toIso8601String().split('T')[0],
           'scheduled_time': scheduledTime,
           'reason': reason,
