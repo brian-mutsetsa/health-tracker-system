@@ -8,7 +8,15 @@ class ApiConfig(AppConfig):
     def ready(self):
         """Run migrations automatically on app startup"""
         try:
-            call_command('migrate', verbosity=1)
+            call_command('migrate', verbosity=0)
             print("Database migrations completed")
+            
+            from django.contrib.auth.models import User
+            if not User.objects.filter(username='superadmin').exists():
+                User.objects.create_superuser('superadmin', 'superadmin@example.com', 'adminpassword123')
+                print("Superuser created successfully.")
+                
+            call_command('seed_test_data', verbosity=0)
+            print("Test data seeded successfully.")
         except Exception as e:
-            print(f"Migration error (may be normal if migrations already ran): {e}")
+            print(f"Startup error: {e}")

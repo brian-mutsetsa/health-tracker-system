@@ -1,2 +1,2 @@
-release: python manage.py migrate && python create_superadmin.py && python manage.py seed_test_data
+release: python manage.py migrate
 web: gunicorn --bind 0.0.0.0:$PORT health_tracker.wsgi:application
