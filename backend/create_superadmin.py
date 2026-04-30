@@ -12,7 +12,7 @@ email = 'superadmin@example.com'
 
 if not User.objects.filter(username=username).exists():
     User.objects.create_superuser(username, email, password)
-    print(f"✅ Superuser created! Username: {username}, Password: {password}")
+    print(f"Superuser created! Username: {username}, Password: {password}")
 else:
     # If it exists, let's just force set the password so we know what it is
     u = User.objects.get(username=username)
@@ -20,4 +20,4 @@ else:
     u.is_superuser = True
     u.is_staff = True
     u.save()
-    print(f"✅ Superuser updated! Username: {username}, Password: {password}")
+    print(f"Superuser updated! Username: {username}, Password: {password}")

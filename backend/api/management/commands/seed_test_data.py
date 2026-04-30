@@ -6,14 +6,14 @@ class Command(BaseCommand):
     help = 'Seed database with test data - ensures test patients exist with proper credentials'
 
     def handle(self, *args, **options):
-        self.stdout.write("🗑️ Clearing old database records...")
+        self.stdout.write("Clearing old database records...")
         Patient.objects.all().delete()
         CheckIn.objects.all().delete()
         Message.objects.all().delete()
         Appointment.objects.all().delete()
         Notification.objects.all().delete()
         
-        self.stdout.write("🌱 Seeding test providers...")
+        self.stdout.write("Seeding test providers...")
         from django.contrib.auth.models import User
         User.objects.filter(username__in=['admin', 'dr_hyper', 'dr_diab', 'dr_asthma', 'dr_cardio']).delete()
         
@@ -39,9 +39,9 @@ class Command(BaseCommand):
                 specialty=p_data['spec'],
                 hospital='Harare Central Hospital'
             )
-        self.stdout.write(self.style.SUCCESS('✓ Created 5 providers'))
+        self.stdout.write(self.style.SUCCESS('Created 5 providers'))
 
-        self.stdout.write("🌱 Seeding test patients with credentials...")
+        self.stdout.write("Seeding test patients with credentials...")
         
         # Test patients - matching the actual dashboard patient names
         patients_data = [
@@ -114,7 +114,7 @@ class Command(BaseCommand):
                     patient.blood_glucose_baseline = patient_data['blood_glucose_baseline']
                 patient.save()
             
-            status = "✓ Created" if created else "✓ Updated"
+            status = "Created" if created else "Updated"
             self.stdout.write(f"{status}: {patient.patient_id} - {patient.name} ({patient.condition})")
             patients_created.append(patient)
             
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                         risk_color=risk.lower(),
                     )
         
-        self.stdout.write(self.style.SUCCESS(f"\n✅ Successfully seeded {len(patients_created)} test patients!"))
-        self.stdout.write("\n📱 Mobile App Login Test Credentials:")
+        self.stdout.write(self.style.SUCCESS(f"\nSuccessfully seeded {len(patients_created)} test patients!"))
+        self.stdout.write("\nMobile App Login Test Credentials:")
         self.stdout.write("Patient ID: PT001 (or PT002, PT003, PT004, PT005)")
         self.stdout.write("Password: test123")
