@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/checkin_model.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -157,6 +158,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: const Text('Change', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
                       ),
                     ),
+                    const SizedBox(height: 12),
+
+                    // Change Password card
+                    _buildDetailCard(
+                      icon: Icons.lock_outline,
+                      label: 'Password',
+                      value: '••••••••',
+                      trailing: TextButton(
+                        onPressed: _showChangePasswordDialog,
+                        child: const Text('Change', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
                     const SizedBox(height: 40),
 
                     // Logout Button
@@ -222,6 +235,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmNewController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Change Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.lock),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmNewController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.lock),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final current = currentPasswordController.text.trim();
+                      final newPwd = newPasswordController.text.trim();
+                      final confirm = confirmNewController.text.trim();
+
+                      if (current.isEmpty || newPwd.isEmpty || confirm.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please fill in all fields')),
+                        );
+                        return;
+                      }
+                      if (newPwd.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('New password must be at least 6 characters')),
+                        );
+                        return;
+                      }
+                      if (newPwd != confirm) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('New passwords do not match')),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isLoading = true);
+                      final patientId = _settingsBox.get('patient_id', defaultValue: '');
+                      final error = await ApiService().changePassword(patientId, current, newPwd);
+                      setDialogState(() => isLoading = false);
+
+                      if (!mounted) return;
+                      Navigator.pop(ctx);
+                      if (error == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password changed successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Update Password'),
+            ),
+          ],
         ),
       ),
     );

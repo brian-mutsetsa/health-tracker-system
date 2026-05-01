@@ -17,6 +17,7 @@ urlpatterns = [
     path('patient/<str:patient_id>/checkins/', views.get_patient_checkins, name='get-patient-checkins'),
     path('patient/<str:patient_id>/baseline/', views.get_patient_baseline, name='get-patient-baseline'),
     path('patient/<str:patient_id>/baseline/update/', views.update_patient_baseline, name='update-patient-baseline'),
+    path('patient/<str:patient_id>/change-password/', views.change_patient_password, name='change-patient-password'),
     path('patients/register/', views.register_patient, name='register-patient'),
     path('patients/search/', views.search_patients, name='search-patients'),
     path('patients/', views.list_all_patients, name='list-patients'),

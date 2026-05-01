@@ -793,12 +793,18 @@ def register_patient(request):
     """
     Register a new patient with baseline clinical data.
     patient_id is auto-generated (PT + sequential number).
-    Expected fields: name, condition, password, date_of_birth, weight_kg, 
+    password is also auto-generated if not provided, and returned in the response
+    so the app can display it to the user (one-time only).
+    Expected fields: name, condition, date_of_birth, weight_kg,
                     blood_pressure_systolic, blood_pressure_diastolic, blood_glucose_baseline,
                     medical_history, medications, allergies
     """
+    import random
+    import string as _string
+
     data = request.data.copy()
-    # Auto-generate patient_id if not provided
+
+    # Auto-generate patient_id
     if not data.get('patient_id'):
         last_patient = Patient.objects.order_by('-id').first()
         next_num = (last_patient.id + 1) if last_patient else 1
@@ -807,28 +813,84 @@ def register_patient(request):
         while Patient.objects.filter(patient_id=data['patient_id']).exists():
             next_num += 1
             data['patient_id'] = f'PT{next_num:04d}'
-    
+
+    # Auto-generate password if not provided
+    plain_password = data.get('password', '').strip()
+    if not plain_password:
+        chars = _string.ascii_letters + _string.digits
+        pwd_parts = [
+            random.choice(_string.ascii_uppercase),
+            random.choice(_string.ascii_lowercase),
+            random.choice(_string.digits),
+        ]
+        pwd_parts += random.choices(chars, k=5)
+        random.shuffle(pwd_parts)
+        plain_password = ''.join(pwd_parts)
+        data['password'] = plain_password
+
     serializer = PatientRegistrationSerializer(data=data)
     if serializer.is_valid():
         patient = serializer.save()
-        
+
         # Auto-assignment logic
         condition = patient.condition
         specialist = Provider.objects.filter(specialty__icontains=condition).first()
         gp = Provider.objects.filter(specialty__icontains='General Practice').first()
-        
+
         if specialist:
             patient.primary_provider_id = specialist.provider_id
         elif gp:
             patient.primary_provider_id = gp.provider_id
-            
+
         patient.save()
-        
+
         print(f" Patient registered: {patient.patient_id} - {patient.name}")
-        return Response(PatientSerializer(patient).data, status=status.HTTP_201_CREATED)
-    
+        response_data = PatientSerializer(patient).data
+        # Return the plain password ONLY at registration so the app can display it
+        response_data['generated_password'] = plain_password
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
     print(f" Patient registration failed: {serializer.errors}")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def change_patient_password(request, patient_id):
+    """
+    Allow a patient to change their password.
+    Body: { "current_password": "...", "new_password": "..." }
+    The patient_id is permanent and cannot be changed.
+    """
+    current_password = request.data.get('current_password', '').strip()
+    new_password = request.data.get('new_password', '').strip()
+
+    if not current_password or not new_password:
+        return Response(
+            {'error': 'current_password and new_password are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(new_password) < 6:
+        return Response(
+            {'error': 'New password must be at least 6 characters'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if patient.password != current_password:
+        return Response(
+            {'error': 'Current password is incorrect'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    patient.password = new_password
+    patient.save(update_fields=['password'])
+    print(f" Password changed for {patient_id}")
+    return Response({'success': True, 'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

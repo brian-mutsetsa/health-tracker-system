@@ -393,4 +393,29 @@ class ApiService {
       return false;
     }
   }
+
+  /// Change the patient's password.
+  /// Returns null on success or an error message string on failure.
+  Future<String?> changePassword(String patientId, String currentPassword, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/patient/$patientId/change-password/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        print('✅ Password changed for $patientId');
+        return null; // success
+      }
+      final data = jsonDecode(response.body);
+      return data['error'] as String? ?? 'Failed to change password';
+    } catch (e) {
+      print('❌ Error changing password: $e');
+      return 'Network error. Please try again.';
+    }
+  }
 }
