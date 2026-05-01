@@ -265,15 +265,31 @@ def provider_login(request):
             status=status.HTTP_403_FORBIDDEN
         )
 
-    # Step 4: Check for linked provider profile
+    # Step 4: If no provider profile exists, auto-create a stub so login succeeds,
+    # then notify the superadmin to complete the setup.
+    setup_incomplete = False
     if not hasattr(u, 'provider'):
-        return Response(
-            {'error': 'This account has no provider profile attached. Please contact IT to set up your profile.', 'error_type': 'no_profile'},
-            status=status.HTTP_403_FORBIDDEN
+        provider = Provider.objects.create(
+            user=u,
+            provider_id=u.username,
+            specialty='',
+            hospital='',
+        )
+        setup_incomplete = True
+        # Notify superadmin to complete the profile setup
+        Notification.objects.create(
+            user_id='superadmin',
+            notification_type='GENERAL',
+            message=(
+                f"Action required: The account '{u.username}' logged in for the first time but has no "
+                f"provider profile configured. Please assign a specialty and hospital in the Admin Panel "
+                f"to complete their setup."
+            ),
         )
 
     response_data = ProviderSerializer(u.provider).data
     response_data['user_id'] = u.id
+    response_data['setup_incomplete'] = setup_incomplete
     return Response(response_data, status=status.HTTP_200_OK)
 
 

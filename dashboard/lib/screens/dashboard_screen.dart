@@ -106,6 +106,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── Mobile Scaffold ──────────────────────────────────────────────────────
 
+  Widget _buildSetupIncompleteBanner() {
+    if (!DashboardApiService.setupIncomplete) return const SizedBox.shrink();
+    return Material(
+      color: Colors.amber.shade700,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Account setup incomplete — your specialty and hospital have not been configured yet. '
+                'Your administrator has been notified and will complete your profile shortly.',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMobileScaffold() {
     return Scaffold(
       key: _scaffoldKey,
@@ -116,6 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: Column(
         children: [
           _buildTopNavMobile(),
+          _buildSetupIncompleteBanner(),
           Expanded(
             child: _loading
                 ? const Center(
@@ -201,6 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               children: [
                 _buildTopNavDesktop(),
+                _buildSetupIncompleteBanner(),
                 Expanded(
                   child: _loading
                       ? const Center(

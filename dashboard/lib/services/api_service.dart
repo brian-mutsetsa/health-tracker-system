@@ -111,12 +111,15 @@ class DashboardApiService {
   static String? currentProviderId;
   static String? currentProviderName;
   /// Holds the error type from the last failed login attempt.
-  /// Values: 'not_found', 'deactivated', 'no_profile', 'invalid_credentials', or null.
+  /// Values: 'not_found', 'deactivated', 'invalid_credentials', or null.
   static String? lastLoginErrorType;
+  /// True when the logged-in account has no specialty/hospital configured yet.
+  static bool setupIncomplete = false;
 
   /// Authenticate Provider Login
   Future<String?> login(String username, String password) async {
     DashboardApiService.lastLoginErrorType = null;
+    DashboardApiService.setupIncomplete = false;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login/'),
@@ -129,6 +132,7 @@ class DashboardApiService {
       if (response.statusCode == 200) {
         currentProviderId = data['provider_id'];
         currentProviderName = '${data['last_name']}';
+        DashboardApiService.setupIncomplete = data['setup_incomplete'] == true;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('provider_id', currentProviderId!);
