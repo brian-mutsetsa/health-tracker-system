@@ -181,13 +181,36 @@ def create_checkin(request):
     serializer = CheckInCreateSerializer(data=data)
     if serializer.is_valid():
         checkin = serializer.save()
-        
+
+        # --- Notification triggers ---
+        patient = checkin.patient
+        patient_name = patient.name or patient.patient_id
+        provider_id = patient.primary_provider_id
+        is_high_risk = checkin.risk_color.lower() in ('red', 'orange')
+
+        if provider_id:
+            notif_type = 'HIGH_RISK_ALERT' if is_high_risk else 'GENERAL'
+            risk_emoji = '🚨' if checkin.risk_color.lower() == 'red' else ('⚠️' if is_high_risk else '✅')
+            Notification.objects.create(
+                user_id=provider_id,
+                notification_type=notif_type,
+                message=f"{risk_emoji} {patient_name} submitted a check-in — Risk level: {checkin.risk_level}",
+                related_patient_id=patient.patient_id,
+            )
+            if is_high_risk:
+                Notification.objects.create(
+                    user_id='superadmin',
+                    notification_type='HIGH_RISK_ALERT',
+                    message=f"🚨 HIGH RISK: {patient_name} reported {checkin.risk_level} risk on latest check-in",
+                    related_patient_id=patient.patient_id,
+                )
+
         # Add ML confidence to response
         response_data = CheckInSerializer(checkin).data
         if ml_confidence:
             response_data['ml_confidence'] = round(ml_confidence, 2)
             response_data['ml_predicted'] = True
-        
+
         print(f" Check-in created successfully for patient: {checkin.patient.patient_id}")
         return Response(response_data, status=status.HTTP_201_CREATED)
     
@@ -290,6 +313,12 @@ def provider_login(request):
     response_data = ProviderSerializer(u.provider).data
     response_data['user_id'] = u.id
     response_data['setup_incomplete'] = setup_incomplete
+    # Log provider login to superadmin notifications
+    Notification.objects.create(
+        user_id='superadmin',
+        notification_type='GENERAL',
+        message=f"🔑 Provider '{u.username}' ({u.provider.specialty or 'No specialty'}) logged into the dashboard",
+    )
     return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -1076,6 +1105,21 @@ def create_appointment(request):
     serializer = AppointmentSerializer(data=data)
     if serializer.is_valid():
         appointment = serializer.save()
+        patient_name = appointment.patient.name or appointment.patient.patient_id
+        # Notify the assigned provider
+        Notification.objects.create(
+            user_id=appointment.provider_id,
+            notification_type='APPOINTMENT',
+            message=f"📅 New appointment request from {patient_name} on {appointment.scheduled_date} at {appointment.scheduled_time}",
+            related_patient_id=appointment.patient.patient_id,
+        )
+        # Notify superadmin
+        Notification.objects.create(
+            user_id='superadmin',
+            notification_type='APPOINTMENT',
+            message=f"📅 Appointment created: {patient_name} → {appointment.provider_id} on {appointment.scheduled_date} at {appointment.scheduled_time}",
+            related_patient_id=appointment.patient.patient_id,
+        )
         print(f" Appointment created: {appointment.id}")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

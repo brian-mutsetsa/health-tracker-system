@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class Patient {
   final String id;
   final String patientId;
+  final String name;
   final String condition;
   final DateTime? lastCheckin;
   final String? lastRiskLevel;
@@ -14,6 +15,7 @@ class Patient {
   Patient({
     required this.id,
     required this.patientId,
+    required this.name,
     required this.condition,
     this.lastCheckin,
     this.lastRiskLevel,
@@ -25,6 +27,9 @@ class Patient {
     return Patient(
       id: json['id'].toString(),
       patientId: json['patient_id'] ?? 'N/A',
+      name: (json['name'] as String?)?.isNotEmpty == true
+          ? json['name']
+          : (json['patient_id'] ?? 'Unknown'),
       condition: json['condition'] ?? 'Unknown',
       lastCheckin: json['last_checkin'] != null
           ? DateTime.parse(json['last_checkin'])
@@ -32,6 +37,38 @@ class Patient {
       lastRiskLevel: json['last_risk_level'],
       lastRiskColor: json['last_risk_color'],
       totalCheckins: json['total_checkins'] ?? 0,
+    );
+  }
+}
+
+class DashboardNotification {
+  final int id;
+  final String userId;
+  final String notificationType;
+  final String message;
+  final bool isRead;
+  final String? relatedPatientId;
+  final DateTime createdAt;
+
+  DashboardNotification({
+    required this.id,
+    required this.userId,
+    required this.notificationType,
+    required this.message,
+    required this.isRead,
+    this.relatedPatientId,
+    required this.createdAt,
+  });
+
+  factory DashboardNotification.fromJson(Map<String, dynamic> json) {
+    return DashboardNotification(
+      id: json['id'],
+      userId: json['user_id'] ?? '',
+      notificationType: json['notification_type'] ?? 'GENERAL',
+      message: json['message'] ?? '',
+      isRead: json['is_read'] ?? false,
+      relatedPatientId: json['related_patient_id'],
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 }
@@ -390,6 +427,54 @@ class DashboardApiService {
     } catch (e) {
       print('❌ Error fetching stats: $e');
       return {'total_patients': 0, 'high_risk': 0, 'total_checkins': 0};
+    }
+  }
+
+  Future<List<DashboardNotification>> getNotifications(
+      String userId, {bool unreadOnly = false}) async {
+    try {
+      final uri = Uri.parse(
+          '$baseUrl/notifications/?user_id=$userId&unread_only=${unreadOnly ? 'true' : 'false'}');
+      final response =
+          await http.get(uri, headers: {'Content-Type': 'application/json'});
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> items =
+            data is List ? data : (data['results'] ?? []);
+        return items
+            .map((j) => DashboardNotification.fromJson(j))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching notifications: $e');
+      return [];
+    }
+  }
+
+  Future<bool> markNotificationRead(int id) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/notifications/$id/read/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error marking notification read: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/notifications/$id/delete/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error deleting notification: $e');
+      return false;
     }
   }
 }

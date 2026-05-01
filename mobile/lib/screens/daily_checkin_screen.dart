@@ -23,6 +23,26 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   double? bloodGlucose;
   bool isSubmitting = false;
 
+  late final TextEditingController _bpSystolicController;
+  late final TextEditingController _bpDiastolicController;
+  late final TextEditingController _glucoseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _bpSystolicController = TextEditingController();
+    _bpDiastolicController = TextEditingController();
+    _glucoseController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _bpSystolicController.dispose();
+    _bpDiastolicController.dispose();
+    _glucoseController.dispose();
+    super.dispose();
+  }
+
   List<Map<String, dynamic>> getQuestions() {
     if (widget.condition == 'Hypertension') {
       return [
@@ -498,19 +518,19 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         const SizedBox(height: 24),
 
         // Optional vitals section
-        if (currentStep == 3) ...[
+        ...[  // always show on review screen
           Text('Optional Vitals', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          _buildNumericInput('Blood Pressure (Systolic)', bpSystolic, (val) {
-            setState(() => bpSystolic = val);
+          _buildNumericInput('Blood Pressure (Systolic)', _bpSystolicController, (val) {
+            bpSystolic = val;
           }, 'mmHg'),
           const SizedBox(height: 12),
-          _buildNumericInput('Blood Pressure (Diastolic)', bpDiastolic, (val) {
-            setState(() => bpDiastolic = val);
+          _buildNumericInput('Blood Pressure (Diastolic)', _bpDiastolicController, (val) {
+            bpDiastolic = val;
           }, 'mmHg'),
           const SizedBox(height: 12),
-          _buildNumericInput('Blood Glucose', bloodGlucose, (val) {
-            setState(() => bloodGlucose = val);
+          _buildNumericInput('Blood Glucose', _glucoseController, (val) {
+            bloodGlucose = val;
           }, 'mg/dL'),
           const SizedBox(height: 24),
         ],
@@ -518,8 +538,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     );
   }
 
-  Widget _buildNumericInput(String label, double? value, Function(double?) onChanged, String unit) {
-    TextEditingController controller = TextEditingController(text: value?.toString() ?? '');
+  Widget _buildNumericInput(String label, TextEditingController controller, Function(double?) onChanged, String unit) {
 
     return Container(
       padding: const EdgeInsets.all(16),

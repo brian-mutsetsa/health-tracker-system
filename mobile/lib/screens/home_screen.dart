@@ -12,6 +12,7 @@ import 'messages_screen.dart';
 import 'appointments_screen.dart';
 import 'profile_screen.dart';
 import 'checkin_history_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isFirstPoll = true;
   int _unreadMessageCount = 0;
   int _upcomingAppointmentCount = 0;
+  int _unreadNotificationCount = 0;
+  int _lastKnownNotificationCount = 0;
 
   @override
   void initState() {
@@ -78,10 +81,29 @@ class _HomeScreenState extends State<HomeScreen> {
         unread = messages.where((m) => !m.isRead && m.senderId != myId).length;
       } catch (_) {}
 
+      // Get notifications
+      int unreadNotifs = 0;
+      try {
+        final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
+        if (patientId.isNotEmpty) {
+          final notifs = await _apiService.getNotifications(patientId);
+          unreadNotifs = notifs.where((n) => n['is_read'] != true).length;
+          if (!_isFirstPoll && unreadNotifs > _lastKnownNotificationCount) {
+            await NotificationService().showNotification(
+              id: 2,
+              title: 'New Notification',
+              body: 'You have new health notifications.',
+            );
+          }
+          _lastKnownNotificationCount = unreadNotifs;
+        }
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
           _upcomingAppointmentCount = scheduled;
           _unreadMessageCount = unread;
+          _unreadNotificationCount = unreadNotifs;
         });
       }
     } catch (e) {
@@ -108,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_currentIndex == 1) return const AppointmentsScreen();
     if (_currentIndex == 2) return const MessagesScreen();
     if (_currentIndex == 3) return const ProfileScreen();
+    if (_currentIndex == 4) return const NotificationsScreen();
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
@@ -663,6 +686,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildNavItem(1, Icons.calendar_month_rounded, _upcomingAppointmentCount),
             _buildNavItem(2, Icons.mail_outline_rounded, _unreadMessageCount),
             _buildNavItem(3, Icons.person_outline_rounded, 0),
+            _buildNavItem(4, Icons.notifications_outlined, _unreadNotificationCount),
           ],
         ),
       ),

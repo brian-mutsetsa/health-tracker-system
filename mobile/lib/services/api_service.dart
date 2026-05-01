@@ -418,4 +418,34 @@ class ApiService {
       return 'Network error. Please try again.';
     }
   }
+
+  Future<List<Map<String, dynamic>>> getNotifications(String patientId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/notifications/?user_id=$patientId'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> items = data is List ? data : (data['results'] ?? []);
+        return items.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching notifications: $e');
+      return [];
+    }
+  }
+
+  Future<bool> markNotificationRead(int id) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/notifications/$id/read/'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 }

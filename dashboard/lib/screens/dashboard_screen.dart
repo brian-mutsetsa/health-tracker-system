@@ -26,9 +26,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Patient> _patients = [];
   List<Appointment> _appointments = [];
+  List<DashboardNotification> _notifications = [];
   bool _loading = true;
   int _scheduledAppointmentCount = 0;
   int _highRiskCount = 0;
+  int _unreadNotificationCount = 0;
   Map<String, int> _stats = {
     'total_patients': 0,
     'high_risk': 0,
@@ -54,16 +56,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
+    final providerId = DashboardApiService.currentProviderId ?? '';
     final patients = await _apiService.getPatients();
     final stats = await _apiService.getStats();
     final appointments = await _apiService.getAppointments();
+    final notifs = await _apiService.getNotifications(providerId);
     if (mounted) {
       setState(() {
         _patients = patients;
         _stats = stats;
         _appointments = appointments;
+        _notifications = notifs;
         _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
         _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+        _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
     }
   }
@@ -76,15 +82,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
+    final providerId = DashboardApiService.currentProviderId ?? '';
     final patients = await _apiService.getPatients();
     final stats = await _apiService.getStats();
     final appointments = await _apiService.getAppointments();
+    final notifs = await _apiService.getNotifications(providerId);
     setState(() {
       _patients = patients;
       _stats = stats;
       _appointments = appointments;
+      _notifications = notifs;
       _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
       _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+      _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       _loading = false;
     });
   }
@@ -191,6 +201,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const BottomNavigationBarItem(
           icon: Icon(Icons.analytics_outlined),
           label: 'Analytics',
+        ),
+        BottomNavigationBarItem(
+          icon: _buildBadgeIcon(Icons.notifications_outlined, _unreadNotificationCount),
+          label: 'Alerts',
         ),
       ],
     );
@@ -304,6 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildNavItem(2, Icons.calendar_month_rounded, 'Appointments', badgeCount: _scheduledAppointmentCount),
         _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts', badgeCount: _highRiskCount),
         _buildNavItem(4, Icons.analytics_outlined, 'Analytics'),
+        _buildNavItem(5, Icons.notifications_outlined, 'Notifications', badgeCount: _unreadNotificationCount),
 
         const Spacer(),
 
@@ -650,6 +665,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       case 4:
         return _buildAnalytics(isMobile: isMobile);
+      case 5:
+        return _buildNotificationsView(isMobile: isMobile);
       default:
         return _buildOverview(isMobile: isMobile);
     }
@@ -1294,7 +1311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border(bottom: BorderSide(color: Color(0xFFEDF2F7))),
           ),
           children: [
-            _th('Patient ID'),
+            _th('Patient Name'),
             _th('Condition'),
             _th('Risk Status'),
             _th('Logs'),
@@ -1309,12 +1326,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             children: [
               _td(
-                Text(
-                  p.patientId,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textDark,
+                      ),
+                    ),
+                    Text(
+                      p.patientId,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.textLight,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               _td(
@@ -1425,7 +1454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: Text(
-                  p.patientId,
+                  p.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -1614,7 +1643,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Patient Details: ${patient.patientId}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                          Text('${patient.name} (${patient.patientId})', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                           const SizedBox(height: 4),
                           Text('${patient.condition} • ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
                         ],
@@ -1637,9 +1666,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (checkins.isEmpty) {
                         return const Center(child: Text('No check-in history found.', style: TextStyle(color: AppTheme.textLight)));
                       }
-                      
-                      final latest = checkins.first;
+
+                      // Find the most recent check-in that has numeric vitals
+                      final latestWithVitals = checkins.firstWhere(
+                        (c) =>
+                            c['blood_pressure_systolic'] != null ||
+                            c['blood_glucose_reading'] != null,
+                        orElse: () => checkins.first,
+                      );
+                      final latest = checkins.first; // always use first for questionnaire
                       final answers = latest['answers'] as Map<String, dynamic>? ?? {};
+                      final condition = latest['condition'] as String? ?? patient.condition;
                       
                       return SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
@@ -1651,11 +1688,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                _buildVitalCard('BP Systolic', latest['blood_pressure_systolic']?.toString() ?? 'N/A', 'mmHg'),
+                                _buildVitalCard('BP Systolic', latestWithVitals['blood_pressure_systolic']?.toString() ?? 'N/A', 'mmHg'),
                                 const SizedBox(width: 12),
-                                _buildVitalCard('BP Diastolic', latest['blood_pressure_diastolic']?.toString() ?? 'N/A', 'mmHg'),
+                                _buildVitalCard('BP Diastolic', latestWithVitals['blood_pressure_diastolic']?.toString() ?? 'N/A', 'mmHg'),
                                 const SizedBox(width: 12),
-                                _buildVitalCard('Glucose', latest['blood_glucose_reading']?.toString() ?? 'N/A', 'mg/dL'),
+                                _buildVitalCard('Glucose', latestWithVitals['blood_glucose_reading']?.toString() ?? 'N/A', 'mg/dL'),
                               ],
                             ),
                             const SizedBox(height: 32),
@@ -1664,6 +1701,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Text('Latest 12-Question Symptom Checkin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                             const SizedBox(height: 12),
                             ...answers.entries.map((e) {
+                              final qText = _getQuestionText(condition, e.key);
+                              final aText = _getAnswerLabel(condition, e.key, e.value);
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.all(16),
@@ -1674,11 +1713,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Expanded(child: Text(e.key.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textDark))),
+                                    Expanded(child: Text(qText, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textDark))),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(color: AppTheme.lightMint, borderRadius: BorderRadius.circular(12)),
-                                      child: Text(e.value.toString(), style: const TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      child: Text(aText, style: const TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
                                     ),
                                   ],
                                 ),
@@ -2087,7 +2126,7 @@ class _MessagePanelState extends State<_MessagePanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Chat: ${widget.patient.patientId}',
+                        'Chat: ${widget.patient.name}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -2278,6 +2317,183 @@ class _MessagePanelState extends State<_MessagePanel> {
           ],
         ),
       ],
+    );
+  }
+
+  // ─── Question text + answer label helpers ────────────────────────────────
+
+  static const _hypertensionQuestions = [
+    'Headaches', 'Dizziness', 'Blurred vision', 'Chest discomfort',
+    'Shortness of breath', 'Fatigue', 'Nosebleeds', 'Palpitations',
+    'Took BP medication', 'High salt intake', 'Stress level',
+    'BP measurement reading',
+  ];
+
+  static const _diabetesQuestions = [
+    'Excessive thirst', 'Frequent urination', 'Unusual hunger',
+    'Tired / fatigue', 'Blurred vision', 'Numbness / tingling',
+    'Slow wound healing', 'Dizziness / shakiness', 'Took diabetes medication',
+    'Followed diet plan', 'Physical activity level', 'Blood glucose reading',
+  ];
+
+  static const _cardiovascularQuestions = [
+    'Chest pain', 'Shortness of breath', 'Swelling in legs/feet/ankles',
+    'Unusual fatigue', 'Dizziness / fainting', 'Palpitations',
+    'Pain spreading to arm/neck/jaw', 'Sudden sweating',
+    'Took heart medication', 'Physical activity', 'Alcohol / smoking',
+    'Stress level',
+  ];
+
+  static const _defaultOptions = ['None', 'Mild', 'Moderate', 'Severe'];
+  static const _medicationOptions = [
+    'Yes fully', 'Missed once', 'Missed more than once', 'Did not take'
+  ];
+  static const _activityOptions = [
+    'None', 'Light activity', 'Moderate', 'Vigorous'
+  ];
+
+  String _getQuestionText(String condition, String key) {
+    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (idx == null || idx < 1 || idx > 12) return key.toUpperCase();
+    final i = idx - 1;
+    final cLower = condition.toLowerCase();
+    if (cLower.contains('hypertension')) {
+      return _hypertensionQuestions[i];
+    } else if (cLower.contains('diabet')) {
+      return _diabetesQuestions[i];
+    } else {
+      return _cardiovascularQuestions[i];
+    }
+  }
+
+  String _getAnswerLabel(String condition, String key, dynamic value) {
+    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (idx == null) return value.toString();
+    final answerIdx = int.tryParse(value.toString());
+    if (answerIdx == null) return value.toString();
+
+    // q9 = medication, q11 = activity level (for hypertension/diabetes)
+    // q10 = physical activity (cardiovascular)
+    final isMedQuestion = idx == 9;
+    final isActivityQuestion = (idx == 11 && !condition.toLowerCase().contains('cardio')) ||
+        (idx == 10 && condition.toLowerCase().contains('cardio'));
+
+    List<String> opts;
+    if (isMedQuestion) {
+      opts = _medicationOptions;
+    } else if (isActivityQuestion) {
+      opts = _activityOptions;
+    } else {
+      opts = _defaultOptions;
+    }
+
+    if (answerIdx >= 0 && answerIdx < opts.length) return opts[answerIdx];
+    return value.toString();
+  }
+
+  // ─── Notifications View ───────────────────────────────────────────────────
+
+  Widget _buildNotificationsView({required bool isMobile}) {
+    final pad = isMobile ? 16.0 : 40.0;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(pad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: isMobile ? 22 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.done_all, size: 16),
+                label: const Text('Refresh'),
+                onPressed: _loadData,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_unreadNotificationCount} unread',
+            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          if (_notifications.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(48),
+                child: Column(
+                  children: [
+                    Icon(Icons.notifications_none, size: 64, color: AppTheme.textLight.withAlpha(100)),
+                    const SizedBox(height: 16),
+                    const Text('No notifications yet', style: TextStyle(fontSize: 18, color: AppTheme.textLight)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._notifications.map((n) => _buildNotificationCard(n)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(DashboardNotification n) {
+    final isAlert = n.notificationType == 'HIGH_RISK_ALERT';
+    final isAppt = n.notificationType == 'APPOINTMENT';
+    final color = isAlert
+        ? Colors.red
+        : isAppt
+            ? Colors.blue
+            : AppTheme.primaryTeal;
+    final icon = isAlert
+        ? Icons.warning_amber_rounded
+        : isAppt
+            ? Icons.calendar_month
+            : Icons.notifications_outlined;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: n.isRead ? Colors.white : color.withOpacity(0.05),
+        border: Border.all(
+          color: n.isRead ? Colors.grey[200]! : color.withOpacity(0.3),
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          n.message,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: n.isRead ? FontWeight.normal : FontWeight.w600,
+            color: AppTheme.textDark,
+          ),
+        ),
+        subtitle: Text(
+          _formatDate(n.createdAt),
+          style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
+        ),
+        trailing: n.isRead
+            ? null
+            : TextButton(
+                onPressed: () async {
+                  await _apiService.markNotificationRead(n.id);
+                  _loadData();
+                },
+                child: const Text('Mark read', style: TextStyle(fontSize: 12)),
+              ),
+      ),
     );
   }
 }
