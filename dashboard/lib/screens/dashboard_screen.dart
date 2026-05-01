@@ -47,6 +47,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDataSilently() async {
+    // Check session validity first — force logout if admin has deactivated the account
+    final sessionStatus = await _apiService.verifySession();
+    if (sessionStatus == 'deactivated') {
+      await _forceLogout();
+      return;
+    }
+
     final patients = await _apiService.getPatients();
     final stats = await _apiService.getStats();
     final appointments = await _apiService.getAppointments();
@@ -496,9 +503,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: AppTheme.textDark,
                     ),
                   ),
-                  const Text(
-                    'Cardiologist',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+                  Text(
+                    DashboardApiService.currentProviderSpecialty.isEmpty
+                        ? 'General Practitioner'
+                        : DashboardApiService.currentProviderSpecialty,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
                   ),
                 ],
               ),
@@ -518,6 +527,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    DashboardApiService.currentProviderId = null;
+    DashboardApiService.currentProviderName = null;
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
@@ -526,6 +537,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
               FadeTransition(opacity: animation, child: child),
         ),
         (route) => false,
+      );
+    }
+  }
+
+  /// Called automatically when the periodic session check detects deactivation.
+  Future<void> _forceLogout() async {
+    _refreshTimer?.cancel();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    DashboardApiService.currentProviderId = null;
+    DashboardApiService.currentProviderName = null;
+    if (!mounted) return;
+    // Navigate to login first, then show the dialog on top of it
+    await Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, _) => const LoginScreen(),
+        transitionsBuilder: (context, animation, _, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+      (route) => false,
+    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.block, color: Colors.red.shade700, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Account Deactivated',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              const Text(
+                'Your account has been deactivated by an administrator. You have been logged out.',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Please contact your administrator to reactivate your account.',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       );
     }
   }

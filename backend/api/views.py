@@ -293,6 +293,33 @@ def provider_login(request):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def verify_session(request):
+    """
+    Lightweight endpoint called by the dashboard on every polling cycle.
+    Returns 200 {active: true} if the provider account is still active,
+    or 403 {active: false, error_type: 'deactivated'} if the admin has
+    since deactivated it so the client can force-logout.
+    """
+    from django.contrib.auth.models import User as DjangoUser
+    provider_id = request.query_params.get('provider_id', '')
+    if not provider_id:
+        return Response({'error': 'provider_id required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        provider = Provider.objects.get(provider_id=provider_id)
+        if not provider.user.is_active:
+            return Response(
+                {'active': False, 'error_type': 'deactivated'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return Response({'active': True}, status=status.HTTP_200_OK)
+    except Provider.DoesNotExist:
+        return Response(
+            {'active': False, 'error_type': 'not_found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
 @api_view(['POST'])
 def patient_login(request):
     """
@@ -826,12 +853,15 @@ def search_patients(request):
     if provider_id:
         try:
             provider = Provider.objects.get(provider_id=provider_id)
-            if provider.specialty and 'General Practice' not in provider.specialty:
+            if not provider.specialty:
+                # No specialty configured yet — return nothing
+                queryset = queryset.none()
+            elif 'General Practice' not in provider.specialty:
                 # Specialists only see patients with their matching condition
                 queryset = queryset.filter(condition__icontains=provider.specialty)
-            # GPs see everyone, so no filter needed
+            # General Practice sees everyone — no filter
         except Provider.DoesNotExist:
-            pass
+            queryset = queryset.none()
     
     # Text search
     if query:
@@ -931,11 +961,16 @@ def list_all_patients(request):
     if provider_id:
         try:
             provider = Provider.objects.get(provider_id=provider_id)
-            if provider.specialty and 'General Practice' not in provider.specialty:
+            if not provider.specialty:
+                # No specialty configured yet — provider has not been set up by admin
+                queryset = queryset.none()
+            elif 'General Practice' not in provider.specialty:
                 # Specialists only see patients with their matching condition
                 queryset = queryset.filter(condition__icontains=provider.specialty)
+            # General Practice sees everyone — no filter
         except Provider.DoesNotExist:
-            pass
+            # Unknown provider_id — show nothing
+            queryset = queryset.none()
     
     if status_filter:
         queryset = queryset.filter(status=status_filter)

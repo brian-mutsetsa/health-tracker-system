@@ -30,6 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (providerId != null && providerName != null) {
       DashboardApiService.currentProviderId = providerId;
       DashboardApiService.currentProviderName = providerName;
+      DashboardApiService.currentProviderSpecialty =
+          prefs.getString('provider_specialty') ?? '';
       if (mounted) {
         Navigator.pushReplacement(
           context,

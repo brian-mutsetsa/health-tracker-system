@@ -110,6 +110,8 @@ class DashboardApiService {
 
   static String? currentProviderId;
   static String? currentProviderName;
+  /// Specialty of the logged-in provider. Empty string means not yet configured.
+  static String currentProviderSpecialty = '';
   /// Holds the error type from the last failed login attempt.
   /// Values: 'not_found', 'deactivated', 'invalid_credentials', or null.
   static String? lastLoginErrorType;
@@ -132,11 +134,13 @@ class DashboardApiService {
       if (response.statusCode == 200) {
         currentProviderId = data['provider_id'];
         currentProviderName = '${data['last_name']}';
+        currentProviderSpecialty = (data['specialty'] as String?) ?? '';
         DashboardApiService.setupIncomplete = data['setup_incomplete'] == true;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('provider_id', currentProviderId!);
         await prefs.setString('provider_name', currentProviderName!);
+        await prefs.setString('provider_specialty', currentProviderSpecialty);
 
         return null; // Success — no error message
       }
@@ -147,6 +151,26 @@ class DashboardApiService {
     } catch (e) {
       print('❌ Error during login: $e');
       return 'Network error or server unreachable.';
+    }
+  }
+
+  /// Returns 'deactivated' if the admin has deactivated this account since login,
+  /// 'ok' if the session is still valid, or null if the check could not complete.
+  Future<String?> verifySession() async {
+    final providerId = currentProviderId;
+    if (providerId == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/verify/?provider_id=$providerId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 403) {
+        final data = jsonDecode(response.body);
+        return data['error_type'] as String? ?? 'deactivated';
+      }
+      return 'ok';
+    } catch (_) {
+      return null; // Network error — don't force logout
     }
   }
 
