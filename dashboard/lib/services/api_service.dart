@@ -110,9 +110,13 @@ class DashboardApiService {
 
   static String? currentProviderId;
   static String? currentProviderName;
+  /// Holds the error type from the last failed login attempt.
+  /// Values: 'not_found', 'deactivated', 'no_profile', 'invalid_credentials', or null.
+  static String? lastLoginErrorType;
 
   /// Authenticate Provider Login
-  Future<bool> login(String username, String password) async {
+  Future<String?> login(String username, String password) async {
+    DashboardApiService.lastLoginErrorType = null;
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login/'),
@@ -120,8 +124,9 @@ class DashboardApiService {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      final data = jsonDecode(response.body);
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         currentProviderId = data['provider_id'];
         currentProviderName = '${data['last_name']}';
 
@@ -129,12 +134,15 @@ class DashboardApiService {
         await prefs.setString('provider_id', currentProviderId!);
         await prefs.setString('provider_name', currentProviderName!);
 
-        return true;
+        return null; // Success — no error message
       }
-      return false;
+
+      // Store the error type so the UI can show the right dialog
+      DashboardApiService.lastLoginErrorType = data['error_type'] as String?;
+      return data['error'] as String? ?? 'Login failed. Please try again.';
     } catch (e) {
       print('❌ Error during login: $e');
-      return false;
+      return 'Network error or server unreachable.';
     }
   }
 

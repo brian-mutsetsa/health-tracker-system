@@ -232,35 +232,49 @@ def provider_login(request):
     """
     Authenticate a provider with username and password.
     Response includes session token and provider info.
+    Returns specific error_type fields so the frontend can show appropriate messages.
     """
+    from django.contrib.auth.models import User as DjangoUser
+
     username = request.data.get('username')
     password = request.data.get('password')
 
     if not username or not password:
         return Response({'error': 'Username and password required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(username=username, password=password)
+    # Step 1: Check if the user exists
+    try:
+        u = DjangoUser.objects.get(username=username)
+    except DjangoUser.DoesNotExist:
+        return Response(
+            {'error': 'No account found with that username. Please check your credentials or contact your administrator.', 'error_type': 'not_found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-    if user and hasattr(user, 'provider'):
-        # Valid provider
-        if not user.is_active:
-            return Response({'error': 'Account is disabled'}, status=status.HTTP_403_FORBIDDEN)
-            
-        response_data = ProviderSerializer(user.provider).data
-        response_data['session_token'] = request.session.session_key  # Django session
-        response_data['user_id'] = user.id
-        return Response(response_data, status=status.HTTP_200_OK)
-    else:
-        # Check if they failed because they are deactivated
-        from django.contrib.auth.models import User
-        try:
-            u = User.objects.get(username=username)
-            if not u.is_active and u.check_password(password):
-                return Response({'error': 'Account is disabled'}, status=status.HTTP_403_FORBIDDEN)
-        except User.DoesNotExist:
-            pass
-            
-        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    # Step 2: Check password
+    if not u.check_password(password):
+        return Response(
+            {'error': 'Invalid username or password.', 'error_type': 'invalid_credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    # Step 3: Check if account is active
+    if not u.is_active:
+        return Response(
+            {'error': 'Your account has been deactivated. Please contact your administrator to reactivate it.', 'error_type': 'deactivated'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Step 4: Check for linked provider profile
+    if not hasattr(u, 'provider'):
+        return Response(
+            {'error': 'This account has no provider profile attached. Please contact IT to set up your profile.', 'error_type': 'no_profile'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    response_data = ProviderSerializer(u.provider).data
+    response_data['user_id'] = u.id
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

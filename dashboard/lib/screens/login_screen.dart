@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final success = await DashboardApiService().login(
+    final errorMsg = await DashboardApiService().login(
       _nameController.text.trim(),
       _passController.text.trim(),
     );
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success && DashboardApiService.currentProviderName != null) {
+    if (errorMsg == null && DashboardApiService.currentProviderName != null) {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -88,14 +88,100 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Invalid credentials. Try admin | password. Ensure backend is seeded using /seed/.',
+      final errorType = DashboardApiService.lastLoginErrorType;
+      if (errorType == 'not_found') {
+        _showLoginErrorDialog(
+          icon: Icons.person_off_outlined,
+          iconColor: Colors.orange.shade700,
+          title: 'Account Not Found',
+          message: errorMsg ?? 'No account found with that username.',
+          hint: 'Double-check your username or contact your administrator.',
+        );
+      } else if (errorType == 'deactivated') {
+        _showLoginErrorDialog(
+          icon: Icons.block,
+          iconColor: Colors.red.shade700,
+          title: 'Account Deactivated',
+          message: errorMsg ?? 'Your account has been deactivated.',
+          hint: 'Please contact your administrator to reactivate your account.',
+        );
+      } else {
+        // Generic error — show a SnackBar for wrong password / network issues
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg ?? 'Invalid credentials.'),
+            duration: const Duration(seconds: 4),
           ),
-        ),
-      );
+        );
+      }
     }
+  }
+
+  void _showLoginErrorDialog({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    required String hint,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: iconColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Text(message, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      hint,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
