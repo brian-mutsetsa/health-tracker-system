@@ -1,129 +1,319 @@
 """
 ML Model Training Script for Health Tracker System
-Trains Random Forest classifier for risk prediction using:
-- 12-question symptom scores (0-3 scale each)
-- Baseline clinical data integration
-- Deviation-from-baseline features
+Trains Random Forest classifier for risk prediction using real clinical datasets:
 
-Output: risk_model_v2.pkl will be created in ml_models/ directory
+  - Cardiovascular Disease Dataset (Kaggle/Ulianova) — 70,000 records
+      cardio_train.csv  (semicolon-delimited)
+      Columns: age(days), ap_hi, ap_lo, gluc, active, cardio
+
+  - Pima Indians Diabetes Dataset (UCI / Kaggle) — 768 records
+      diabetes.csv
+      Columns: Glucose, BloodPressure, Age, Outcome
+
+  - Stroke Prediction Dataset (Kaggle/fedesoriano) — 5,110 records
+      healthcare-dataset-stroke-data.csv
+      Columns: age, hypertension, avg_glucose_level, bmi, stroke
+
+Risk labels are derived from established clinical thresholds:
+  GREEN  (0) — Normal: BP <120/80 AND glucose <100 mg/dL AND no disease flag
+  YELLOW (1) — Elevated: BP 120-139/80-89 OR glucose 100-125 OR mild disease risk
+  ORANGE (2) — Stage 1 high: BP 140-159/90-99 OR glucose 126-199 OR disease present
+  RED    (3) — Stage 2 crisis: BP ≥160/100 OR glucose ≥200 OR severe disease
+
+Feature vector (19 features, same structure as views.py expects):
+  [q1..q12 (symptom scores 0-3), systolic_dev, diastolic_dev, glucose_dev,
+   medication_adherence, condition_code, age_normalized]
+
+Output: risk_model_v2.pkl saved to ml_models/
 """
 import pickle
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.utils import resample
 import os
 import random
 
-# Set seed for reproducibility
 random.seed(42)
 np.random.seed(42)
 
-def generate_training_data():
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'ml_models', 'nhanes_data')
+
+
+def _bp_risk(systolic, diastolic):
+    """Return 0-3 risk level from JNC 8 / ACC/AHA 2017 BP thresholds."""
+    if systolic >= 160 or diastolic >= 100:
+        return 3  # RED — Stage 2 hypertension / hypertensive crisis
+    elif systolic >= 140 or diastolic >= 90:
+        return 2  # ORANGE — Stage 1 hypertension
+    elif systolic >= 120:
+        return 1  # YELLOW — Elevated / prehypertension
+    else:
+        return 0  # GREEN — Normal
+
+
+def _glucose_risk(glucose_mgdl):
+    """Return 0-3 risk level from ADA fasting glucose thresholds."""
+    if glucose_mgdl >= 200:
+        return 3  # RED — Diabetic crisis
+    elif glucose_mgdl >= 126:
+        return 2  # ORANGE — Diabetes range
+    elif glucose_mgdl >= 100:
+        return 1  # YELLOW — Prediabetes
+    else:
+        return 0  # GREEN — Normal
+
+
+def _derive_symptom_scores(risk_level, active, rng):
     """
-    Generate synthetic training data:
-    - 500 total samples
-    - 12 questions each (0-3 scale)
-    - Baseline clinical data
-    - Risk labels: 0=GREEN, 1=YELLOW, 2=ORANGE, 3=RED
-    
-    Feature array structure:
-    [q1-q12 (12 features), systolic_deviation, diastolic_deviation, glucose_deviation, 
-     medication_adherence, condition_code, age_normalized]
-    = 19 features total
+    Derive 12 symptom scores (0-3) from a clinical risk level and activity flag.
+    Scores are stochastically assigned so the model learns a distribution,
+    not a perfect mapping — mimicking real patient self-reporting variability.
+
+    Questions (app order):
+      q1  headache/dizziness          — elevated for hypertension
+      q2  chest pain/tightness        — elevated for cardiovascular
+      q3  shortness of breath         — elevated for cardiovascular/high BP
+      q4  fatigue/weakness            — elevated for all conditions at high risk
+      q5  excessive thirst/dry mouth  — elevated for diabetes
+      q6  frequent urination          — elevated for diabetes
+      q7  blurred vision              — elevated for diabetes & high BP
+      q8  nausea/vomiting             — elevated at RED
+      q9  swelling (legs/ankles)      — elevated for cardiovascular
+      q10 irregular heartbeat         — elevated for cardiovascular
+      q11 physical activity level     — INVERTED (higher activity = lower score)
+      q12 medication adherence        — 0=taken(low score), 3=missed(high score)
     """
-    samples = []
-    labels = []
-    
-    conditions = ['Hypertension', 'Diabetes', 'Cardiovascular']
-    condition_codes = {'Hypertension': 0, 'Diabetes': 1, 'Cardiovascular': 2}
-    
-    # Generate 500 synthetic samples
-    for _ in range(500):
-        condition = random.choice(conditions)
-        condition_code = condition_codes[condition]
-        
-        # Random baseline values
-        baseline_systolic = random.randint(90, 180)
-        baseline_diastolic = random.randint(60, 110)
-        baseline_glucose = random.randint(100, 180)
-        age = random.randint(25, 85)
-        
-        # Generate symptom scores (0-3) - biased toward risk category
-        risk_category = random.choices([0, 1, 2, 3], weights=[30, 30, 20, 20])[0]
-        
-        if risk_category == 0:  # GREEN - low symptoms
-            symptom_scores = [random.randint(0, 1) for _ in range(12)]
-            symptom_scores[-1] = random.choice([2, 3])  # Medication taken
-            # BP and glucose close to baseline
-            current_systolic = baseline_systolic + random.randint(-10, 10)
-            current_diastolic = baseline_diastolic + random.randint(-8, 8)
-            current_glucose = baseline_glucose + random.randint(-20, 20)
-            medication_adherence = 1  # Took medication
-            
-        elif risk_category == 1:  # YELLOW - mild symptoms
-            symptom_scores = [random.randint(0, 2) for _ in range(11)]
-            symptom_scores.append(random.choice([1, 2, 3]))  # Medication status varied
-            # BP and glucose slightly elevated
-            current_systolic = baseline_systolic + random.randint(5, 30)
-            current_diastolic = baseline_diastolic + random.randint(3, 20)
-            current_glucose = baseline_glucose + random.randint(20, 60)
-            medication_adherence = random.choice([0, 1])
-            
-        elif risk_category == 2:  # ORANGE - moderate symptoms
-            symptom_scores = [random.randint(1, 3) for _ in range(12)]
-            # Multiple high scores
-            for i in range(random.randint(3, 5)):
-                symptom_scores[random.randint(0, 11)] = 3
-            # BP and glucose notably elevated
-            current_systolic = baseline_systolic + random.randint(30, 60)
-            current_diastolic = baseline_diastolic + random.randint(20, 40)
-            current_glucose = baseline_glucose + random.randint(60, 120)
-            medication_adherence = random.choice([0, 1])  # Inconsistent
-            
-        else:  # RED - severe symptoms
-            symptom_scores = [random.randint(2, 3) for _ in range(12)]
-            # Many critical scores
-            for i in range(random.randint(6, 10)):
-                symptom_scores[random.randint(0, 11)] = 3
-            # BP and glucose highly elevated
-            current_systolic = baseline_systolic + random.randint(60, 100)
-            current_diastolic = baseline_diastolic + random.randint(40, 70)
-            current_glucose = baseline_glucose + random.randint(120, 200)
-            medication_adherence = 0  # Not adherent
-        
-        # Calculate deviations from baseline
-        systolic_deviation = current_systolic - baseline_systolic
-        diastolic_deviation = current_diastolic - baseline_diastolic
-        glucose_deviation = current_glucose - baseline_glucose
-        
-        # Normalize age (25-85 → 0-1)
-        age_normalized = (age - 25) / 60
-        
-        # Build feature vector
-        features = (
-            symptom_scores +  # q1-q12: 12 features
-            [systolic_deviation, diastolic_deviation, glucose_deviation,  # 3 features
-             medication_adherence, condition_code, age_normalized]  # 3 features
-        )
-        
-        samples.append(features)
-        labels.append(risk_category)
-    
-    return np.array(samples), np.array(labels)
+    base = risk_level  # 0-3 base severity
+    noise = lambda lo, hi: int(np.clip(rng.integers(lo, hi + 1), 0, 3))
+
+    q1  = noise(max(0, base - 1), min(3, base + 1))
+    q2  = noise(max(0, base - 1), min(3, base + 1))
+    q3  = noise(max(0, base - 1), min(3, base + 1))
+    q4  = noise(max(0, base - 1), min(3, base + 1))
+    q5  = noise(max(0, base - 1), min(3, base + 1))
+    q6  = noise(max(0, base - 1), min(3, base + 1))
+    q7  = noise(max(0, base - 1), min(3, base + 1))
+    q8  = noise(max(0, base - 1), min(3, base + 1))
+    q9  = noise(max(0, base - 1), min(3, base + 1))
+    q10 = noise(max(0, base - 1), min(3, base + 1))
+    # q11: physical activity inverted — active=1 → lower score
+    q11 = 0 if active else noise(1, 3)
+    # q12: medication adherence — higher risk = more likely missed meds
+    q12 = 0 if (risk_level == 0 or rng.random() > 0.4 * risk_level / 3) else noise(1, 3)
+
+    return [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12]
+
+
+def load_cardiovascular_data(rng):
+    """
+    Load cardio_train.csv — condition_code = 2 (Cardiovascular).
+    Semicolon-delimited. age is in days → convert to years.
+    """
+    path = os.path.join(DATA_DIR, 'cardio_train.csv')
+    df = pd.read_csv(path, sep=';')
+    df = df.dropna(subset=['ap_hi', 'ap_lo', 'gluc', 'age', 'active', 'cardio'])
+
+    # Remove physiologically impossible BP readings
+    df = df[(df['ap_hi'] >= 70) & (df['ap_hi'] <= 250)]
+    df = df[(df['ap_lo'] >= 40) & (df['ap_lo'] <= 150)]
+
+    rows = []
+    for _, r in df.iterrows():
+        age_years = r['age'] / 365.25
+        systolic = float(r['ap_hi'])
+        diastolic = float(r['ap_lo'])
+        # gluc: 1=normal(<100), 2=above normal(100-125), 3=well above(≥126)
+        glucose_approx = {1: 85.0, 2: 112.0, 3: 160.0}.get(int(r['gluc']), 85.0)
+        active = int(r['active'])
+        has_cardio = int(r['cardio'])
+
+        # Derive risk from BP + glucose + disease flag
+        bp_r = _bp_risk(systolic, diastolic)
+        gl_r = _glucose_risk(glucose_approx)
+        disease_bonus = 1 if has_cardio else 0
+        risk = min(3, max(bp_r, gl_r) + disease_bonus)
+
+        # Baselines: use population averages as reference point
+        baseline_systolic = 120.0
+        baseline_diastolic = 80.0
+        baseline_glucose = 100.0
+
+        symptom_scores = _derive_symptom_scores(risk, active, rng)
+        medication_adherence = 1 if (risk <= 1 or rng.random() > 0.35) else 0
+        age_normalized = (age_years - 25.0) / 60.0
+
+        features = symptom_scores + [
+            systolic - baseline_systolic,
+            diastolic - baseline_diastolic,
+            glucose_approx - baseline_glucose,
+            medication_adherence,
+            2,  # condition_code = Cardiovascular
+            float(np.clip(age_normalized, 0.0, 1.0)),
+        ]
+        rows.append((features, risk))
+
+    print(f"   Cardiovascular dataset: {len(rows)} records loaded")
+    return rows
+
+
+def load_diabetes_data(rng):
+    """
+    Load diabetes.csv — condition_code = 1 (Diabetes).
+    BloodPressure is diastolic only; systolic estimated.
+    """
+    path = os.path.join(DATA_DIR, 'diabetes.csv')
+    df = pd.read_csv(path)
+    df = df.dropna(subset=['Glucose', 'BloodPressure', 'Age', 'Outcome'])
+    # Remove zero-value placeholders
+    df = df[(df['Glucose'] > 0) & (df['BloodPressure'] > 0)]
+
+    rows = []
+    for _, r in df.iterrows():
+        age_years = float(r['Age'])
+        glucose = float(r['Glucose'])
+        diastolic = float(r['BloodPressure'])
+        # Estimate systolic from diastolic using typical pulse pressure (~40 mmHg)
+        systolic = diastolic + 40.0
+        has_diabetes = int(r['Outcome'])
+        active = 1 if rng.random() > 0.4 else 0  # not in dataset, sample reasonably
+
+        bp_r = _bp_risk(systolic, diastolic)
+        gl_r = _glucose_risk(glucose)
+        disease_bonus = 1 if has_diabetes else 0
+        risk = min(3, max(bp_r, gl_r) + disease_bonus)
+
+        baseline_systolic = 120.0
+        baseline_diastolic = 80.0
+        baseline_glucose = 100.0
+
+        symptom_scores = _derive_symptom_scores(risk, active, rng)
+        medication_adherence = 1 if (risk <= 1 or rng.random() > 0.35) else 0
+        age_normalized = float(np.clip((age_years - 25.0) / 60.0, 0.0, 1.0))
+
+        features = symptom_scores + [
+            systolic - baseline_systolic,
+            diastolic - baseline_diastolic,
+            glucose - baseline_glucose,
+            medication_adherence,
+            1,  # condition_code = Diabetes
+            age_normalized,
+        ]
+        rows.append((features, risk))
+
+    print(f"   Diabetes dataset: {len(rows)} records loaded")
+    return rows
+
+
+def load_hypertension_data(rng):
+    """
+    Load healthcare-dataset-stroke-data.csv — condition_code = 0 (Hypertension).
+    avg_glucose_level is post-meal so thresholds are shifted up ~40 mg/dL.
+    """
+    path = os.path.join(DATA_DIR, 'healthcare-dataset-stroke-data.csv')
+    df = pd.read_csv(path)
+    df = df.dropna(subset=['age', 'avg_glucose_level', 'hypertension', 'heart_disease'])
+
+    rows = []
+    for _, r in df.iterrows():
+        age_years = float(r['age'])
+        glucose_postmeal = float(r['avg_glucose_level'])
+        # Convert post-meal glucose to approximate fasting equivalent
+        glucose_fasting = glucose_postmeal * 0.75
+        has_hypertension = int(r['hypertension'])
+        has_heart_disease = int(r['heart_disease'])
+        active = 1 if rng.random() > 0.4 else 0
+
+        # Estimate BP from hypertension flag and age
+        if has_hypertension:
+            systolic = float(rng.integers(140, 175))
+            diastolic = float(rng.integers(88, 105))
+        else:
+            systolic = float(rng.integers(100, 135))
+            diastolic = float(rng.integers(65, 85))
+
+        bp_r = _bp_risk(systolic, diastolic)
+        gl_r = _glucose_risk(glucose_fasting)
+        disease_bonus = 1 if (has_hypertension or has_heart_disease) else 0
+        risk = min(3, max(bp_r, gl_r) + disease_bonus)
+
+        baseline_systolic = 120.0
+        baseline_diastolic = 80.0
+        baseline_glucose = 100.0
+
+        symptom_scores = _derive_symptom_scores(risk, active, rng)
+        medication_adherence = 1 if (risk <= 1 or rng.random() > 0.35) else 0
+        age_normalized = float(np.clip((age_years - 25.0) / 60.0, 0.0, 1.0))
+
+        features = symptom_scores + [
+            systolic - baseline_systolic,
+            diastolic - baseline_diastolic,
+            glucose_fasting - baseline_glucose,
+            medication_adherence,
+            0,  # condition_code = Hypertension
+            age_normalized,
+        ]
+        rows.append((features, risk))
+
+    print(f"   Hypertension/Stroke dataset: {len(rows)} records loaded")
+    return rows
+
+
+def load_clinical_data():
+    """
+    Load, combine, and balance all three clinical datasets.
+    Returns X (n_samples, 19) and y (n_samples,) arrays.
+    """
+    rng = np.random.default_rng(42)
+
+    print("\n   Loading clinical datasets...")
+    cardio_rows = load_cardiovascular_data(rng)
+    diabetes_rows = load_diabetes_data(rng)
+    hypertension_rows = load_hypertension_data(rng)
+
+    all_rows = cardio_rows + diabetes_rows + hypertension_rows
+    print(f"\n   Total records before balancing: {len(all_rows)}")
+
+    X_raw = np.array([r[0] for r in all_rows], dtype=np.float32)
+    y_raw = np.array([r[1] for r in all_rows], dtype=np.int32)
+
+    # Balance classes by upsampling minority classes to match the largest class
+    unique, counts = np.unique(y_raw, return_counts=True)
+    max_count = counts.max()
+    X_balanced, y_balanced = [], []
+    for cls in unique:
+        mask = y_raw == cls
+        X_cls = X_raw[mask]
+        y_cls = y_raw[mask]
+        if len(X_cls) < max_count:
+            X_cls, y_cls = resample(X_cls, y_cls, n_samples=max_count, random_state=42)
+        X_balanced.append(X_cls)
+        y_balanced.append(y_cls)
+
+    X = np.vstack(X_balanced)
+    y = np.concatenate(y_balanced)
+
+    # Shuffle
+    idx = np.random.permutation(len(X))
+    return X[idx], y[idx]
 
 
 def train_model():
     """Train and evaluate the Random Forest model"""
-    
+
     print("=" * 70)
-    print("🚀 Health Tracker ML Model Training - 12 Questions + Baseline Data")
+    print("🚀 Health Tracker ML Model Training — Clinical Dataset Edition")
+    print("   Cardiovascular Disease (Kaggle/Ulianova) +")
+    print("   Pima Indians Diabetes (UCI) +")
+    print("   Stroke Prediction / Hypertension (Kaggle/fedesoriano)")
     print("=" * 70)
-    
-    # Generate training data
-    print("\n📊 Generating synthetic training data...")
-    X, y = generate_training_data()
-    print(f"   Generated {len(X)} samples with {X.shape[1]} features")
+
+    # Load real clinical data
+    print("\n📊 Loading and processing clinical datasets...")
+    X, y = load_clinical_data()
+    print(f"\n   Final dataset: {len(X)} balanced samples, {X.shape[1]} features")
     
     # Display class distribution
     unique, counts = np.unique(y, return_counts=True)
@@ -212,9 +402,9 @@ def save_model(model, accuracy):
     
     # Save model metadata
     metadata = {
-        'version': '2.0',
+        'version': '3.0',
         'features': 19,
-        'description': '12-question risk model with baseline data integration',
+        'description': 'Random Forest trained on real clinical data: Cardiovascular Disease Dataset (70k), Pima Indians Diabetes (768), Stroke/Hypertension Dataset (5,110). Labels derived from JNC 8 BP thresholds and ADA glucose thresholds.',
         'accuracy': accuracy,
         'feature_names': [f"q{i+1}" for i in range(12)] + \
                         ['systolic_dev', 'diastolic_dev', 'glucose_dev', 'medication', 'condition', 'age'],
