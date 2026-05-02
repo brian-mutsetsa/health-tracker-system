@@ -102,19 +102,20 @@ Please use these exact credentials when following the tests below.
 
 ---
 
-## 🧪 TEST PHASE 2: Mobile App 12-Question Check-in & Edge ML
+## 🧪 TEST PHASE 2: Mobile App 12-Question Check-in & Edge Risk Scoring
 **Objective:** Verify the client's request to track 12 specific symptoms on a 0-3 scale, capture numeric vitals, and calculate risk on the device.
 
 **Step-by-Step Instructions:**
 1. Open the **Health Tracker** app on your Android phone.
-2. Tap the **Username** field and type `PT005` (This is Frank, our Diabetes test patient).
+2. Tap the **Username** field and type `PT005` (This is Frank Mutasa, our Diabetes test patient).
 3. Tap the **Password** field and type `test123`. Tap **Login**.
-4. At the bottom of the screen, tap the **Daily Check-in** tab (it looks like a clipboard).
-5. **The Verification:** Scroll through the questions. You will see exactly 12 questions tailored to Diabetes.
-6. Answer questions 1 through 10 by tapping the sliders or dropdowns (pick random severity levels).
-7. Scroll down to Questions 11 and 12. Tap the text box for **Blood Pressure Systolic** and type `140`. Tap the box for **Diastolic** and type `90`. 
-8. Tap the green **Submit Check-in** button at the very bottom.
-9. **The Verification:** The screen will instantly display a color-coded Risk Level (e.g., YELLOW or ORANGE). This calculation was done *instantly by the Machine Learning model residing directly on the phone*, fulfilling the Edge Computing requirement.
+4. At the bottom of the screen, tap the **Daily Check-in** tab (second icon from the left — it looks like a clipboard/assignment icon). It is always highlighted in teal because it is an action button.
+5. **The Verification:** Scroll through the questions. You will see exactly 12 questions tailored to Diabetes. Each question has four answer buttons (e.g., None / Mild / Moderate / Severe).
+6. Answer all 12 questions — select a variety of **Mild** and **Moderate** answers on at least 3–4 questions, and **None** for the rest.
+7. After answering Step 4 (the last step), tap **Next** to reach the **Review & Submit** screen.
+8. On the review screen, scroll down to the **Optional Vitals** section. Enter `140` for Blood Pressure (Systolic), `90` for Diastolic, and `140` for Blood Glucose.
+9. Tap the green **Submit Check-in** button at the very bottom.
+10. **The Verification:** The review screen displays a colour-coded Risk Level card (e.g., YELLOW or ORANGE if you answered several Moderate or Mild). This calculation is done instantly by the device's built-in rule engine. Note: answering even 3 questions as Moderate will push the result to YELLOW or above.
 
 ---
 
@@ -127,7 +128,7 @@ Please use these exact credentials when following the tests below.
 3. Click the **Password** box and type `password`. Click the green **Log in** button.
 4. **The Routing Verification:** Look at the list of patient cards on the screen. You will ONLY see patients who have Diabetes (including Frank, `PT005`). You will absolutely not see any Hypertension or Asthma patients. This fulfills the Dynamic Routing requirement.
 5. Find the patient card for **Frank Mutasa (PT005)**. Click the **Details** button on his card.
-6. **The Clinical Verification:** A large window will pop up titled *"Frank Mutasa (PT005)"*. Look at the top of the window. You will see his exact Blood Pressure reading (`140/90`) that you entered in Test Phase 2. Scroll down the window. You will see a list of all 12 questions with their **full question text** (e.g., "Excessive thirst", "Took diabetes medication") and the exact answer labels (e.g., "None", "Mild", "Moderate", "Severe") — not just numbers like "Q1: 2".
+6. **The Clinical Verification:** A large window will pop up titled *"Frank Mutasa (PT005)"*. Look at the top of the window. You will see his exact Blood Pressure reading (`140/90`) and Blood Glucose (`140`) that you entered in Test Phase 2. Scroll down the window. You will see a list of all 12 questions with their **full question text** (e.g., "Excessive thirst", "Took diabetes medication", "Physical activity level") and the exact answer labels (e.g., "None", "Mild", "Moderate", "Severe", "Yes fully", "Light activity") — not numbers like "Q1: 2".
 
 ---
 
@@ -145,7 +146,14 @@ Please use these exact credentials when following the tests below.
 
 ---
 
-## 🧪 TEST PHASE 6: New Patient Registration with Auto-Generated Credentials
+## ℹ️ NOTE ON RISK SCORING
+The mobile app calculates risk using a **rule-based scoring engine** (not a traditional ML model):
+- Each of the 12 symptom questions scores 0–3 (None/Mild/Moderate/Severe).
+- Physical activity questions are **inverted** (more exercise = lower risk score).
+- Thresholds: **GREEN** < 6 pts, **YELLOW** 6–12, **ORANGE** 13–19, **RED** ≥ 20 (out of a max of ~36).
+- The backend additionally runs a Random Forest model trained on synthetic data; this overrides the score-based result when the model is confident. This model has **not been clinically validated** and should be treated as a decision-support tool only, not a medical diagnosis.
+
+--- with Auto-Generated Credentials
 **Objective:** Verify that a brand-new patient can register through the mobile app and receive an automatically generated Patient ID and password.
 
 **Step-by-Step Instructions:**
@@ -180,8 +188,8 @@ Please use these exact credentials when following the tests below.
 4. **The Verification:** A new notification will appear: *"📅 New appointment request from Frank Mutasa..."*
 
 ### PART C — Patient Sees Their Own Notifications
-1. On the mobile app (logged in as any patient), tap the 🔔 **Notifications** tab at the bottom of the screen (the 5th icon).
-2. **The Verification:** Any notifications sent to that patient's user ID will appear in the list with timestamps.
+1. On the mobile app (logged in as any patient), tap the 🔔 **bell icon** in the top-right corner of the Home screen.
+2. **The Verification:** Any notifications sent to that patient's user ID will appear in the list with timestamps. A red badge on the bell icon shows the unread count.
 3. Tap **Mark read** on an unread notification. The notification will be marked as read and the badge count will decrease.
 
 ### PART D — Super Admin Sees All Alerts

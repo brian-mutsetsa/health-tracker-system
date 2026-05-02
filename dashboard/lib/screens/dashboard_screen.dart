@@ -2326,14 +2326,14 @@ class _MessagePanelState extends State<_MessagePanel> {
     'Headaches', 'Dizziness', 'Blurred vision', 'Chest discomfort',
     'Shortness of breath', 'Fatigue', 'Nosebleeds', 'Palpitations',
     'Took BP medication', 'High salt intake', 'Stress level',
-    'BP measurement reading',
+    'Swelling in limbs or face',
   ];
 
   static const _diabetesQuestions = [
     'Excessive thirst', 'Frequent urination', 'Unusual hunger',
     'Tired / fatigue', 'Blurred vision', 'Numbness / tingling',
     'Slow wound healing', 'Dizziness / shakiness', 'Took diabetes medication',
-    'Followed diet plan', 'Physical activity level', 'Blood glucose reading',
+    'Followed diet plan', 'Physical activity level', 'Nausea / digestive discomfort',
   ];
 
   static const _cardiovascularQuestions = [
@@ -2371,24 +2371,34 @@ class _MessagePanelState extends State<_MessagePanel> {
     if (idx == null) return value.toString();
     final answerIdx = int.tryParse(value.toString());
     if (answerIdx == null) return value.toString();
-
-    // q9 = medication, q11 = activity level (for hypertension/diabetes)
-    // q10 = physical activity (cardiovascular)
-    final isMedQuestion = idx == 9;
-    final isActivityQuestion = (idx == 11 && !condition.toLowerCase().contains('cardio')) ||
-        (idx == 10 && condition.toLowerCase().contains('cardio'));
-
-    List<String> opts;
-    if (isMedQuestion) {
-      opts = _medicationOptions;
-    } else if (isActivityQuestion) {
-      opts = _activityOptions;
-    } else {
-      opts = _defaultOptions;
-    }
-
+    final opts = _getAnswerOptions(condition.toLowerCase(), idx);
     if (answerIdx >= 0 && answerIdx < opts.length) return opts[answerIdx];
     return value.toString();
+  }
+
+  List<String> _getAnswerOptions(String condLower, int qIdx) {
+    if (condLower.contains('hypertension')) {
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['None', 'Small amount', 'Moderate', 'High intake'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    } else if (condLower.contains('diabet')) {
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['Yes fully', 'Minor deviations', 'Moderate deviations', 'Did not follow'];
+        case 11: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    } else {
+      // Cardiovascular / Heart Disease
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
+        case 11: return ['None', 'Small amount', 'Moderate amount', 'High amount'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    }
   }
 
   // ─── Notifications View ───────────────────────────────────────────────────

@@ -57,7 +57,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         {'id': 'q9', 'question': 'Did you take your prescribed blood pressure medication today?', 'type': 'scale', 'options': ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take']},
         {'id': 'q10', 'question': 'Did you consume foods high in salt today?', 'type': 'scale', 'options': ['None', 'Small amount', 'Moderate', 'High intake']},
         {'id': 'q11', 'question': 'Did you experience high levels of stress today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
-        {'id': 'q12', 'question': 'Did you measure your blood pressure today? (Optional numeric entry)', 'type': 'text', 'placeholder': 'e.g., 120/80'},
+        {'id': 'q12', 'question': 'Did you experience any swelling in your limbs or face today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
       ];
     } else if (widget.condition == 'Diabetes') {
       return [
@@ -72,7 +72,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         {'id': 'q9', 'question': 'Did you take your diabetes medication or insulin today?', 'type': 'scale', 'options': ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take']},
         {'id': 'q10', 'question': 'Did you follow your recommended diet today?', 'type': 'scale', 'options': ['Yes fully', 'Minor deviations', 'Moderate deviations', 'Did not follow']},
         {'id': 'q11', 'question': 'Did you perform physical activity or exercise today?', 'type': 'scale', 'options': ['None', 'Light activity', 'Moderate', 'Vigorous']},
-        {'id': 'q12', 'question': 'What was your blood glucose reading today? (Numeric entry if available)', 'type': 'text', 'placeholder': 'e.g., 120'},
+        {'id': 'q12', 'question': 'Did you experience nausea or digestive discomfort today?', 'type': 'scale', 'options': ['None', 'Mild', 'Moderate', 'Severe']},
       ];
     } else {
       // Cardiovascular
@@ -101,16 +101,26 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
   }
 
   int calculateRiskScore() {
-    return answers.values.fold(0, (sum, val) => sum + val);
+    int score = 0;
+    answers.forEach((key, value) {
+      if (key.endsWith('_text')) return;
+      final qNum = int.tryParse(key.replaceAll('q', ''));
+      if (qNum == null) return;
+      // Physical activity questions are GOOD (higher = healthier → invert score)
+      final isActivityQ = (widget.condition == 'Diabetes' && qNum == 11) ||
+          (widget.condition == 'Cardiovascular' && qNum == 10);
+      score += isActivityQ ? (3 - value) : value;
+    });
+    return score;
   }
 
   Map<String, dynamic> getRiskLevel() {
     int score = calculateRiskScore();
-    if (score >= 24) {
+    if (score >= 20) {
       return {'level': 'RED', 'color': Colors.redAccent, 'message': 'High Risk - Seek medical attention'};
-    } else if (score >= 16) {
+    } else if (score >= 13) {
       return {'level': 'ORANGE', 'color': Colors.orangeAccent, 'message': 'Moderate Risk - Monitor closely'};
-    } else if (score >= 8) {
+    } else if (score >= 6) {
       return {'level': 'YELLOW', 'color': Colors.yellow, 'message': 'Low-Moderate Risk - Stay aware'};
     } else {
       return {'level': 'GREEN', 'color': Colors.green, 'message': 'Low Risk - Keep maintaining'};
@@ -144,9 +154,6 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     
     for (int i = startQ; i <= endQ; i++) {
       String questionKey = 'q$i';
-      // Skip q12 if it's a text input (optional vital reading)
-      if (questionKey == 'q12') continue;
-      
       if (!answers.containsKey(questionKey)) {
         return false;
       }
@@ -579,10 +586,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
         processedAnswers[key] = value.toString();
       }
     });
-    // Ensure q12 is always included (backend requires 12 answers)
-    if (!processedAnswers.containsKey('q12')) {
-      processedAnswers['q12'] = '0';
-    }
+    // q12 is now a required scale question — no override needed
 
     String riskLevel = getRiskLevel()['level'];
     String riskColor = riskLevel.toLowerCase();

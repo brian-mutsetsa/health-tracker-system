@@ -120,17 +120,16 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: AppTheme.background,
           body: _buildBody(savedCondition),
-          bottomNavigationBar: _buildBottomNav(),
+          bottomNavigationBar: _buildBottomNav(context),
         );
       },
     );
   }
 
   Widget _buildBody(String condition) {
-    if (_currentIndex == 1) return const AppointmentsScreen();
-    if (_currentIndex == 2) return const MessagesScreen();
-    if (_currentIndex == 3) return const ProfileScreen();
-    if (_currentIndex == 4) return const NotificationsScreen();
+    if (_currentIndex == 2) return const AppointmentsScreen();
+    if (_currentIndex == 3) return const MessagesScreen();
+    if (_currentIndex == 4) return const ProfileScreen();
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<CheckinModel>('checkins').listenable(),
@@ -300,21 +299,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No new notifications')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.notifications_none,
-                color: AppTheme.textDark,
-              ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                if (_unreadNotificationCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _unreadNotificationCount > 9 ? '9+' : '$_unreadNotificationCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -662,9 +685,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1);
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: const EdgeInsets.only(bottom: 20, left: 24, right: 24, top: 12),
+      padding: EdgeInsets.only(bottom: bottomPadding + 8, left: 24, right: 24, top: 12),
       decoration: const BoxDecoration(color: AppTheme.background),
       child: Container(
         height: 70,
@@ -682,21 +706,30 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildNavItem(0, Icons.home_rounded, 0),
-            _buildNavItem(1, Icons.calendar_month_rounded, _upcomingAppointmentCount),
-            _buildNavItem(2, Icons.mail_outline_rounded, _unreadMessageCount),
-            _buildNavItem(3, Icons.person_outline_rounded, 0),
-            _buildNavItem(4, Icons.notifications_outlined, _unreadNotificationCount),
+            _buildNavItem(context, 0, Icons.home_rounded, 0),
+            _buildNavItem(context, 1, Icons.assignment_outlined, 0),
+            _buildNavItem(context, 2, Icons.calendar_month_rounded, _upcomingAppointmentCount),
+            _buildNavItem(context, 3, Icons.mail_outline_rounded, _unreadMessageCount),
+            _buildNavItem(context, 4, Icons.person_outline_rounded, 0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, int badgeCount) {
+  Widget _buildNavItem(BuildContext context, int index, IconData icon, int badgeCount) {
     bool isSelected = _currentIndex == index;
+    bool isAction = index == 1; // Check-in is a direct-action button
     return GestureDetector(
       onTap: () {
+        if (isAction) {
+          final condition = Hive.box('settings').get('condition', defaultValue: 'Hypertension');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => DailyCheckinScreen(condition: condition)),
+          );
+          return;
+        }
         setState(() {
           _currentIndex = index;
         });
@@ -706,7 +739,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: isSelected
+            decoration: (isSelected || isAction)
                 ? const BoxDecoration(
                     color: AppTheme.primaryTeal,
                     shape: BoxShape.circle,
@@ -714,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 : null,
             child: Icon(
               icon,
-              color: isSelected ? Colors.white : AppTheme.textLight,
+              color: (isSelected || isAction) ? Colors.white : AppTheme.textLight,
               size: 26,
             ),
           ),
