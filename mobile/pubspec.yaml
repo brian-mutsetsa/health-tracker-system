@@ -46,6 +46,7 @@ dependencies:
   flutter_local_notifications: ^21.0.0
   timezone: ^0.11.0
   flutter_native_splash: ^2.4.7
+  tflite_flutter: ^0.11.0
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +86,7 @@ flutter:
 
   assets:
     - assets/app_icon.png
+    - assets/ml_models/risk_model.tflite
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

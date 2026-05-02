@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/checkin_model.dart';
 import '../services/api_service.dart';
+import '../services/risk_predictor.dart';
 import '../theme/app_theme.dart';
 import 'checkin_history_screen.dart';
 
@@ -33,6 +34,8 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     _bpSystolicController = TextEditingController();
     _bpDiastolicController = TextEditingController();
     _glucoseController = TextEditingController();
+    // Load the TFLite model in the background so it's ready before submission
+    RiskPredictor.initialize();
   }
 
   @override
@@ -124,6 +127,56 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
       return {'level': 'YELLOW', 'color': Colors.yellow, 'message': 'Low-Moderate Risk - Stay aware'};
     } else {
       return {'level': 'GREEN', 'color': Colors.green, 'message': 'Low Risk - Keep maintaining'};
+    }
+  }
+
+  /// Builds the 18-feature vector consumed by [RiskPredictor.predict].
+  List<double> _buildFeatureVector() {
+    // q1-q12 symptom scores (0-3), with physical-activity questions inverted
+    final List<double> qScores = List.generate(12, (i) {
+      final qNum = i + 1;
+      double val = (answers['q$qNum'] ?? 0).toDouble();
+      final isActivityQ = (widget.condition == 'Diabetes' && qNum == 11) ||
+          (widget.condition == 'Cardiovascular' && qNum == 10);
+      return isActivityQ ? 3.0 - val : val;
+    });
+
+    // Medication adherence: 1.0 if q9 answered "Yes fully" (value 0), else 0.0
+    final double medAdherence = (answers['q9'] ?? 3) == 0 ? 1.0 : 0.0;
+
+    // Condition code: 0=Hypertension  1=Diabetes  2=Cardiovascular
+    final double condCode = widget.condition == 'Hypertension'
+        ? 0.0
+        : widget.condition == 'Diabetes'
+            ? 1.0
+            : 2.0;
+
+    return [
+      ...qScores,
+      (bpSystolic ?? 120) - 120,   // systolic deviation
+      (bpDiastolic ?? 80) - 80,    // diastolic deviation
+      (bloodGlucose ?? 100) - 100, // glucose deviation
+      medAdherence,
+      condCode,
+      0.33, // age normalised (default ≈ 45 yrs)
+    ];
+  }
+
+  Color _riskColor(String level) {
+    switch (level) {
+      case 'RED':    return Colors.redAccent;
+      case 'ORANGE': return Colors.orangeAccent;
+      case 'YELLOW': return Colors.yellow;
+      default:       return Colors.green;
+    }
+  }
+
+  String _riskMessage(String level) {
+    switch (level) {
+      case 'RED':    return 'High Risk - Seek medical attention';
+      case 'ORANGE': return 'Moderate Risk - Monitor closely';
+      case 'YELLOW': return 'Low-Moderate Risk - Stay aware';
+      default:       return 'Low Risk - Keep maintaining';
     }
   }
 
@@ -588,7 +641,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
     });
     // q12 is now a required scale question — no override needed
 
-    String riskLevel = getRiskLevel()['level'];
+    String riskLevel = RiskPredictor.predict(_buildFeatureVector());
     String riskColor = riskLevel.toLowerCase();
 
     final box = Hive.box<CheckinModel>('checkins');
@@ -632,7 +685,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
 
     if (!mounted) return;
 
-    Color displayColor = getRiskLevel()['color'];
+    Color displayColor = _riskColor(riskLevel);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -650,7 +703,7 @@ class _DailyCheckinScreenState extends State<DailyCheckinScreen> {
             const SizedBox(height: 24),
             Text(riskLevel, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: displayColor)),
             const SizedBox(height: 12),
-            Text(getRiskLevel()['message'], textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: AppTheme.textDark, height: 1.4)),
+            Text(_riskMessage(riskLevel), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: AppTheme.textDark, height: 1.4)),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
