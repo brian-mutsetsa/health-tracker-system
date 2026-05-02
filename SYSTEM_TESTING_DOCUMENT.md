@@ -115,7 +115,7 @@ Please use these exact credentials when following the tests below.
 7. After answering Step 4 (the last step), tap **Next** to reach the **Review & Submit** screen.
 8. On the review screen, scroll down to the **Optional Vitals** section. Enter `140` for Blood Pressure (Systolic), `90` for Diastolic, and `140` for Blood Glucose.
 9. Tap the green **Submit Check-in** button at the very bottom.
-10. **The Verification:** The review screen displays a colour-coded Risk Level card (e.g., YELLOW or ORANGE if you answered several Moderate or Mild). This calculation is done instantly by the device's built-in rule engine. Note: answering even 3 questions as Moderate will push the result to YELLOW or above.
+10. **The Verification:** The review screen displays a colour-coded Risk Level card (e.g., YELLOW or ORANGE if you answered several Moderate or Mild). This calculation is done instantly and **entirely on the device** by a TensorFlow Lite neural network trained on real clinical data — no internet connection is required. Note: answering even 3 questions as Moderate will push the result to YELLOW or above.
 
 ---
 
@@ -147,11 +147,12 @@ Please use these exact credentials when following the tests below.
 ---
 
 ## ℹ️ NOTE ON RISK SCORING
-The mobile app calculates risk using a **rule-based scoring engine** (not a traditional ML model):
-- Each of the 12 symptom questions scores 0–3 (None/Mild/Moderate/Severe).
-- Physical activity questions are **inverted** (more exercise = lower risk score).
-- Thresholds: **GREEN** < 6 pts, **YELLOW** 6–12, **ORANGE** 13–19, **RED** ≥ 20 (out of a max of ~36).
-- The backend additionally runs a Random Forest model trained on **real clinical data** (74,592 patient records from the Cardiovascular Disease Dataset, Pima Indians Diabetes Dataset, and Stroke Prediction Dataset); this overrides the score-based result when the model is confident. Risk labels are derived from established clinical thresholds (JNC 8 for blood pressure, ADA guidelines for glucose). Test accuracy: **99.6%**. This model should be treated as a decision-support tool only, not a medical diagnosis.
+The mobile app calculates risk using an **on-device TensorFlow Lite neural network** trained on real clinical data — no internet connection is required for risk prediction:
+- The model is a small Keras dense neural network (Input → Dense 64 → Dense 32 → Softmax 4) trained on **95,756 balanced patient records** from the Cardiovascular Disease Dataset, Pima Indians Diabetes Dataset, and Stroke Prediction Dataset.
+- Each of the 12 symptom questions scores 0–3 (None/Mild/Moderate/Severe). Physical activity questions are **inverted** (more exercise = lower risk score).
+- Additional clinical inputs fed to the model: Blood Pressure deviation from normal (120/80 mmHg), Blood Glucose deviation from normal (100 mg/dL), medication adherence, condition type, and patient age.
+- On-device model accuracy: **97.45%**. If the TFLite model is unavailable, the app falls back to the rule-based thresholds: **GREEN** < 6 pts, **YELLOW** 6–12, **ORANGE** 13–19, **RED** ≥ 20.
+- The backend additionally runs a Random Forest model trained on the same **95,756 clinical records**; risk labels are derived from established clinical thresholds (JNC 8 for blood pressure, ADA guidelines for glucose). Test accuracy: **99.6%**. Both models should be treated as decision-support tools only, not a medical diagnosis.
 
 --- with Auto-Generated Credentials
 **Objective:** Verify that a brand-new patient can register through the mobile app and receive an automatically generated Patient ID and password.
