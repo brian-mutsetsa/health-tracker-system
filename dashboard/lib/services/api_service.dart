@@ -104,7 +104,9 @@ class Message {
 
 class Appointment {
   final int id;
+  final int? patientPk;
   final String patientName;
+  final String patientIdStr;
   final String providerId;
   final String? providerName;
   final String scheduledDate;
@@ -112,10 +114,13 @@ class Appointment {
   final int durationMinutes;
   final String reason;
   final String status;
+  final String initiatedBy;
 
   Appointment({
     required this.id,
+    this.patientPk,
     required this.patientName,
+    this.patientIdStr = '',
     required this.providerId,
     this.providerName,
     required this.scheduledDate,
@@ -123,12 +128,15 @@ class Appointment {
     required this.durationMinutes,
     required this.reason,
     required this.status,
+    this.initiatedBy = 'PROVIDER',
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
       id: json['id'],
+      patientPk: json['patient'],
       patientName: json['patient_name'] ?? 'Unknown',
+      patientIdStr: json['patient_id_str'] ?? '',
       providerId: json['provider_id'] ?? '',
       providerName: json['provider_name'],
       scheduledDate: json['scheduled_date'] ?? '',
@@ -136,6 +144,7 @@ class Appointment {
       durationMinutes: json['duration_minutes'] ?? 30,
       reason: json['reason'] ?? '',
       status: json['status'] ?? 'SCHEDULED',
+      initiatedBy: json['initiated_by'] ?? 'PROVIDER',
     );
   }
 }
@@ -405,6 +414,74 @@ class DashboardApiService {
       return response.statusCode == 200;
     } catch (e) {
       print('❌ Error updating appointment: $e');
+      return false;
+    }
+  }
+
+  /// Create a new appointment (provider-initiated → status=SCHEDULED immediately).
+  /// Returns null on success, or an error string on failure.
+  Future<String?> createAppointment({
+    required int patientPk,
+    required String scheduledDate,
+    required String scheduledTime,
+    required String reason,
+    String initiatedBy = 'PROVIDER',
+  }) async {
+    try {
+      final providerId = currentProviderId ?? '';
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/create/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'patient': patientPk,
+          'provider_id': providerId,
+          'scheduled_date': scheduledDate,
+          'scheduled_time': scheduledTime,
+          'reason': reason,
+          'duration_minutes': 30,
+          'initiated_by': initiatedBy,
+        }),
+      );
+      if (response.statusCode == 201) return null;
+      if (response.statusCode == 409) {
+        final data = jsonDecode(response.body);
+        return data['error'] ?? 'This time slot is already booked.';
+      }
+      return 'Failed to create appointment (${response.statusCode})';
+    } catch (e) {
+      print('❌ Error creating appointment: $e');
+      return 'Network error creating appointment.';
+    }
+  }
+
+  /// Returns the list of already-booked HH:MM time strings for a provider on a date.
+  Future<List<String>> getBookedSlots(String providerId, String date) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$date'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<String>.from(data['booked_times'] ?? []);
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching booked slots: $e');
+      return [];
+    }
+  }
+
+  /// Approve a patient-requested PENDING appointment → sets it to SCHEDULED.
+  Future<bool> approveAppointment(int appointmentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/$appointmentId/approve/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error approving appointment: $e');
       return false;
     }
   }

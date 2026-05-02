@@ -192,13 +192,14 @@ class TypingStatusSerializer(serializers.ModelSerializer):
 
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source='patient.name', read_only=True)
+    patient_id_str = serializers.CharField(source='patient.patient_id', read_only=True)
     provider_name = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Appointment
-        fields = ['id', 'patient', 'patient_name', 'provider_id', 'provider_name',
-                  'scheduled_date', 'scheduled_time', 'duration_minutes', 'reason', 
-                  'notes', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'patient', 'patient_name', 'patient_id_str', 'provider_id', 'provider_name',
+                  'scheduled_date', 'scheduled_time', 'duration_minutes', 'reason',
+                  'notes', 'status', 'initiated_by', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_provider_name(self, obj):

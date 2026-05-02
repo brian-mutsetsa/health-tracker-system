@@ -118,10 +118,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final date = DateTime.tryParse(apt.scheduledDate);
     final formattedDate = date != null ? DateFormat('MMM d, yyyy').format(date) : apt.scheduledDate;
 
+    final isPending = apt.status == 'PENDING';
     Color statusColor = AppTheme.textLight;
     if (apt.status == 'SCHEDULED') statusColor = Colors.orange;
     if (apt.status == 'COMPLETED') statusColor = Colors.green;
     if (apt.status == 'CANCELLED' || apt.status == 'NO_SHOW') statusColor = Colors.red;
+    if (isPending) statusColor = Colors.amber.shade700;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -129,6 +131,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: isPending ? Border.all(color: Colors.amber.shade300, width: 1.5) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -154,7 +157,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  apt.status,
+                  isPending ? 'Awaiting Approval' : apt.status,
                   style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
@@ -196,48 +199,161 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
+  static const _timeSlots = [
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+    '11:00', '11:30', '12:00', '14:00', '14:30', '15:00',
+    '15:30', '16:00', '16:30',
+  ];
+
   void _showScheduleDialog() {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
-    TimeOfDay selectedTime = TimeOfDay.now();
+    String? selectedTime;
+    List<String> bookedSlots = [];
+    bool loadingSlots = false;
+    final reasonController = TextEditingController();
+
+    Future<void> fetchSlots(StateSetter setDialogState, DateTime date) async {
+      setDialogState(() => loadingSlots = true);
+      final providerId = await _apiService.getAssignedProviderId();
+      if (providerId.isNotEmpty) {
+        final slots = await _apiService.getBookedSlots(providerId, date);
+        setDialogState(() {
+          bookedSlots = slots;
+          loadingSlots = false;
+          if (selectedTime != null && bookedSlots.contains(selectedTime)) {
+            selectedTime = null;
+          }
+        });
+      } else {
+        setDialogState(() => loadingSlots = false);
+      }
+    }
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Schedule Appointment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: const Text('Date'),
-                  subtitle: Text(DateFormat('MMM d, yyyy').format(selectedDate)),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 90)),
-                    );
-                    if (date != null) {
-                      setDialogState(() => selectedDate = date);
-                    }
-                  },
-                ),
-                ListTile(
-                  title: const Text('Time'),
-                  subtitle: Text(selectedTime.format(dialogContext)),
-                  onTap: () async {
-                    final time = await showTimePicker(
-                      context: dialogContext,
-                      initialTime: selectedTime,
-                    );
-                    if (time != null) {
-                      setDialogState(() => selectedTime = time);
-                    }
-                  },
-                ),
-              ],
+          title: const Text('Request Appointment'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date picker
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_today, color: AppTheme.primaryTeal),
+                    title: const Text('Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: Text(DateFormat('MMM d, yyyy').format(selectedDate)),
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: dialogContext,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 90)),
+                      );
+                      if (date != null) {
+                        setDialogState(() {
+                          selectedDate = date;
+                          selectedTime = null;
+                          bookedSlots = [];
+                        });
+                        await fetchSlots(setDialogState, date);
+                      }
+                    },
+                  ),
+                  const Divider(),
+                  // Time slot grid
+                  Row(
+                    children: [
+                      const Text('Select Time', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(width: 8),
+                      if (loadingSlots)
+                        const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _timeSlots.map((slot) {
+                      final isBooked = bookedSlots.contains(slot);
+                      final isSelected = selectedTime == slot;
+                      return GestureDetector(
+                        onTap: isBooked ? null : () => setDialogState(() => selectedTime = slot),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isBooked
+                                ? Colors.grey.shade200
+                                : isSelected
+                                    ? AppTheme.primaryTeal
+                                    : Colors.white,
+                            border: Border.all(
+                              color: isBooked
+                                  ? Colors.grey.shade300
+                                  : isSelected
+                                      ? AppTheme.primaryTeal
+                                      : Colors.grey.shade400,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            slot,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isBooked
+                                  ? Colors.grey.shade400
+                                  : isSelected
+                                      ? Colors.white
+                                      : AppTheme.textDark,
+                              decoration: isBooked ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  // Reason field
+                  const Text('Reason (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: reasonController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Need medication review',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      isDense: true,
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Colors.amber.shade700),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Patient-requested appointments require provider approval before confirmation.',
+                            style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -245,36 +361,53 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
-                final hour = selectedTime.hour.toString().padLeft(2, '0');
-                final minute = selectedTime.minute.toString().padLeft(2, '0');
-                final timeStr = '$hour:$minute';
-                
-                final success = await _apiService.createAppointment(
-                  patientId: patientId,
-                  scheduledDate: selectedDate,
-                  scheduledTime: timeStr,
-                );
-                
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('✅ Appointment scheduled')),
-                  );
-                  await _loadAppointments();
-                } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('❌ Failed to schedule appointment')),
-                  );
-                }
-              },
-              child: const Text('Schedule'),
+            ElevatedButton(
+              onPressed: selectedTime == null
+                  ? null
+                  : () async {
+                      Navigator.pop(dialogContext);
+                      final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
+                      final error = await _apiService.createAppointment(
+                        patientId: patientId,
+                        scheduledDate: selectedDate,
+                        scheduledTime: selectedTime!,
+                        reason: reasonController.text.trim().isEmpty
+                            ? 'Patient requested'
+                            : reasonController.text.trim(),
+                      );
+                      if (mounted) {
+                        if (error == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Request sent — awaiting provider approval'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          await _loadAppointments();
+                        } else if (error == 'conflict') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('⚠️ That time slot is already booked. Please choose another time.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('❌ $error'), backgroundColor: Colors.red),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Request'),
             ),
           ],
         ),
       ),
     );
+    // Preload booked slots for the initial date is done when dialog opens via StatefulBuilder
   }
 }

@@ -1091,38 +1091,134 @@ def list_all_patients(request):
 
 # ==================== PHASE 2: APPOINTMENT MANAGEMENT ====================
 
+@api_view(['GET'])
+def get_booked_slots(request):
+    """
+    Return booked time slots for a provider on a given date.
+    Query params: provider_id, date (YYYY-MM-DD)
+    Response: {date, provider_id, booked_times: ['09:00', '14:30', ...]}
+    """
+    provider_id = request.query_params.get('provider_id')
+    date_str = request.query_params.get('date')
+    if not provider_id or not date_str:
+        return Response({'error': 'provider_id and date are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    booked = Appointment.objects.filter(
+        provider_id=provider_id,
+        scheduled_date=date_str,
+        status__in=['SCHEDULED', 'PENDING'],
+    ).values_list('scheduled_time', flat=True)
+
+    # Format as HH:MM strings
+    booked_times = []
+    for t in booked:
+        if hasattr(t, 'strftime'):
+            booked_times.append(t.strftime('%H:%M'))
+        else:
+            booked_times.append(str(t)[:5])
+
+    return Response({
+        'date': date_str,
+        'provider_id': provider_id,
+        'booked_times': booked_times,
+    })
+
+
 @api_view(['POST'])
 def create_appointment(request):
-    """Create a new appointment"""
+    """
+    Create a new appointment.
+    Conflict check: rejects if same provider/date/time is already SCHEDULED or PENDING.
+    Auto-approval: provider-initiated (initiated_by='PROVIDER') → SCHEDULED immediately.
+                   patient-initiated → PENDING (requires provider approval).
+    """
     data = request.data.copy()
     # Allow client to send patient_id (string) instead of patient (FK int)
     if 'patient_id' in data and 'patient' not in data:
         try:
-            patient = Patient.objects.get(patient_id=data['patient_id'])
-            data['patient'] = patient.id
+            patient_obj = Patient.objects.get(patient_id=data['patient_id'])
+            data['patient'] = patient_obj.id
         except Patient.DoesNotExist:
             return Response({'error': f"Patient {data['patient_id']} not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Conflict check: block if this provider+date+time is already occupied
+    provider_id = data.get('provider_id', '')
+    scheduled_date = data.get('scheduled_date', '')
+    scheduled_time = str(data.get('scheduled_time', ''))[:5]
+    if provider_id and scheduled_date and scheduled_time:
+        conflict = Appointment.objects.filter(
+            provider_id=provider_id,
+            scheduled_date=scheduled_date,
+            scheduled_time=scheduled_time,
+            status__in=['SCHEDULED', 'PENDING'],
+        ).exists()
+        if conflict:
+            return Response(
+                {'error': 'This time slot is already booked. Please choose a different time.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    # Auto-approve for provider-initiated bookings
+    initiated_by = data.get('initiated_by', 'PATIENT')
+    if initiated_by == 'PROVIDER':
+        data['status'] = 'SCHEDULED'
+    else:
+        data['status'] = 'PENDING'
+    data['initiated_by'] = initiated_by
+
     serializer = AppointmentSerializer(data=data)
     if serializer.is_valid():
         appointment = serializer.save()
         patient_name = appointment.patient.name or appointment.patient.patient_id
-        # Notify the assigned provider
-        Notification.objects.create(
-            user_id=appointment.provider_id,
-            notification_type='APPOINTMENT',
-            message=f"📅 New appointment request from {patient_name} on {appointment.scheduled_date} at {appointment.scheduled_time}",
-            related_patient_id=appointment.patient.patient_id,
-        )
-        # Notify superadmin
+
+        if initiated_by == 'PROVIDER':
+            # Notify the patient their appointment is confirmed
+            Notification.objects.create(
+                user_id=appointment.patient.patient_id,
+                notification_type='APPOINTMENT',
+                message=f"✅ Appointment booked for you on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please attend.",
+                related_patient_id=appointment.patient.patient_id,
+            )
+        else:
+            # Notify provider of new patient request
+            Notification.objects.create(
+                user_id=appointment.provider_id,
+                notification_type='APPOINTMENT',
+                message=f"📅 Appointment request from {patient_name} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please approve or decline.",
+                related_patient_id=appointment.patient.patient_id,
+            )
+
+        # Always notify superadmin
         Notification.objects.create(
             user_id='superadmin',
             notification_type='APPOINTMENT',
-            message=f"📅 Appointment created: {patient_name} → {appointment.provider_id} on {appointment.scheduled_date} at {appointment.scheduled_time}",
+            message=f"📅 Appointment ({initiated_by}): {patient_name} → {appointment.provider_id} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} [{appointment.status}]",
             related_patient_id=appointment.patient.patient_id,
         )
-        print(f" Appointment created: {appointment.id}")
+        print(f" Appointment created: {appointment.id} [{appointment.status}]")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def approve_appointment(request, appointment_id):
+    """Provider approves a PENDING patient-requested appointment."""
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+        if appointment.status != 'PENDING':
+            return Response({'error': f'Appointment is already {appointment.status}'}, status=status.HTTP_400_BAD_REQUEST)
+        appointment.status = 'SCHEDULED'
+        appointment.save()
+        # Notify the patient
+        Notification.objects.create(
+            user_id=appointment.patient.patient_id,
+            notification_type='APPOINTMENT',
+            message=f"✅ Your appointment request for {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} has been approved.",
+            related_patient_id=appointment.patient.patient_id,
+        )
+        return Response(AppointmentSerializer(appointment).data)
+    except Appointment.DoesNotExist:
+        return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])

@@ -1,2 +1,2 @@
-release: python manage.py migrate ; python manage.py update_patient_names
+release: python manage.py migrate ; python manage.py seed_data
 web: gunicorn --bind 0.0.0.0:$PORT health_tracker.wsgi:application

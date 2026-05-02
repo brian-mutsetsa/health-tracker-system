@@ -28,10 +28,12 @@ urlpatterns = [
     # ==================== PHASE 2: APPOINTMENTS ====================
     path('appointments/', views.list_appointments, name='list-appointments'),
     path('appointments/create/', views.create_appointment, name='create-appointment'),
+    path('appointments/booked-slots/', views.get_booked_slots, name='booked-slots'),
     path('appointments/<int:appointment_id>/', views.get_appointment, name='get-appointment'),
     path('appointments/<int:appointment_id>/update/', views.update_appointment, name='update-appointment'),
     path('appointments/<int:appointment_id>/complete/', views.complete_appointment, name='complete-appointment'),
     path('appointments/<int:appointment_id>/cancel/', views.cancel_appointment, name='cancel-appointment'),
+    path('appointments/<int:appointment_id>/approve/', views.approve_appointment, name='approve-appointment'),
     
     # ==================== PHASE 2: NOTIFICATIONS ====================
     path('notifications/', views.get_notifications, name='get-notifications'),

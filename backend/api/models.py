@@ -123,12 +123,17 @@ class TypingStatus(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
+        ('PENDING', 'Pending Approval'),
         ('SCHEDULED', 'Scheduled'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
         ('NO_SHOW', 'No Show'),
     ]
-    
+    INITIATED_BY_CHOICES = [
+        ('PATIENT', 'Patient'),
+        ('PROVIDER', 'Provider'),
+    ]
+
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
     provider_id = models.CharField(max_length=100)
     scheduled_date = models.DateField()
@@ -137,6 +142,7 @@ class Appointment(models.Model):
     reason = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
+    initiated_by = models.CharField(max_length=10, choices=INITIATED_BY_CHOICES, default='PATIENT')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

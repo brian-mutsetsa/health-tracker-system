@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -49,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDataSilently() async {
-    // Check session validity first — force logout if admin has deactivated the account
+    // Check session validity first â€” force logout if admin has deactivated the account
     final sessionStatus = await _apiService.verifySession();
     if (sessionStatus == 'deactivated') {
       await _forceLogout();
@@ -121,7 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Mobile Scaffold ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Mobile Scaffold â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildSetupIncompleteBanner() {
     if (!DashboardApiService.setupIncomplete) return const SizedBox.shrink();
@@ -135,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Account setup incomplete — your specialty and hospital have not been configured yet. '
+                'Account setup incomplete â€” your specialty and hospital have not been configured yet. '
                 'Your administrator has been notified and will complete your profile shortly.',
                 style: TextStyle(color: Colors.white, fontSize: 13),
               ),
@@ -218,7 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Desktop Scaffold ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Desktop Scaffold â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildDesktopScaffold() {
     return Scaffold(
@@ -264,7 +264,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Sidebar Content ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Sidebar Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildSidebarContent({required bool isMobile}) {
     return Column(
@@ -420,7 +420,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Top Navs ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Top Navs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildTopNavMobile() {
     return Container(
@@ -638,7 +638,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // ─── Content Router ───────────────────────────────────────────────────────
+  // â”€â”€â”€ Content Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildContent({required bool isMobile}) {
     switch (_selectedIndex) {
@@ -659,7 +659,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
             .toList();
         return _buildPatientsView(
-          'High Risk — Action Required',
+          'High Risk â€” Action Required',
           highRisk,
           isMobile: isMobile,
         );
@@ -672,7 +672,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // ─── Overview ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildOverview({required bool isMobile}) {
     final pad = isMobile ? 16.0 : 40.0;
@@ -851,7 +851,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).animate().fadeIn().slideY(begin: 0.1);
   }
 
-  // ─── Stat Cards ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildStatCard(
     String title,
@@ -925,7 +925,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1);
   }
 
-  // ─── Analytics Page ───────────────────────────────────────────────────────
+  // â”€â”€â”€ Analytics Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildAnalytics({required bool isMobile}) {
     final pad = isMobile ? 16.0 : 40.0;
@@ -1239,7 +1239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Patients View ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Patients View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildPatientsView(
     String title,
@@ -1282,7 +1282,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).animate().fadeIn();
   }
 
-  // ─── Desktop Table ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Desktop Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildPatientTable(List<Patient> patients) {
     if (patients.isEmpty) {
@@ -1420,7 +1420,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     child: Align(alignment: Alignment.centerLeft, child: child),
   );
 
-  // ─── Mobile Patient Cards ─────────────────────────────────────────────────
+  // â”€â”€â”€ Mobile Patient Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildPatientCards(List<Patient> patients) {
     if (patients.isEmpty) {
@@ -1532,7 +1532,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Shared Helpers ───────────────────────────────────────────────────────
+  // â”€â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildRiskPill(String? riskLevel, String? color) {
     if (riskLevel == null) return const Text('N/A');
@@ -1645,7 +1645,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text('${patient.name} (${patient.patientId})', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                           const SizedBox(height: 4),
-                          Text('${patient.condition} • ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                          Text('${patient.condition} â€¢ ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
                         ],
                       ),
                       IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
@@ -1754,7 +1754,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Appointments View ──────────────────────────────────────────────────
+  // â”€â”€â”€ Appointments View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildAppointmentsView({required bool isMobile}) {
     if (_appointments.isEmpty) {
@@ -1781,6 +1781,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
 
     // Group by status
+    final pending = _appointments.where((a) => a.status == 'PENDING').toList()
+      ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
     final scheduled = _appointments.where((a) => a.status == 'SCHEDULED').toList();
     final completed = _appointments.where((a) => a.status == 'COMPLETED').toList();
     final cancelled = _appointments.where((a) => a.status == 'CANCELLED').toList();
@@ -1795,14 +1797,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text('Appointments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
               const Spacer(),
+              if (pending.isNotEmpty) ...[
+                _buildAppointmentBadge('Pending', pending.length, Colors.orange),
+                const SizedBox(width: 12),
+              ],
               _buildAppointmentBadge('Scheduled', scheduled.length, AppTheme.primaryTeal),
               const SizedBox(width: 12),
               _buildAppointmentBadge('Completed', completed.length, Colors.green),
               const SizedBox(width: 12),
               _buildAppointmentBadge('Cancelled', cancelled.length, Colors.red),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: _showBookingDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Book Appointment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
+
+          // Pending approval section
+          if (pending.isNotEmpty) ...[
+            _buildSectionHeader('Awaiting Approval', Icons.pending_actions_rounded, Colors.orange, pending.length),
+            const SizedBox(height: 12),
+            ...pending.map((a) => _buildAppointmentCard(a, highlight: true, isPending: true)),
+            const SizedBox(height: 24),
+          ],
 
           // Today's appointments
           if (today.isNotEmpty) ...[
@@ -1847,7 +1873,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAppointmentCard(Appointment a, {bool highlight = false}) {
+  Widget _buildAppointmentCard(Appointment a, {bool highlight = false, bool isPending = false}) {
     Color statusColor;
     IconData statusIcon;
     switch (a.status) {
@@ -1858,6 +1884,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'CANCELLED':
         statusColor = Colors.red;
         statusIcon = Icons.cancel_outlined;
+        break;
+      case 'PENDING':
+        statusColor = Colors.orange;
+        statusIcon = Icons.pending_actions_rounded;
         break;
       default:
         statusColor = AppTheme.primaryTeal;
@@ -1958,6 +1988,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ],
+            // Action buttons for PENDING appointments
+            if (a.status == 'PENDING') ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text('Patient-requested', style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontStyle: FontStyle.italic)),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: () => _cancelAppointment(a),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Decline'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _approveAppointment(a),
+                    icon: const Icon(Icons.check_circle, size: 16),
+                    label: const Text('Approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -2008,6 +2074,245 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _approveAppointment(Appointment a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Approve Appointment'),
+        content: Text('Approve appointment request from ${a.patientName} on ${a.scheduledDate} at ${a.scheduledTime.substring(0, 5)}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Approve', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final success = await _apiService.approveAppointment(a.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(success ? 'Appointment approved' : 'Failed to approve appointment'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ));
+      }
+      if (success) _loadData();
+    }
+  }
+
+  Future<void> _showBookingDialog() async {
+    Patient? selectedPatient = _patients.isNotEmpty ? _patients.first : null;
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    String? selectedTime;
+    final reasonController = TextEditingController();
+    List<String> bookedSlots = [];
+    bool loadingSlots = false;
+
+    const timeSlots = [
+      '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+      '11:00', '11:30', '12:00', '14:00', '14:30', '15:00',
+      '15:30', '16:00', '16:30',
+    ];
+
+    Future<void> fetchBookedSlots(StateSetter setDialogState, DateTime date) async {
+      final providerId = DashboardApiService.currentProviderId ?? '';
+      if (providerId.isEmpty) return;
+      setDialogState(() => loadingSlots = true);
+      final slots = await _apiService.getBookedSlots(
+        providerId,
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+      );
+      setDialogState(() {
+        bookedSlots = slots;
+        loadingSlots = false;
+        // Clear selected time if it got booked
+        if (selectedTime != null && bookedSlots.contains(selectedTime)) {
+          selectedTime = null;
+        }
+      });
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Book Appointment'),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Patient selector
+                    const Text('Patient', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<Patient>(
+                      value: selectedPatient,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      items: _patients.map((p) => DropdownMenuItem(
+                        value: p,
+                        child: Text('${p.name} (${p.patientId})', overflow: TextOverflow.ellipsis),
+                      )).toList(),
+                      onChanged: (p) => setDialogState(() => selectedPatient = p),
+                    ),
+                    const SizedBox(height: 16),
+                    // Date picker
+                    const Text('Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 180)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedDate = picked;
+                            selectedTime = null;
+                          });
+                          await fetchBookedSlots(setDialogState, picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 18, color: AppTheme.primaryTeal),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Time slot grid
+                    Row(
+                      children: [
+                        const Text('Time Slot', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const SizedBox(width: 8),
+                        if (loadingSlots) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: timeSlots.map((slot) {
+                        final isBooked = bookedSlots.contains(slot);
+                        final isSelected = selectedTime == slot;
+                        return GestureDetector(
+                          onTap: isBooked ? null : () => setDialogState(() => selectedTime = slot),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isBooked
+                                  ? Colors.grey.shade200
+                                  : isSelected
+                                      ? AppTheme.primaryTeal
+                                      : Colors.white,
+                              border: Border.all(
+                                color: isBooked
+                                    ? Colors.grey.shade300
+                                    : isSelected
+                                        ? AppTheme.primaryTeal
+                                        : Colors.grey.shade400,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              slot,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isBooked
+                                    ? Colors.grey.shade400
+                                    : isSelected
+                                        ? Colors.white
+                                        : AppTheme.textDark,
+                                decoration: isBooked ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Reason
+                    const Text('Reason', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Blood pressure review',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: selectedPatient == null || selectedTime == null
+                    ? null
+                    : () async {
+                        final dateStr = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                        final error = await _apiService.createAppointment(
+                          patientPk: int.parse(selectedPatient!.id),
+                          scheduledDate: dateStr,
+                          scheduledTime: selectedTime!,
+                          reason: reasonController.text.trim(),
+                          initiatedBy: 'PROVIDER',
+                        );
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                        if (error == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('Appointment booked successfully'),
+                            backgroundColor: Colors.green,
+                          ));
+                          _loadData();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(error),
+                            backgroundColor: Colors.red,
+                          ));
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Book'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    reasonController.dispose();
+  }
+
   Widget _buildAppointmentBadge(String label, int count, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -2026,9 +2331,188 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  // â”€â”€â”€ Question text + answer label helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  static const _hypertensionQuestions = [
+    'Headaches', 'Dizziness', 'Blurred vision', 'Chest discomfort',
+    'Shortness of breath', 'Fatigue', 'Nosebleeds', 'Palpitations',
+    'Took BP medication', 'High salt intake', 'Stress level',
+    'Swelling in limbs or face',
+  ];
+
+  static const _diabetesQuestions = [
+    'Excessive thirst', 'Frequent urination', 'Unusual hunger',
+    'Tired / fatigue', 'Blurred vision', 'Numbness / tingling',
+    'Slow wound healing', 'Dizziness / shakiness', 'Took diabetes medication',
+    'Followed diet plan', 'Physical activity level', 'Nausea / digestive discomfort',
+  ];
+
+  static const _cardiovascularQuestions = [
+    'Chest pain', 'Shortness of breath', 'Swelling in legs/feet/ankles',
+    'Unusual fatigue', 'Dizziness / fainting', 'Palpitations',
+    'Pain spreading to arm/neck/jaw', 'Sudden sweating',
+    'Took heart medication', 'Physical activity', 'Alcohol / smoking',
+    'Stress level',
+  ];
+
+  String _getQuestionText(String condition, String key) {
+    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (idx == null || idx < 1 || idx > 12) return key.toUpperCase();
+    final i = idx - 1;
+    final cLower = condition.toLowerCase();
+    if (cLower.contains('hypertension')) {
+      return _hypertensionQuestions[i];
+    } else if (cLower.contains('diabet')) {
+      return _diabetesQuestions[i];
+    } else {
+      return _cardiovascularQuestions[i];
+    }
+  }
+
+  String _getAnswerLabel(String condition, String key, dynamic value) {
+    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (idx == null) return value.toString();
+    final answerIdx = int.tryParse(value.toString());
+    if (answerIdx == null) return value.toString();
+    final opts = _getAnswerOptions(condition.toLowerCase(), idx);
+    if (answerIdx >= 0 && answerIdx < opts.length) return opts[answerIdx];
+    return value.toString();
+  }
+
+  List<String> _getAnswerOptions(String condLower, int qIdx) {
+    if (condLower.contains('hypertension')) {
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['None', 'Small amount', 'Moderate', 'High intake'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    } else if (condLower.contains('diabet')) {
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['Yes fully', 'Minor deviations', 'Moderate deviations', 'Did not follow'];
+        case 11: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    } else {
+      // Cardiovascular / Heart Disease
+      switch (qIdx) {
+        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+        case 10: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
+        case 11: return ['None', 'Small amount', 'Moderate amount', 'High amount'];
+        default: return ['None', 'Mild', 'Moderate', 'Severe'];
+      }
+    }
+  }
+
+  // â”€â”€â”€ Notifications View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildNotificationsView({required bool isMobile}) {
+    final pad = isMobile ? 16.0 : 40.0;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(pad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: isMobile ? 22 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.done_all, size: 16),
+                label: const Text('Refresh'),
+                onPressed: _loadData,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_unreadNotificationCount} unread',
+            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          if (_notifications.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(48),
+                child: Column(
+                  children: [
+                    Icon(Icons.notifications_none, size: 64, color: AppTheme.textLight.withAlpha(100)),
+                    const SizedBox(height: 16),
+                    const Text('No notifications yet', style: TextStyle(fontSize: 18, color: AppTheme.textLight)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._notifications.map((n) => _buildNotificationCard(n)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(DashboardNotification n) {
+    final isAlert = n.notificationType == 'HIGH_RISK_ALERT';
+    final isAppt = n.notificationType == 'APPOINTMENT';
+    final color = isAlert
+        ? Colors.red
+        : isAppt
+            ? Colors.blue
+            : AppTheme.primaryTeal;
+    final icon = isAlert
+        ? Icons.warning_amber_rounded
+        : isAppt
+            ? Icons.calendar_month
+            : Icons.notifications_outlined;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: n.isRead ? Colors.white : color.withOpacity(0.05),
+        border: Border.all(
+          color: n.isRead ? Colors.grey[200]! : color.withOpacity(0.3),
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          n.message,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: n.isRead ? FontWeight.normal : FontWeight.w600,
+            color: AppTheme.textDark,
+          ),
+        ),
+        subtitle: Text(
+          _formatDate(n.createdAt),
+          style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
+        ),
+        trailing: n.isRead
+            ? null
+            : TextButton(
+                onPressed: () async {
+                  await _apiService.markNotificationRead(n.id);
+                  _loadData();
+                },
+                child: const Text('Mark read', style: TextStyle(fontSize: 12)),
+              ),
+      ),
+    );
+  }
 }
 
-  // ─── Message Panel ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Message Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MessagePanel extends StatefulWidget {
   final Patient patient;
@@ -2319,191 +2803,5 @@ class _MessagePanelState extends State<_MessagePanel> {
       ],
     );
   }
-
-  // ─── Question text + answer label helpers ────────────────────────────────
-
-  static const _hypertensionQuestions = [
-    'Headaches', 'Dizziness', 'Blurred vision', 'Chest discomfort',
-    'Shortness of breath', 'Fatigue', 'Nosebleeds', 'Palpitations',
-    'Took BP medication', 'High salt intake', 'Stress level',
-    'Swelling in limbs or face',
-  ];
-
-  static const _diabetesQuestions = [
-    'Excessive thirst', 'Frequent urination', 'Unusual hunger',
-    'Tired / fatigue', 'Blurred vision', 'Numbness / tingling',
-    'Slow wound healing', 'Dizziness / shakiness', 'Took diabetes medication',
-    'Followed diet plan', 'Physical activity level', 'Nausea / digestive discomfort',
-  ];
-
-  static const _cardiovascularQuestions = [
-    'Chest pain', 'Shortness of breath', 'Swelling in legs/feet/ankles',
-    'Unusual fatigue', 'Dizziness / fainting', 'Palpitations',
-    'Pain spreading to arm/neck/jaw', 'Sudden sweating',
-    'Took heart medication', 'Physical activity', 'Alcohol / smoking',
-    'Stress level',
-  ];
-
-  static const _defaultOptions = ['None', 'Mild', 'Moderate', 'Severe'];
-  static const _medicationOptions = [
-    'Yes fully', 'Missed once', 'Missed more than once', 'Did not take'
-  ];
-  static const _activityOptions = [
-    'None', 'Light activity', 'Moderate', 'Vigorous'
-  ];
-
-  String _getQuestionText(String condition, String key) {
-    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
-    if (idx == null || idx < 1 || idx > 12) return key.toUpperCase();
-    final i = idx - 1;
-    final cLower = condition.toLowerCase();
-    if (cLower.contains('hypertension')) {
-      return _hypertensionQuestions[i];
-    } else if (cLower.contains('diabet')) {
-      return _diabetesQuestions[i];
-    } else {
-      return _cardiovascularQuestions[i];
-    }
-  }
-
-  String _getAnswerLabel(String condition, String key, dynamic value) {
-    final idx = int.tryParse(key.replaceAll(RegExp(r'[^0-9]'), ''));
-    if (idx == null) return value.toString();
-    final answerIdx = int.tryParse(value.toString());
-    if (answerIdx == null) return value.toString();
-    final opts = _getAnswerOptions(condition.toLowerCase(), idx);
-    if (answerIdx >= 0 && answerIdx < opts.length) return opts[answerIdx];
-    return value.toString();
-  }
-
-  List<String> _getAnswerOptions(String condLower, int qIdx) {
-    if (condLower.contains('hypertension')) {
-      switch (qIdx) {
-        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
-        case 10: return ['None', 'Small amount', 'Moderate', 'High intake'];
-        default: return ['None', 'Mild', 'Moderate', 'Severe'];
-      }
-    } else if (condLower.contains('diabet')) {
-      switch (qIdx) {
-        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
-        case 10: return ['Yes fully', 'Minor deviations', 'Moderate deviations', 'Did not follow'];
-        case 11: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
-        default: return ['None', 'Mild', 'Moderate', 'Severe'];
-      }
-    } else {
-      // Cardiovascular / Heart Disease
-      switch (qIdx) {
-        case 9: return ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
-        case 10: return ['None', 'Light activity', 'Moderate', 'Vigorous'];
-        case 11: return ['None', 'Small amount', 'Moderate amount', 'High amount'];
-        default: return ['None', 'Mild', 'Moderate', 'Severe'];
-      }
-    }
-  }
-
-  // ─── Notifications View ───────────────────────────────────────────────────
-
-  Widget _buildNotificationsView({required bool isMobile}) {
-    final pad = isMobile ? 16.0 : 40.0;
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(pad),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Notifications',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textDark,
-                ),
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.done_all, size: 16),
-                label: const Text('Refresh'),
-                onPressed: _loadData,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_unreadNotificationCount} unread',
-            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          if (_notifications.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(48),
-                child: Column(
-                  children: [
-                    Icon(Icons.notifications_none, size: 64, color: AppTheme.textLight.withAlpha(100)),
-                    const SizedBox(height: 16),
-                    const Text('No notifications yet', style: TextStyle(fontSize: 18, color: AppTheme.textLight)),
-                  ],
-                ),
-              ),
-            )
-          else
-            ..._notifications.map((n) => _buildNotificationCard(n)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationCard(DashboardNotification n) {
-    final isAlert = n.notificationType == 'HIGH_RISK_ALERT';
-    final isAppt = n.notificationType == 'APPOINTMENT';
-    final color = isAlert
-        ? Colors.red
-        : isAppt
-            ? Colors.blue
-            : AppTheme.primaryTeal;
-    final icon = isAlert
-        ? Icons.warning_amber_rounded
-        : isAppt
-            ? Icons.calendar_month
-            : Icons.notifications_outlined;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: n.isRead ? Colors.white : color.withOpacity(0.05),
-        border: Border.all(
-          color: n.isRead ? Colors.grey[200]! : color.withOpacity(0.3),
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          n.message,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: n.isRead ? FontWeight.normal : FontWeight.w600,
-            color: AppTheme.textDark,
-          ),
-        ),
-        subtitle: Text(
-          _formatDate(n.createdAt),
-          style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
-        ),
-        trailing: n.isRead
-            ? null
-            : TextButton(
-                onPressed: () async {
-                  await _apiService.markNotificationRead(n.id);
-                  _loadData();
-                },
-                child: const Text('Mark read', style: TextStyle(fontSize: 12)),
-              ),
-      ),
-    );
-  }
 }
+

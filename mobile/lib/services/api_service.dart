@@ -360,7 +360,9 @@ class ApiService {
     }
   }
 
-  Future<bool> createAppointment({
+  /// Returns null on success, or an error string on failure.
+  /// 'conflict' is returned when the time slot is already booked.
+  Future<String?> createAppointment({
     required String patientId,
     required DateTime scheduledDate,
     required String scheduledTime,
@@ -377,20 +379,41 @@ class ApiService {
           'scheduled_date': scheduledDate.toIso8601String().split('T')[0],
           'scheduled_time': scheduledTime,
           'reason': reason,
-          'status': 'SCHEDULED',
+          'initiated_by': 'PATIENT',
         }),
       );
 
       if (response.statusCode == 201) {
         print('✅ Appointment created successfully');
-        return true;
-      } else {
-        print('❌ Failed to create appointment: ${response.statusCode}');
-        return false;
+        return null;
       }
+      if (response.statusCode == 409) {
+        return 'conflict';
+      }
+      print('❌ Failed to create appointment: ${response.statusCode}');
+      return 'Failed to book appointment (${response.statusCode})';
     } catch (e) {
       print('❌ Error creating appointment: $e');
-      return false;
+      return 'Network error. Please try again.';
+    }
+  }
+
+  /// Returns the list of already-booked HH:MM time strings for a provider on a date.
+  Future<List<String>> getBookedSlots(String providerId, DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0];
+      final response = await http.get(
+        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$dateStr'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<String>.from(data['booked_times'] ?? []);
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching booked slots: $e');
+      return [];
     }
   }
 

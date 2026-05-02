@@ -16,7 +16,7 @@ class ApiConfig(AppConfig):
                 User.objects.create_superuser('superadmin', 'superadmin@example.com', 'adminpassword123')
                 print("Superuser created successfully.")
                 
-            call_command('seed_test_data', verbosity=0)
+            call_command('seed_data', verbosity=0)
             print("Test data seeded successfully.")
         except Exception as e:
             print(f"Startup error: {e}")
