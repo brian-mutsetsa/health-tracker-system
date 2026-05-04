@@ -81,6 +81,8 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
                   'medical_history', 'medications', 'allergies', 'primary_provider_id']
     
     def validate_date_of_birth(self, value):
+        if value is None:
+            return value
         from datetime import date
         today = date.today()
         age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
