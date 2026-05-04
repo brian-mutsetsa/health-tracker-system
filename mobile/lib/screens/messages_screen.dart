@@ -273,7 +273,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  DateFormat('MMM d, h:mm a').format(message.timestamp),
+                  DateFormat('MMM d, h:mm a').format(message.timestamp.toLocal()),
                   style: TextStyle(
                     color: isMe ? Colors.white70 : AppTheme.textLight,
                     fontSize: 11,

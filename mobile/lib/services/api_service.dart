@@ -93,7 +93,7 @@ class ApiService {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(registrationData),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 45));
 
       print('📨 Response status: ${response.statusCode}');
       print('📨 Response body: ${response.body}');

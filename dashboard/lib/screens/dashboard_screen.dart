@@ -2699,7 +2699,7 @@ class _MessagePanelState extends State<_MessagePanel> {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              DateFormat('h:mm a').format(msg.timestamp),
+                              DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                               style: TextStyle(
                                 color: isProvider
                                     ? AppTheme.primaryTeal.withOpacity(0.6)

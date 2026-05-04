@@ -803,8 +803,14 @@ def get_typing_status(request):
             chat_partner_id=user_id
         )
         
-        # If the status is older than 10 seconds, assume they stopped typing
-        time_diff = timezone.now() - status_obj.updated_at
+        # If the status is older than 10 seconds, assume they stopped typing.
+        # updated_at may be timezone-naive (SQLite) so normalise before subtracting.
+        updated_at = status_obj.updated_at
+        now = timezone.now()
+        if timezone.is_aware(updated_at):
+            time_diff = now - updated_at
+        else:
+            time_diff = now.replace(tzinfo=None) - updated_at
         is_typing = status_obj.is_typing and time_diff.total_seconds() < 10
 
         return Response({
