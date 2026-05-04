@@ -27,6 +27,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final settingsBox = Hive.box('settings');
     final patientId = settingsBox.get('patient_id', defaultValue: '');
     if (patientId.isNotEmpty) {
+      // Mark all as read server-side as soon as this screen is opened
+      await _apiService.markAllNotificationsRead(patientId);
       final notifs = await _apiService.getNotifications(patientId);
       if (mounted) {
         setState(() {

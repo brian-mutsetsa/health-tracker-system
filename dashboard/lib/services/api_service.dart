@@ -455,10 +455,12 @@ class DashboardApiService {
   }
 
   /// Returns the list of already-booked HH:MM time strings for a provider on a date.
-  Future<List<String>> getBookedSlots(String providerId, String date) async {
+  /// Optionally pass [patientId] to also grey out slots where that patient is already booked.
+  Future<List<String>> getBookedSlots(String providerId, String date, {String? patientId}) async {
     try {
+      final extra = patientId != null ? '&patient_id=$patientId' : '';
       final response = await http.get(
-        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$date'),
+        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$date$extra'),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {
@@ -540,6 +542,16 @@ class DashboardApiService {
       print('❌ Error marking notification read: $e');
       return false;
     }
+  }
+
+  Future<void> markAllNotificationsRead(String userId) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/notifications/mark-all-read/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      );
+    } catch (_) {}
   }
 
   Future<bool> deleteNotification(int id) async {

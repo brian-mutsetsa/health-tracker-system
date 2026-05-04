@@ -299,6 +299,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           GestureDetector(
             onTap: () {
+              // Clear the badge immediately — user is about to see the notifications
+              setState(() {
+                _unreadNotificationCount = 0;
+                _lastKnownNotificationCount = 0;
+              });
+              final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
+              if (patientId.isNotEmpty) _apiService.markAllNotificationsRead(patientId);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
@@ -732,6 +739,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         setState(() {
           _currentIndex = index;
+          // Clear the badge for the tab being opened
+          if (index == 2) _upcomingAppointmentCount = 0;
+          if (index == 3) _unreadMessageCount = 0;
         });
       },
       child: Stack(

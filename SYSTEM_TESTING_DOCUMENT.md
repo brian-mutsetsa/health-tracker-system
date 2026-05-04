@@ -173,6 +173,75 @@ The mobile app calculates risk using an **on-device TensorFlow Lite neural netwo
 
 ---
 
+## 🧪 TEST PHASE 6: Appointment Scheduling & Conflict Prevention
+**Objective:** Verify that doctors can book appointments for patients, patients can request appointments, and that the system prevents double-booking a patient at the same time.
+
+> **Pre-Conditions:** The test database must contain patients from different specialties. After seeding, you will have:
+> - **PT001 & PT002** — Hypertension patients (assigned to Dr. Sarah Jones, `dr_hyper`)
+> - **PT003** — Asthma patient (assigned to Dr. Emily Ndlovu, `dr_asthma`)
+> - **PT004** — Cardiovascular patient (assigned to Dr. Robert Smith, `dr_cardio`)
+> - **PT005** — Diabetes patient (assigned to Dr. Michael Chen, `dr_diab`)
+>
+> Each specialist only sees their own patients on the dashboard. You will need two browser tabs logged in as two different doctors to test conflicts.
+
+---
+
+### PART A — Doctor Books an Appointment from the Dashboard
+
+1. Open `https://health-tracker-zw.web.app/` and log in as `dr_hyper` / `password` (Dr. Sarah Jones, Hypertension).
+2. Click the **Appointments** tab (calendar icon) in the left sidebar.
+3. **The Verification:** Even if no appointments exist yet, a **Book Appointment** button is visible in the top-right corner. Click it.
+4. In the dialog that opens:
+   - **Patient:** Select `Judy Moyo (PT001)` from the dropdown.
+   - **Date:** Click the date field and pick **tomorrow's date**.
+   - **The Verification:** The time grid appears. Grey (crossed-out) slots are already taken by either this doctor or this patient. Available (white) slots are clickable.
+   - Select any available slot — e.g., `10:00`.
+   - **Reason:** Type `Blood pressure review`.
+5. Click the **Book** button.
+6. **The Verification:** A green success banner appears: *"Appointment booked successfully"*. The appointment card appears immediately in the list under Today/Upcoming.
+7. Notice the appointment's **status** is **SCHEDULED** (not Pending) — because a doctor booked it directly.
+
+---
+
+### PART B — Patient Requests an Appointment from the Mobile App
+
+1. On your Android phone, log in to the Health Tracker app as `PT005` / `test123` (Frank Mutasa, Diabetes).
+2. Tap the **Appointments** tab (calendar icon) at the bottom.
+3. Tap the **+ Request Appointment** button.
+4. Select a date and any available time slot (e.g., `14:30` tomorrow). Add a reason.
+5. Tap **Submit Request**.
+6. **The Verification:** A confirmation message appears. The appointment is created with status **PENDING** (it requires the doctor's approval).
+7. On your computer, log in to the dashboard as `dr_diab` / `password`. Go to the **Appointments** tab.
+8. **The Verification:** A badge labelled **Pending** appears with count 1. Frank's appointment appears in the **Awaiting Approval** section highlighted in orange.
+9. Click **Approve** on the pending card. The appointment moves to **Scheduled**.
+
+---
+
+### PART C — Conflict Prevention: Same Patient, Same Time (Should be BLOCKED)
+
+> This test confirms that a patient **cannot be double-booked** at the same time, even with a different doctor.
+
+1. In the first browser tab, remain logged in as `dr_hyper`. You already booked `PT001` at `10:00` tomorrow (from Part A).
+2. Open a **second browser tab** and log in to the dashboard as `dr_diab` / `password`.
+   - Note: `PT001` is a Hypertension patient so `dr_diab` normally only sees Diabetes patients. For this conflict test, log in as `dr_hyper` in both tabs — or use the Admin login `admin` / `password` (General Practice, which sees all patients).
+3. In the second tab, go to the **Appointments** tab and click **Book Appointment**.
+4. Select **Judy Moyo (PT001)**, pick **the same date as Step 1**, and look at the time grid.
+5. **The Verification:** The `10:00` slot is **greyed out and crossed through** — the system already knows PT001 is booked at that time. You cannot click it.
+6. If you attempt to force a booking (e.g. via a different tool), the system returns an error: *"This patient is already booked at this time."*
+
+---
+
+### PART D — No False Conflict: Different Patients at the Same Time (Should SUCCEED)
+
+> This test confirms that two different patients CAN be booked at the same time with the same doctor (they are separate appointments).
+
+1. In the first browser tab (logged in as `dr_hyper`), click **Book Appointment**.
+2. Select **Ivan Chikara (PT002)** — a *different* patient — and pick the **same date and same time** (`10:00`) you used in Part A.
+3. Click **Book**.
+4. **The Verification:** The booking succeeds because it is a different patient. Both `PT001` and `PT002` have valid appointments at `10:00` on that date with Dr. Sarah. A doctor seeing two patients at the same time in separate consultations is valid.
+
+---
+
 ## 🧪 TEST PHASE 7: Notifications System
 **Objective:** Verify that health events automatically create notifications visible on both the provider dashboard and the patient mobile app.
 

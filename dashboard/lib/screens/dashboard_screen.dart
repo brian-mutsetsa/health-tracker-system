@@ -28,7 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Appointment> _appointments = [];
   List<DashboardNotification> _notifications = [];
   bool _loading = true;
-  int _scheduledAppointmentCount = 0;
+  int _pendingAppointmentCount = 0;
   int _highRiskCount = 0;
   int _unreadNotificationCount = 0;
   Map<String, int> _stats = {
@@ -67,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _stats = stats;
         _appointments = appointments;
         _notifications = notifs;
-        _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
+        _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
         _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
         _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
@@ -92,19 +92,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _stats = stats;
       _appointments = appointments;
       _notifications = notifs;
-      _scheduledAppointmentCount = appointments.where((a) => a.status == 'SCHEDULED').length;
+      _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
       _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
       _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       _loading = false;
     });
   }
 
-  // Navigate and close drawer if it's open
+  // Navigate and close drawer — auto-clears the badge for the tab being visited
   void _navigate(int index) {
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       _scaffoldKey.currentState!.closeDrawer();
     }
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      // Clear the badge as soon as the user lands on the tab (they can now see the content)
+      if (index == 2) _pendingAppointmentCount = 0;
+      if (index == 3) _highRiskCount = 0;
+      if (index == 5) _unreadNotificationCount = 0;
+    });
+    // For notifications: also mark all read server-side
+    if (index == 5) {
+      final userId = DashboardApiService.currentProviderId ?? '';
+      if (userId.isNotEmpty) _apiService.markAllNotificationsRead(userId);
+    }
   }
 
   @override
@@ -175,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildBottomNav() {
     return BottomNavigationBar(
       currentIndex: _selectedIndex,
-      onTap: (i) => setState(() => _selectedIndex = i),
+      onTap: _navigate,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: AppTheme.primaryTeal,
       unselectedItemColor: AppTheme.textLight,
@@ -191,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           label: 'Patients',
         ),
         BottomNavigationBarItem(
-          icon: _buildBadgeIcon(Icons.calendar_month_rounded, _scheduledAppointmentCount),
+          icon: _buildBadgeIcon(Icons.calendar_month_rounded, _pendingAppointmentCount),
           label: 'Appointments',
         ),
         BottomNavigationBarItem(
@@ -315,7 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         _buildNavItem(0, Icons.grid_view_rounded, 'Dashboard'),
         _buildNavItem(1, Icons.people_outline_rounded, 'All Patients'),
-        _buildNavItem(2, Icons.calendar_month_rounded, 'Appointments', badgeCount: _scheduledAppointmentCount),
+        _buildNavItem(2, Icons.calendar_month_rounded, 'Appointments', badgeCount: _pendingAppointmentCount),
         _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts', badgeCount: _highRiskCount),
         _buildNavItem(4, Icons.analytics_outlined, 'Analytics'),
         _buildNavItem(5, Icons.notifications_outlined, 'Notifications', badgeCount: _unreadNotificationCount),
@@ -1758,15 +1769,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildAppointmentsView({required bool isMobile}) {
     if (_appointments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.calendar_month_rounded, size: 64, color: AppTheme.textLight.withAlpha(100)),
-            const SizedBox(height: 16),
-            const Text('No appointments found', style: TextStyle(fontSize: 18, color: AppTheme.textLight)),
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Row(
+              children: [
+                const Text('Appointments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: _showBookingDialog,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Book Appointment'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_month_rounded, size: 64, color: AppTheme.textLight.withAlpha(100)),
+                  const SizedBox(height: 16),
+                  const Text('No appointments yet', style: TextStyle(fontSize: 18, color: AppTheme.textLight)),
+                  const SizedBox(height: 8),
+                  const Text('Use the button above to schedule one', style: TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                ],
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -2123,6 +2163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final slots = await _apiService.getBookedSlots(
         providerId,
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+        patientId: selectedPatient?.patientId,
       );
       setDialogState(() {
         bookedSlots = slots;
@@ -2161,7 +2202,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: p,
                         child: Text('${p.name} (${p.patientId})', overflow: TextOverflow.ellipsis),
                       )).toList(),
-                      onChanged: (p) => setDialogState(() => selectedPatient = p),
+                      onChanged: (p) {
+                        setDialogState(() => selectedPatient = p);
+                        fetchBookedSlots(setDialogState, selectedDate);
+                      },
                     ),
                     const SizedBox(height: 16),
                     // Date picker

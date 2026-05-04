@@ -41,7 +41,7 @@ class ApiService {
       case 'cardiovascular':
         return 'DR005';
       default:
-        return 'DR001'; // General Practice fallback
+        return 'DR002'; // Fallback to Hypertension specialist — no general practice
     }
   }
 
@@ -470,5 +470,15 @@ class ApiService {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<void> markAllNotificationsRead(String userId) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/notifications/mark-all-read/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {}
   }
 }

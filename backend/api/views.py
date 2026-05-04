@@ -593,7 +593,7 @@ def trigger_seed(request):
             {
                 'patient_id': 'PT004',
                 'name': 'Grace Zimuto',
-                'condition': 'Heart Disease',
+                'condition': 'Cardiovascular',
                 'password': 'test123',
                 'date_of_birth': date(1958, 1, 30),
                 'weight_kg': 70.0,
@@ -699,6 +699,19 @@ def trigger_seed(request):
             patient.save()
             print(f"   Updated {patient.patient_id}: last_risk={latest[1]}, last_checkin={patient.last_checkin}")
         
+        # Assign primary provider to each seeded patient based on their condition
+        condition_to_provider = {
+            'Hypertension': 'DR002',
+            'Diabetes': 'DR003',
+            'Asthma': 'DR004',
+            'Cardiovascular': 'DR005',
+        }
+        for patient in patients_created:
+            prov_id = condition_to_provider.get(patient.condition)
+            if prov_id:
+                patient.primary_provider_id = prov_id
+                patient.save()
+
         # Create appointments for each patient
         print(" Creating appointments...")
         appointment_reasons = [
@@ -706,18 +719,19 @@ def trigger_seed(request):
             'Lab results discussion', 'Annual physical exam',
         ]
         for idx, patient in enumerate(patients_created):
+            appointment_provider = condition_to_provider.get(patient.condition, 'DR002')
             offsets = [(2, '10:00'), (5, '14:30'), (10, '09:00')]
             for j, (days_offset, app_time) in enumerate(offsets):
                 app_date = (now + timedelta(days=days_offset)).date()
                 Appointment.objects.create(
                     patient=patient,
-                    provider_id='DR001',
+                    provider_id=appointment_provider,
                     scheduled_date=app_date,
                     scheduled_time=app_time,
                     reason=appointment_reasons[(idx + j) % len(appointment_reasons)],
                     status='SCHEDULED'
                 )
-                print(f"   Appointment {app_date} {app_time} for {patient.patient_id}")
+                print(f"   Appointment {app_date} {app_time} for {patient.patient_id} → {appointment_provider}")
         
         # Create sample messages between patients and provider
         print(" Creating sample messages...")
@@ -867,15 +881,13 @@ def register_patient(request):
     if serializer.is_valid():
         patient = serializer.save()
 
-        # Auto-assignment logic
+        # Auto-assignment logic: match patient's condition to a specialist
         condition = patient.condition
         specialist = Provider.objects.filter(specialty__icontains=condition).first()
-        gp = Provider.objects.filter(specialty__icontains='General Practice').first()
 
         if specialist:
             patient.primary_provider_id = specialist.provider_id
-        elif gp:
-            patient.primary_provider_id = gp.provider_id
+        # No GP fallback — patients must match a specialist condition
 
         patient.save()
 
@@ -1106,14 +1118,24 @@ def get_booked_slots(request):
     """
     provider_id = request.query_params.get('provider_id')
     date_str = request.query_params.get('date')
+    patient_id = request.query_params.get('patient_id')  # optional: also block slots the patient is already booked at
     if not provider_id or not date_str:
         return Response({'error': 'provider_id and date are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    booked = Appointment.objects.filter(
+    booked = list(Appointment.objects.filter(
         provider_id=provider_id,
         scheduled_date=date_str,
         status__in=['SCHEDULED', 'PENDING'],
-    ).values_list('scheduled_time', flat=True)
+    ).values_list('scheduled_time', flat=True))
+
+    # Also include any slots where the selected patient is already booked (with any doctor)
+    if patient_id:
+        patient_slots = Appointment.objects.filter(
+            patient__patient_id=patient_id,
+            scheduled_date=date_str,
+            status__in=['SCHEDULED', 'PENDING'],
+        ).values_list('scheduled_time', flat=True)
+        booked = booked + list(patient_slots)
 
     # Format as HH:MM strings
     booked_times = []
@@ -1161,6 +1183,21 @@ def create_appointment(request):
         if conflict:
             return Response(
                 {'error': 'This time slot is already booked. Please choose a different time.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    # Patient-level conflict check — a patient cannot be double-booked at the same time
+    patient_pk = data.get('patient')
+    if patient_pk and scheduled_date and scheduled_time:
+        patient_conflict = Appointment.objects.filter(
+            patient_id=int(patient_pk),
+            scheduled_date=scheduled_date,
+            scheduled_time=scheduled_time,
+            status__in=['SCHEDULED', 'PENDING'],
+        ).exists()
+        if patient_conflict:
+            return Response(
+                {'error': 'This patient is already booked at this time. Please choose a different time.'},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -1349,6 +1386,18 @@ def mark_notification_read(request, notification_id):
         return Response(serializer.data)
     except Notification.DoesNotExist:
         return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def mark_all_notifications_read(request):
+    """Mark ALL unread notifications for a user as read (called when user views Alerts tab)."""
+    user_id = request.data.get('user_id') or request.query_params.get('user_id')
+    if not user_id:
+        return Response({'error': 'user_id required'}, status=status.HTTP_400_BAD_REQUEST)
+    count = Notification.objects.filter(user_id=user_id, is_read=False).update(
+        is_read=True, read_at=timezone.now()
+    )
+    return Response({'marked_read': count})
 
 
 @api_view(['DELETE'])

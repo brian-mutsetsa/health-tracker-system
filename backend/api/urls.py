@@ -37,6 +37,7 @@ urlpatterns = [
     
     # ==================== PHASE 2: NOTIFICATIONS ====================
     path('notifications/', views.get_notifications, name='get-notifications'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark-all-read'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark-read'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete-notification'),
     path('alerts/check-high-risk/', views.check_high_risk_alerts, name='check-alerts'),
