@@ -1,400 +1,304 @@
-# Health Tracker System - Client Verification & Testing Manual
+﻿# Health Tracker System — Testing Guide
 
-This manual is designed for the client to systematically verify that their entire vision for the Health Tracker System has been successfully implemented. 
-
-It is written to be executed entirely from the user interfaces (the Mobile App, the Web Dashboard, and the Admin Panel) with zero technical commands required. Every step is detailed exactly—down to the specific buttons to press—so that any stakeholder can verify the system's capabilities.
-
----
-
-## 🌟 How We Met The Client's Vision
-Before testing, here is exactly how your requested features were implemented:
-1. **The 12-Question Expansion & Numeric Vitals:** We expanded the symptom tracker from 7 to 12 questions using a 0-3 severity scale, and added the ability to record precise numeric vitals (Blood Pressure & Blood Glucose) exactly as requested.
-2. **Edge Computing (Offline Mode):** The mobile app houses a local database (Hive) and a localized Machine Learning model. Patients can calculate their risk and save their check-ins completely offline in resource-constrained environments.
-3. **Dynamic Specialist Routing:** Patients are no longer grouped into one pool. The system dynamically routes Asthma patients *only* to Pulmonologists, and Diabetes patients *only* to Endocrinologists, securing data access.
-4. **Real-Time Communication:** We built a dedicated, real-time polling chat system complete with "Provider is typing..." indicators to bridge the gap between patients and healthcare workers.
+> **Test order:** Complete each tier fully before moving to the next.
+> **Credentials summary at the end of this document.**
 
 ---
 
-## 🔐 MASTER TEST CREDENTIALS
-Please use these exact credentials when following the tests below.
+## TIER 1 — Super Admin (Django Admin Panel)
 
-### 1. Super Admin Panel (For IT Management)
-- **Website:** `https://health-tracker-api-blky.onrender.com/admin/`
-- **Username:** `superadmin`
-- **Password:** `adminpassword123`
+**URL:** https://health-tracker-api-blky.onrender.com/admin/
+**Login:** `superadmin` / `adminpassword123`
 
-### 2. Provider Web Dashboard (For Doctors/Nurses)
-- **Website:** `https://health-tracker-zw.web.app/`
-- **Diabetes Specialist:** `dr_diab` / `password`
-- **Asthma Specialist:** `dr_asthma` / `password`
+### 1.1 Login
+1. Open the admin panel URL in a browser.
+2. Enter credentials and click **Log In**.
+3. **Expect:** Django admin home page with tables listed (Users, Patients, Appointments, Check-ins, Notifications, etc.).
 
-### 3. Mobile App (For Patients)
-- **App:** Open the installed Health Tracker application on your Android phone.
-- **Patient 3 (Asthma):** `PT003` / `test123`
-- **Patient 5 (Diabetes):** `PT005` / `test123`
+### 1.2 Provider Management
+1. Click **Users** in the left sidebar.
+2. **Expect:** List of all provider accounts (dr_hyper, dr_diab, dr_asthma, dr_cardio, admin, superadmin).
+3. Click **dr_hyper** to open the record.
+4. **Expect:** Full user form with username, email, staff flags.
+5. Scroll to **Active** checkbox — uncheck it and click **Save**.
+6. **Expect:** User marked inactive. Confirm by logging into the web dashboard as dr_hyper — login should be rejected.
+7. Return to admin panel, re-check **Active** and save to restore access.
 
----
+### 1.3 Patient Records
+1. Click **Patients** in the sidebar.
+2. **Expect:** All 15 patients listed (PT001-PT015) with names, conditions, and district fields.
+3. Click any patient (e.g. PT001 - Tinashe Moyo).
+4. **Expect:** Full patient record with fields: patient_id, name, condition, district, phone, PIN, assigned provider, registration date.
 
-## 🧪 TEST PHASE 1: Super Admin Security & Staff Management
-**Objective:** Verify that system administrators can strictly control which nurses and doctors have access to the system — including creating accounts, deactivating them to block access, and reactivating them to restore it. The Web Dashboard will now display a clear popup message to the user explaining exactly why they cannot log in.
+### 1.4 Appointments
+1. Click **Appointments** in the sidebar.
+2. **Expect:** List of appointment records with patient, provider, date, status fields.
+3. Note: Appointment data grows as providers and patients interact via the apps.
 
----
+### 1.5 Check-ins
+1. Click **Check-ins** (or **Patient Check-ins**) in the sidebar.
+2. **Expect:** List of check-in records showing patient, timestamp, 12 health responses, and computed risk score/level.
 
-### PART A — Create a New Staff Account
-1. Open your computer's web browser and go to `https://health-tracker-api-blky.onrender.com/admin/`.
-2. Click on the **Username** box and type `superadmin`.
-3. Click on the **Password** box and type `adminpassword123`.
-4. Click the gray **Log in** button. You will be taken to the Minty Green dashboard.
-5. Look at the left-hand menu panel. Click on the word **Users** (under the "Authentication and Authorization" section).
-6. In the top right corner, click the green **ADD USER +** button.
-7. In the **Username** box, type `test_nurse`. In both **Password** boxes, type `password123`. Click **Save and continue editing**.
-8. Scroll down to the **Permissions** section. Check the box next to **Staff status** (this is required for dashboard access). Leave **Active** checked for now.
-9. Click the blue **Save** button.
+### 1.6 Notifications
+1. Click **Notifications** in the sidebar.
+2. **Expect:** System-generated notifications (all plain text, no emoji or garbled characters).
+3. Verify messages are readable - e.g. "New appointment request from Tinashe Moyo" (no garbled characters).
 
----
-
-### PART B — Test Logging In with a Non-Existent Account
-> **What this verifies:** If someone types a username that does not exist at all, the dashboard shows a clear "Account Not Found" popup instead of a confusing generic error.
-
-1. Open a new browser tab and go to `https://health-tracker-zw.web.app/`.
-2. In the **Provider ID / Name** box, type `nobody_here`.
-3. In the **Password** box, type `anything`.
-4. Click **Sign In**.
-5. **The Verification:** A popup dialog will appear with the title **"Account Not Found"** and an orange warning icon. It will tell you that no account exists with that username and to contact your administrator. Click **OK** to dismiss it.
+### 1.7 Seed Data Verification
+1. Open a browser to: https://health-tracker-api-blky.onrender.com/api/patients/
+2. **Expect:** JSON array of 15 patient objects. Each has `district` field populated with a Zimbabwe district name.
 
 ---
 
-### PART C — Deactivate the Account (Simulate Firing or Suspending a Staff Member)
-> **What this verifies:** An administrator can instantly block a staff member from accessing all patient data with a single click.
+## TIER 2 — Web Dashboard (Provider Portal)
 
-1. Go back to the Admin Panel tab (`https://health-tracker-api-blky.onrender.com/admin/`).
-2. Click **Users** in the left-hand menu.
-3. Click on **test_nurse** in the user list to open their profile.
-4. Scroll down to the **Permissions** section.
-5. **CRITICAL STEP:** Uncheck the box next to **Active**.
-6. Click the blue **Save** button.
-7. **The Verification:** You will be returned to the user list. Find `test_nurse`. The **Active** column will show a red ❌ icon, confirming the account is deactivated.
+**URL:** https://health-tracker-zw.web.app/
+**Test accounts:** dr_hyper / dr_diab / dr_asthma / dr_cardio / admin - all use password `password`
 
----
+### 2.1 Login
+1. Open the dashboard URL.
+2. Enter `dr_hyper` and `password`, click **Sign In**.
+3. **Expect:** Dashboard loads showing the Overview tab. Provider name shown in top bar. No garbled characters anywhere.
 
-### PART D — Test Logging In with a Deactivated Account
-> **What this verifies:** A deactivated staff member is shown a clear, informative message — not a confusing error — so they know exactly what happened and who to call.
+### 2.2 Overview Tab
+1. **Expect:** Summary cards showing total patients, pending appointments, high-risk count, total check-ins.
+2. High-risk cards should use labels like "High Risk - Action Required" (plain dash, not garbled).
+3. Cards should be readable on both desktop and mobile viewport widths.
 
-1. Go back to the Web Dashboard tab (`https://health-tracker-zw.web.app/`).
-2. In the **Provider ID / Name** box, type `test_nurse`.
-3. In the **Password** box, type `password123`.
-4. Click **Sign In**.
-5. **The Verification:** A popup dialog will appear with the title **"Account Deactivated"** and a red block icon. It will display the message: *"Your account has been deactivated. Please contact your administrator to reactivate it."* Click **OK** to dismiss it.
+### 2.3 All Patients Tab - Desktop Row Navigation
+1. Click **All Patients** in the sidebar.
+2. **Expect:** Table of patients with columns: Patient Name, Condition, Risk Status, Logs, Last Update, Action.
+3. Click anywhere on a patient row (not just the button).
+4. **Expect:** Navigates to the patient detail page for that patient.
+5. Hover over a row - **Expect:** Subtle teal highlight shows the row is interactive.
+6. Click the **Open** button in the Action column of a different row.
+7. **Expect:** Same navigation to patient detail.
+8. Click the message icon in the Action column.
+9. **Expect:** Message drawer opens for that patient.
 
----
+### 2.4 All Patients Tab - Mobile View
+1. Resize browser below 768 px width (or use browser DevTools mobile mode).
+2. **Expect:** Patient list switches to card layout. Each card shows name, condition, risk badge, last check-in date, total check-ins.
+3. Tap/click anywhere on a patient card.
+4. **Expect:** Navigates to patient detail page.
 
-### PART E — Reactivate the Account (Restore a Staff Member's Access)
-> **What this verifies:** An administrator can restore access just as easily as they removed it.
+### 2.5 Patient Detail - Profile Tab
+1. Open any patient from the All Patients list.
+2. **Expect:** AppBar shows "Patient Detail" with subtitle "ID: PT001 | Hypertension" (patient's ID and condition).
+3. A blue information banner at the top of the profile tab explains how to navigate the tabs.
+4. **Expect:** Fields show: Full Name, Date of Birth, Gender, District, Phone, Condition, Assigned Provider, Registration Date.
+5. **Expect:** No degree symbols, no em-dashes, no garbled characters anywhere in the form.
 
-1. Go back to the Admin Panel tab.
-2. Click **Users** → click on **test_nurse**.
-3. Scroll to the **Permissions** section.
-4. **Re-check** the box next to **Active**.
-5. Click the blue **Save** button.
-6. **The Verification:** The **Active** column for `test_nurse` now shows a green ✔ icon.
-7. Go back to the Web Dashboard. Log in as `test_nurse` / `password123`.
-8. **The Final Verification:** Login succeeds. The account is fully restored with no additional steps required.
+### 2.6 Patient Detail - Check-ins Tab
+1. Click the **Check-ins** tab.
+2. **Expect:** List of check-in records for this patient. Each shows date, risk level badge, and summary of responses.
+3. Risk level badge colour: GREEN = green, YELLOW = amber, ORANGE = orange, RED = red.
+4. Check-in dates use commas not middle dots (e.g. "May 5, 2:30 PM" not garbled separator).
 
----
+### 2.7 Patient Detail - Clinical Visits Tab
+1. Click the **Clinical Visits** tab.
+2. **Expect:** Appointment history for this patient. Each appointment shows date, status, and notes.
 
-## 🧪 TEST PHASE 2: Mobile App 12-Question Check-in & Edge Risk Scoring
-**Objective:** Verify the client's request to track 12 specific symptoms on a 0-3 scale, capture numeric vitals, and calculate risk on the device.
+### 2.8 Risk Banner Labels
+1. Return to the patient detail profile.
+2. If a high-risk patient, a risk banner is shown.
+3. **Expect:** Banner text uses plain " - " (hyphen), not an em-dash or garbled character.
 
-**Step-by-Step Instructions:**
-1. Open the **Health Tracker** app on your Android phone.
-2. Tap the **Username** field and type `PT005` (This is Frank Mutasa, our Diabetes test patient).
-3. Tap the **Password** field and type `test123`. Tap **Login**.
-4. At the bottom of the screen, tap the **Daily Check-in** tab (second icon from the left — it looks like a clipboard/assignment icon). It is always highlighted in teal because it is an action button.
-5. **The Verification:** Scroll through the questions. You will see exactly 12 questions tailored to Diabetes. Each question has four answer buttons (e.g., None / Mild / Moderate / Severe).
-6. Answer all 12 questions — select a variety of **Mild** and **Moderate** answers on at least 3–4 questions, and **None** for the rest.
-7. After answering Step 4 (the last step), tap **Next** to reach the **Review & Submit** screen.
-8. On the review screen, scroll down to the **Optional Vitals** section. Enter `140` for Blood Pressure (Systolic), `90` for Diastolic, and `140` for Blood Glucose.
-9. Tap the green **Submit Check-in** button at the very bottom.
-10. **The Verification:** The review screen displays a colour-coded Risk Level card (e.g., YELLOW or ORANGE if you answered several Moderate or Mild). This calculation is done instantly and **entirely on the device** by a TensorFlow Lite neural network trained on real clinical data — no internet connection is required. Note: answering even 3 questions as Moderate will push the result to YELLOW or above.
+### 2.9 Appointments Tab
+1. Click **Appointments** in the sidebar.
+2. **Expect:** List of pending and confirmed appointment requests.
+3. Pending count badge on the sidebar/bottom nav should match the number shown in the list.
+4. Click **Confirm** on a pending appointment.
+5. **Expect:** Status changes to Confirmed. Badge count decreases.
 
----
+### 2.10 High Risk Alerts Tab
+1. Click **High Risk Alerts**.
+2. **Expect:** List of patients flagged RED or ORANGE. Each entry shows patient name, condition, risk level, last check-in date.
+3. Badge on sidebar tab should match the number of high-risk patients shown.
+4. Click a patient name or row.
+5. **Expect:** Opens that patient's detail page.
 
-## 🧪 TEST PHASE 3: Provider Dashboard & Dynamic Routing
-**Objective:** Verify that specialists ONLY see the patients assigned to their specific medical condition, and verify they can see the 12-question clinical data.
+### 2.11 Analytics Tab
+1. Click **Analytics**.
+2. **Expect:** Charts showing check-in trends, risk distribution, condition breakdown. Labels are plain text, no special characters.
 
-**Step-by-Step Instructions:**
-1. Open your computer's web browser and go to `https://health-tracker-zw.web.app/`.
-2. Click the **Username** box and type `dr_diab` (The Diabetes Specialist).
-3. Click the **Password** box and type `password`. Click the green **Log in** button.
-4. **The Routing Verification:** Look at the list of patient cards on the screen. You will ONLY see patients who have Diabetes (including Frank, `PT005`). You will absolutely not see any Hypertension or Asthma patients. This fulfills the Dynamic Routing requirement.
-5. Find the patient card for **Frank Mutasa (PT005)**. Click the **Details** button on his card.
-6. **The Clinical Verification:** A large window will pop up titled *"Frank Mutasa (PT005)"*. Look at the top of the window. You will see his exact Blood Pressure reading (`140/90`) and Blood Glucose (`140`) that you entered in Test Phase 2. Scroll down the window. You will see a list of all 12 questions with their **full question text** (e.g., "Excessive thirst", "Took diabetes medication", "Physical activity level") and the exact answer labels (e.g., "None", "Mild", "Moderate", "Severe", "Yes fully", "Light activity") — not numbers like "Q1: 2".
+### 2.12 Notifications Tab
+1. Click **Notifications**.
+2. **Expect:** Feed of system notifications - appointment requests, high-risk alerts, new check-ins.
+3. **Expect:** All messages are readable plain text. No emoji, no garbled characters.
+4. Click a notification.
+5. **Expect:** Navigates to the relevant patient or appointment (if applicable).
 
----
+### 2.13 Register Patient (Provider Workflow)
+1. Look for a **Register Patient** button (on the Overview or Patients tab).
+2. Fill in: Full Name, Date of Birth, Gender, Condition, District, Phone number (+263 format), PIN (4-6 digits).
+3. Click **Register**.
+4. **Expect:** Success message. New patient appears in the All Patients list.
 
-## 🧪 TEST PHASE 4: Real-Time Communication & Typing Indicators
-**Objective:** Verify that patients and doctors can chat seamlessly, and verify that the routing works for messages too.
+### 2.14 Book Appointment for Patient
+1. From the All Patients list, open a patient.
+2. Navigate to the Clinical Visits tab and book an appointment.
+3. **Expect:** Appointment created and visible in the Appointments list.
+4. If the slot is already taken, **Expect:** Error message: "That time slot is already booked. Please choose another time." (no emoji).
 
-**Step-by-Step Instructions:**
-1. Keep the Web Dashboard open on your computer (still logged in as `dr_diab`).
-2. Pick up your Android phone (still logged in as `PT005`). Tap the **Messages** tab at the bottom of the screen.
-3. Tap the message box at the bottom, type "Hello Doctor, my blood sugar is high today.", and press the Send arrow.
-4. Look at your computer screen. **The Verification:** Without you needing to refresh the page, the message will automatically pop up in the Web Dashboard's messaging drawer within a few seconds.
-5. On your computer, click the "Type a message" box in the Web Dashboard. Type "I am reviewing your file right now." **DO NOT press send yet.**
-6. Look at your phone screen. **The Verification:** A small banner will appear on the phone saying *"Care Provider is typing..."*. This fulfills the real-time feedback requirement.
-7. Press Send on your computer. The message will immediately pop up on the phone's chat bubble.
+### 2.15 Message Patient
+1. From the patient list, click the message icon on any row.
+2. **Expect:** A message drawer or dialog opens.
+3. Type a message and send.
+4. **Expect:** Message is sent and visible in the conversation thread.
 
----
-
-## ℹ️ NOTE ON RISK SCORING
-The mobile app calculates risk using an **on-device TensorFlow Lite neural network** trained on real clinical data — no internet connection is required for risk prediction:
-- The model is a small Keras dense neural network (Input → Dense 64 → Dense 32 → Softmax 4) trained on **95,756 balanced patient records** from the Cardiovascular Disease Dataset, Pima Indians Diabetes Dataset, and Stroke Prediction Dataset.
-- Each of the 12 symptom questions scores 0–3 (None/Mild/Moderate/Severe). Physical activity questions are **inverted** (more exercise = lower risk score).
-- Additional clinical inputs fed to the model: Blood Pressure deviation from normal (120/80 mmHg), Blood Glucose deviation from normal (100 mg/dL), medication adherence, condition type, and patient age.
-- On-device model accuracy: **97.45%**. If the TFLite model is unavailable, the app falls back to the rule-based thresholds: **GREEN** < 6 pts, **YELLOW** 6–12, **ORANGE** 13–19, **RED** ≥ 20.
-- The backend additionally runs a Random Forest model trained on the same **95,756 clinical records**; risk labels are derived from established clinical thresholds (JNC 8 for blood pressure, ADA guidelines for glucose). Test accuracy: **99.6%**. Both models should be treated as decision-support tools only, not a medical diagnosis.
-
---- with Auto-Generated Credentials
-**Objective:** Verify that a brand-new patient can register through the mobile app and receive an automatically generated Patient ID and password.
-
-**Step-by-Step Instructions:**
-1. Open the **Health Tracker** app on your Android phone.
-2. On the login screen, tap **Create Account / Register**.
-3. Fill in your name (e.g., `Alice Mwangi`), date of birth, and select your condition (e.g., `Diabetes`). **Leave the Password fields blank** — they have been removed; the system generates credentials for you.
-4. Tap the **Register** button.
-5. **The Verification:** A success dialog will appear showing:
-   - Your automatically assigned **Patient ID** (e.g., `PT-A1B2C3D4`)
-   - Your auto-generated **temporary password** (8-character alphanumeric)
-   - A **Copy** button for each value
-   - A prompt asking you to **take a screenshot** to save these credentials
-6. Take the screenshot. Tap **Continue to Login**.
-7. Use the generated Patient ID and password to log in. Login should succeed.
-8. (Optional) Go to **Profile** → **Change Password** to set a personal password. Note that the Patient ID cannot be changed — it is permanent.
-
----
-
-## 🧪 TEST PHASE 6: Appointment Scheduling & Conflict Prevention
-**Objective:** Verify that doctors can book appointments for patients, patients can request appointments, and that the system prevents double-booking a patient at the same time.
-
-> **Pre-Conditions:** The test database must contain patients from different specialties. After seeding, you will have:
-> - **PT001 & PT002** — Hypertension patients (assigned to Dr. Sarah Jones, `dr_hyper`)
-> - **PT003** — Asthma patient (assigned to Dr. Emily Ndlovu, `dr_asthma`)
-> - **PT004** — Cardiovascular patient (assigned to Dr. Robert Smith, `dr_cardio`)
-> - **PT005** — Diabetes patient (assigned to Dr. Michael Chen, `dr_diab`)
->
-> Each specialist only sees their own patients on the dashboard. You will need two browser tabs logged in as two different doctors to test conflicts.
+### 2.16 Super Admin - Patient Map (admin account only)
+1. Log out and log back in as `admin` / `password`.
+2. **Expect:** An extra **Patient Map** item appears in the sidebar (not visible when logged in as other providers).
+3. Click **Patient Map**.
+4. **Expect:** A Zimbabwe map loads showing coloured dot markers for all 15 patients.
+   - RED dots = high risk patients
+   - ORANGE dots = elevated risk
+   - YELLOW dots = moderate risk
+   - GREEN dots = stable patients
+5. Click any dot on the map.
+6. **Expect:** A popup card appears showing the patient's name, ID, condition, district, risk level, check-in count, and an **Open Patient Record** button.
+7. Click **Open Patient Record**.
+8. **Expect:** Navigates to that patient's detail page.
+9. Test the filter chips at the top (High Risk, Elevated, Moderate, Stable, All).
+10. **Expect:** Selecting a chip filters the visible dots on the map to only that risk category.
 
 ---
 
-### PART A — Doctor Books an Appointment from the Dashboard
+## TIER 3 — Mobile App (Vitalix APK)
 
-1. Open `https://health-tracker-zw.web.app/` and log in as `dr_hyper` / `password` (Dr. Sarah Jones, Hypertension).
-2. Click the **Appointments** tab (calendar icon) in the left sidebar.
-3. **The Verification:** Even if no appointments exist yet, a **Book Appointment** button is visible in the top-right corner. Click it.
-4. In the dialog that opens:
-   - **Patient:** Select `Judy Moyo (PT001)` from the dropdown.
-   - **Date:** Click the date field and pick **tomorrow's date**.
-   - **The Verification:** The time grid appears. Grey (crossed-out) slots are already taken by either this doctor or this patient. Available (white) slots are clickable.
-   - Select any available slot — e.g., `10:00`.
-   - **Reason:** Type `Blood pressure review`.
-5. Click the **Book** button.
-6. **The Verification:** A green success banner appears: *"Appointment booked successfully"*. The appointment card appears immediately in the list under Today/Upcoming.
-7. Notice the appointment's **status** is **SCHEDULED** (not Pending) — because a doctor booked it directly.
+**APK file:** `Vitalix.apk` (in project root)
+**Install:** Transfer to Android device and install (enable "Install from unknown sources" in device settings if needed).
 
----
-
-### PART B — Patient Requests an Appointment from the Mobile App
-
-1. On your Android phone, log in to the Health Tracker app as `PT005` / `test123` (Frank Mutasa, Diabetes).
-2. Tap the **Appointments** tab (calendar icon) at the bottom.
-3. Tap the **+ Request Appointment** button.
-4. Select a date and any available time slot (e.g., `14:30` tomorrow). Add a reason.
-5. Tap **Submit Request**.
-6. **The Verification:** A confirmation message appears. The appointment is created with status **PENDING** (it requires the doctor's approval).
-7. On your computer, log in to the dashboard as `dr_diab` / `password`. Go to the **Appointments** tab.
-8. **The Verification:** A badge labelled **Pending** appears with count 1. Frank's appointment appears in the **Awaiting Approval** section highlighted in orange.
-9. Click **Approve** on the pending card. The appointment moves to **Scheduled**.
-
----
-
-## 🧪 TEST PHASE 9: Expanded Patient List (15 Patients)
-**Objective:** Verify that the system now shows all 15 seeded patients, not just the original 5.
-
-**Step-by-Step Instructions:**
-1. Trigger a fresh seed: `GET https://health-tracker-api-blky.onrender.com/api/trigger-seed/`
-2. Log in to the dashboard as `admin` / `password`.
-3. Click the **All Patients** tab.
-4. **The Verification:** The table lists all 15 patients — PT001 through PT015 — with names, conditions, risk levels and last check-in dates. You should see a mix of Hypertension, Diabetes, Heart Disease and Asthma patients from various districts (Harare, Bulawayo, Mutare, Masvingo, Gweru, Chitungwiza).
-5. Check the **High Risk** tab.
-6. **The Verification:** Patients PT004 (Grace Mutombwa), PT009 (Blessing Dube), PT013 (Takudzwa Phiri) and PT015 (Simba Musiiwa) should appear as RED; PT002, PT006, PT011, PT014 should appear as ORANGE.
-
----
-
-## 🧪 TEST PHASE 10: Appointment Conflict Resolution
-**Objective:** Verify that when booking an appointment, only genuinely free time slots are shown — already-booked slots are completely hidden.
-
-### PART A — Booking Shows Only Free Slots
-
-1. Log in to the dashboard as `dr_hyper` / `password`.
-2. Click the **Appointments** tab → **Book Appointment**.
-3. Select patient **Tendai Chirombe (PT006)** from the dropdown.
-4. Select the date **today + 2 days** (the date seeded with heavy bookings).
-5. **The Verification:** The following slots are already booked and will NOT appear in the grid:
-   - `09:00` — PT001 Blood pressure review
-   - `10:00` — PT002 Hypertension follow-up
-   - `11:00` — PT006 BP monitoring
-   - `14:30` — PT004 Cardiac monitoring
-   - `15:00` — PT010 Initial hypertension consult
-   - `16:00` — PT013 Heart disease assessment
-   
-   Only `08:00`, `08:30`, `09:30`, `10:30`, `12:00`, `14:00`, `15:30`, `16:30` will be visible.
-6. Select `08:30`, enter reason **"Urgent BP spike"**, click **Book**.
-7. **The Verification:** Booking succeeds. Go back and try **Book Appointment** again for the same day — `08:30` now also disappears from the grid.
-
-### PART B — Fully Booked Day Shows Warning
-
-1. Open Book Appointment, select today + 3 days (seeded with 6 bookings across morning and afternoon).
-2. **The Verification:** The hint text beneath "Time Slot" reads *"(6 slots already booked — hidden)"*.
-3. If you could fill all 15 slots on a date, the grid would show an orange warning: *"No available slots on this date — all times are booked."*
-
-### PART C — Conflict via Pending Appointment
-
-The seed data includes a **conflict** on day +3 for PT006:
-- `09:00` is already **SCHEDULED** (provider booked PT006 for "Hypertension follow-up").
-- PT006 also submitted a **PENDING** patient request for `09:00` on the same day ("Urgent chest tightness").
-
-1. Log in as `admin` / `password`, go to **Appointments** tab.
-2. **The Verification:** PT006 has a PENDING request at 09:00 on day +3. When you try to **Approve** it, the backend will reject with *"This time slot is already booked"* — demonstrating server-side conflict enforcement even when a slot slips through.
-
----
-
-## 🧪 TEST PHASE 11: Patient Detail Page (Doctors)
-**Objective:** Verify that clicking a patient opens a full 3-tab detail page instead of just a modal.
-
-**Step-by-Step Instructions:**
-1. Log in to the dashboard as `dr_hyper` / `password`.
-2. Click **All Patients** in the sidebar.
-3. Click the **Details** button on any patient row (e.g., Grace Mutombwa PT004).
-4. **The Verification:** The browser navigates to a full-page view (not a popup) with three tabs:
-   - **Profile** — Shows risk banner (RED for PT004), personal info (name, DOB, ID, phone), location (Bulawayo), emergency contact (Simon Mutombwa / Son), and medical info (Heart Disease, baseline BP 155/95).
-   - **Check-ins** — Lists up to 30 check-in cards colour-coded by risk. Each card shows the date, risk level, BP and glucose readings.
-   - **Clinical** — Shows any recorded clinical visits. An **Add Visit** button opens a form to record vitals (BP, HR, glucose, weight, temperature, SpO₂), medications, comments and changes made.
-5. On the Clinical tab, click **Add Visit** and fill in:
-   - Systolic BP: `160`, Diastolic BP: `100`
-   - Heart Rate: `88`
-   - Comments: `Patient reports increased chest pressure after exertion`
-   - Changes Made: `Increased lisinopril from 5mg to 10mg`
-6. Click **Save Visit**.
-7. **The Verification:** The visit card appears immediately in the list with today's date, the vitals chips, and the comment/changes text.
-
----
-
-## 🧪 TEST PHASE 12: HCW Patient Registration (Expanded Fields)
-**Objective:** Verify that an HCW can register a new patient with all demographic and emergency contact fields.
-
-**Step-by-Step Instructions:**
-1. Log in to the dashboard as `dr_hyper` / `password`.
-2. Click **All Patients** in the sidebar.
-3. **The Verification:** A **Register Patient** button appears at the top-right of the patients view.
-4. Click **Register Patient**. A multi-section dialog opens.
-5. Fill in:
-   - **First Name:** `Tariro`  **Surname:** `Gumbo`
-   - **Date of Birth:** `1990-03-15` (use the date picker)
-   - **Gender:** `Female`
-   - **National ID:** `63-2991847-R-90`
-   - **Phone Number:** `+263771000099`  **PIN:** `9988`
-   - **District:** `Harare`  **Home Address:** `12 Fife Ave, Harare`
-   - **Emergency Contact Name:** `Blessing Gumbo`  **Phone:** `+263771000098`  **Relation:** `Sister`
-   - **Condition:** `Hypertension`
-   - **Weight:** `68`  **Systolic BP:** `148`  **Diastolic BP:** `91`
-6. Click **Register Patient**.
-7. **The Verification:** A green snackbar appears: *"Patient registered! ID: PT016"* (or the next sequential ID). The patient list reloads and Tariro Gumbo appears at the bottom.
-8. **Sequential ID check:** Register a second patient (any name). Their ID should be **PT017**.
-
----
-
-## 🧪 TEST PHASE 13: Phone + PIN Patient Login (Mobile)
-**Objective:** Verify that patients can log in using their registered phone number and PIN instead of Patient ID + password.
-
-**Step-by-Step Instructions:**
-1. Open the mobile app on your Android device. You should see the login screen with two tabs: **Patient ID** and **Phone + PIN**.
-2. Tap the **Phone + PIN** tab.
-3. Enter:
-   - **Phone Number:** `+263771000001`
-   - **PIN:** `1234`
+### 3.1 Phone + PIN Login
+1. Open the Vitalix app.
+2. On the login screen, select the **Phone Login** tab.
+3. Enter phone `+263771000001` and PIN `1234`.
 4. Tap **Login**.
-5. **The Verification:** The app logs in as Judy Moyo (PT001) and navigates to the home screen. The patient name and condition (Hypertension) are shown on the home screen header.
-6. Log out and try wrong credentials:
-   - Phone: `+263771000001`, PIN: `0000`
-7. **The Verification:** A red snackbar: *"Invalid phone number or PIN."*
+5. **Expect:** Home screen loads for patient PT001 (Tinashe Moyo). No garbled text on home screen.
 
-### Legacy Login Still Works
-1. Tap the **Patient ID** tab.
-2. Enter `PT005` / `test123`.
-3. **The Verification:** Logs in as Frank Mutasa — the original login method is unaffected.
+### 3.2 Patient ID Login
+1. Log out and return to login screen.
+2. Select the **ID Login** tab.
+3. Enter patient ID `PT002` and PIN `2345`.
+4. **Expect:** Login hint below the field reads: "ID login - Patient ID: PT001-PT015" (plain dashes, no garbled characters).
+5. Tap **Login**.
+6. **Expect:** Home screen loads for PT002.
+
+### 3.3 Registration (New Patient)
+1. Tap **Register** / **Create Account** on the login screen.
+2. Fill in all required fields: Name, DOB, Gender, Condition, District, Phone, PIN.
+3. Tap **Register**.
+4. **Expect:** Loading message: "Connecting to server - this may take up to 30 seconds on first use." (plain dash, no garbled characters).
+5. On success: confirmation screen with "I have saved my details - Go to Login" button.
+6. Tap that button - **Expect:** Returns to login screen.
+
+### 3.4 Daily Check-in (12 Questions)
+1. Log in as PT001.
+2. Tap **Daily Check-in** or the check-in card on the home screen.
+3. **Expect:** 12 health questions presented one at a time (blood pressure, heart rate, headache severity, shortness of breath, etc.).
+4. Answer all 12 questions.
+5. **Expect:** Risk score calculated and displayed (colour-coded: GREEN/YELLOW/ORANGE/RED).
+6. **Expect:** Risk label uses plain text, no special characters.
+
+### 3.5 Check-in History
+1. Navigate to **History** or **Check-in History** tab.
+2. **Expect:** List of previous check-ins, each showing date and risk level.
+3. Dates should use commas: "May 5, 2:30 PM" (not a garbled separator).
+4. Tap any check-in.
+5. **Expect:** Detail view showing all 12 responses and the computed risk score.
+
+### 3.6 Appointments
+1. Navigate to **Appointments** tab.
+2. **Expect:** List of existing appointments (pending / confirmed / completed).
+3. Tap **Request Appointment** or **Book Appointment**.
+4. Select a date, time, and reason.
+5. Tap **Submit**.
+6. **Expect:** Success message: "Request sent - awaiting provider approval" (plain dash, no garbled characters).
+7. If the slot is taken, **Expect:** "That time slot is already booked. Please choose another time." (no emoji).
+
+### 3.7 Messages
+1. Navigate to **Messages** tab.
+2. **Expect:** Conversation thread with the assigned provider (if any messages exist).
+3. Type a message and tap **Send**.
+4. **Expect:** Message appears in the thread.
+
+### 3.8 Notifications
+1. Navigate to **Notifications** tab.
+2. **Expect:** List of notifications (appointment confirmations, reminders, risk alerts).
+3. **Expect:** All notification text is plain ASCII - no emoji, no garbled characters.
+4. Badge on the tab should show count of unread notifications.
+5. Open a notification - **Expect:** Badge count decreases.
+
+### 3.9 Offline Mode
+1. Enable Airplane Mode on the device.
+2. Open the app (already logged in from a previous session).
+3. **Expect:** Home screen loads using cached data (no crash, no blank screen).
+4. Navigate to Check-in History - **Expect:** Previous check-ins visible from local cache.
+5. Attempt a new check-in while offline.
+6. **Expect:** Check-in saved locally, or an appropriate "No internet connection" message.
+7. Re-enable network - **Expect:** Any queued data syncs to the server.
+
+### 3.10 Risk Model (Offline TFLite)
+1. With Airplane Mode still ON, complete a fresh daily check-in (all 12 questions).
+2. **Expect:** Risk score is computed locally using the on-device TFLite model (not a server call).
+3. Result should appear immediately without network delay.
+4. Reconnect and check the backend admin panel (Tier 1) - **Expect:** The offline check-in record eventually syncs and appears in the admin panel check-ins list.
 
 ---
 
-### PART C — Conflict Prevention: Same Patient, Same Time (Should be BLOCKED)
+## Cross-Tier Verification Scenarios
 
-> This test confirms that a patient **cannot be double-booked** at the same time, even with a different doctor.
+These tests span multiple tiers to confirm end-to-end data flow.
 
-1. In the first browser tab, remain logged in as `dr_hyper`. You already booked `PT001` at `10:00` tomorrow (from Part A).
-2. Open a **second browser tab** and log in to the dashboard as `dr_diab` / `password`.
-   - Note: `PT001` is a Hypertension patient so `dr_diab` normally only sees Diabetes patients. For this conflict test, log in as `dr_hyper` in both tabs — or use the Admin login `admin` / `password` (General Practice, which sees all patients).
-3. In the second tab, go to the **Appointments** tab and click **Book Appointment**.
-4. Select **Judy Moyo (PT001)**, pick **the same date as Step 1**, and look at the time grid.
-5. **The Verification:** The `10:00` slot is **greyed out and crossed through** — the system already knows PT001 is booked at that time. You cannot click it.
-6. If you attempt to force a booking (e.g. via a different tool), the system returns an error: *"This patient is already booked at this time."*
+### CT-1: Provider creates appointment -> Patient sees it
+1. **(Tier 2)** Log in to dashboard as dr_hyper, book an appointment for PT001 on a specific date.
+2. **(Tier 3)** Log in to mobile as PT001.
+3. **Expect:** The appointment appears in the PT001 Appointments tab.
 
----
+### CT-2: Patient check-in triggers high-risk alert
+1. **(Tier 3)** Log in as a patient and complete a check-in with all high-risk answers.
+2. **(Tier 2)** Log in to dashboard as the patient's assigned provider.
+3. **Expect:** The patient appears in the High Risk Alerts tab. Notification badge increments.
 
-### PART D — No False Conflict: Different Patients at the Same Time (Should SUCCEED)
+### CT-3: Admin creates provider -> Provider can log in
+1. **(Tier 1)** In the Django admin panel, create a new User with a provider role.
+2. **(Tier 2)** Attempt to log in to the web dashboard with the new credentials.
+3. **Expect:** Login succeeds and the provider dashboard loads.
 
-> This test confirms that two different patients CAN be booked at the same time with the same doctor (they are separate appointments).
-
-1. In the first browser tab (logged in as `dr_hyper`), click **Book Appointment**.
-2. Select **Ivan Chikara (PT002)** — a *different* patient — and pick the **same date and same time** (`10:00`) you used in Part A.
-3. Click **Book**.
-4. **The Verification:** The booking succeeds because it is a different patient. Both `PT001` and `PT002` have valid appointments at `10:00` on that date with Dr. Sarah. A doctor seeing two patients at the same time in separate consultations is valid.
-
----
-
-## 🧪 TEST PHASE 7: Notifications System
-**Objective:** Verify that health events automatically create notifications visible on both the provider dashboard and the patient mobile app.
-
-### PART A — Check-in Triggers a Provider Notification
-1. Log in to the mobile app as `PT005` / `test123` (Frank Mutasa, Diabetes patient).
-2. Submit a check-in with all **Severe** answers to generate a high-risk result.
-3. On your computer, open `https://health-tracker-zw.web.app/` and log in as `dr_diab` / `password`.
-4. **The Verification:** In the sidebar (or bottom nav on mobile), tap the 🔔 **Notifications** tab. You will see a new alert: *"🚨 Frank Mutasa submitted a check-in — Risk level: RED"*. The badge counter on the tab will show the count of unread notifications.
-
-### PART B — Appointment Triggers a Notification
-1. Log in to the mobile app as `PT005` / `test123`.
-2. Navigate to the **Appointments** tab and request a new appointment.
-3. On the provider dashboard, go to the **Notifications** tab.
-4. **The Verification:** A new notification will appear: *"📅 New appointment request from Frank Mutasa..."*
-
-### PART C — Patient Sees Their Own Notifications
-1. On the mobile app (logged in as any patient), tap the 🔔 **bell icon** in the top-right corner of the Home screen.
-2. **The Verification:** Any notifications sent to that patient's user ID will appear in the list with timestamps. A red badge on the bell icon shows the unread count.
-3. Tap **Mark read** on an unread notification. The notification will be marked as read and the badge count will decrease.
-
-### PART D — Super Admin Sees All Alerts
-1. Log in to the provider dashboard as `admin` / `password` (or as superadmin through the web).
-2. Go to the **Notifications** tab.
-3. **The Verification:** The superadmin account receives copies of ALL high-risk alerts and ALL appointment creations across the entire system, giving full visibility.
+### CT-4: Deactivate provider -> Login blocked
+1. **(Tier 1)** Deactivate dr_diab in the admin panel (uncheck Active, save).
+2. **(Tier 2)** Attempt to log in as dr_diab.
+3. **Expect:** Login fails with an appropriate error message.
+4. **(Tier 1)** Re-activate the account.
+5. **(Tier 2)** Log in again - **Expect:** Login succeeds.
 
 ---
 
-## 🧪 TEST PHASE 8: Patient Names Display Everywhere
-**Objective:** Verify that patient names (not patient IDs) are shown throughout the provider dashboard.
+## Test Credentials Reference
 
-**Step-by-Step Instructions:**
-1. Log in to the provider dashboard as `dr_diab` / `password`.
-2. Look at the patient list on the **All Patients** tab.
-3. **The Verification:** Each row shows the patient's full name (e.g., "Frank Mutasa") in bold with the Patient ID in small text below it. No raw "PT005" labels as headings.
-4. Click **Details** on any patient card.
-5. **The Verification:** The modal title shows *"Frank Mutasa (PT005)"* — name first, ID in parentheses.
-6. Open the chat drawer for a patient (click the message icon).
-7. **The Verification:** The chat header shows *"Chat: Frank Mutasa"*, not *"Chat: PT005"*.
+| Account | Username / ID | Password / PIN | Platform |
+|---|---|---|---|
+| Super Admin | `superadmin` | `adminpassword123` | Admin panel (Tier 1) |
+| Provider - Hypertension | `dr_hyper` | `password` | Web dashboard (Tier 2) |
+| Provider - Diabetes | `dr_diab` | `password` | Web dashboard (Tier 2) |
+| Provider - Asthma | `dr_asthma` | `password` | Web dashboard (Tier 2) |
+| Provider - Cardiology | `dr_cardio` | `password` | Web dashboard (Tier 2) |
+| Super Admin Provider | `admin` | `password` | Web dashboard (Tier 2) - sees Patient Map |
+| Patient PT001 | `PT001` / `+263771000001` | `1234` | Mobile app (Tier 3) |
+| Patient PT002 | `PT002` / `+263771000002` | `2345` | Mobile app (Tier 3) |
+| Patient PT003 | `PT003` / `+263771000003` | `3456` | Mobile app (Tier 3) |
+| Patient PT004-PT015 | `PT004`-`PT015` | incremental PINs | Mobile app (Tier 3) |
+| Patient PT015 | `PT015` / `+263771000015` | `5566` | Mobile app (Tier 3) |
+
+---
+
+## System URLs
+
+| Resource | URL |
+|---|---|
+| Backend API | https://health-tracker-api-blky.onrender.com |
+| Django Admin | https://health-tracker-api-blky.onrender.com/admin/ |
+| Web Dashboard | https://health-tracker-zw.web.app/ |
+| Mobile APK | `Vitalix.apk` (project root) |
+

@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'patient_detail_screen.dart';
+import 'patient_map_screen.dart';
 
 const double _kMobileBreakpoint = 768.0;
 
@@ -370,6 +371,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts', badgeCount: _highRiskCount),
         _buildNavItem(4, Icons.analytics_outlined, 'Analytics'),
         _buildNavItem(5, Icons.notifications_outlined, 'Notifications', badgeCount: _unreadNotificationCount),
+        // Map view — super admin only
+        if (DashboardApiService.currentProviderId == 'admin')
+          _buildNavItem(6, Icons.map_outlined, 'Patient Map'),
 
         const Spacer(),
 
@@ -718,6 +722,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _buildAnalytics(isMobile: isMobile);
       case 5:
         return _buildNotificationsView(isMobile: isMobile);
+      case 6:
+        return PatientMapScreen(patients: _patients);
       default:
         return _buildOverview(isMobile: isMobile);
     }
@@ -1463,7 +1469,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(children: [
                       Expanded(child: TextField(controller: phoneC, keyboardType: TextInputType.phone, decoration: _fd('Phone Number'))),
                       const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: pinC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6, decoration: _fd('PIN (4–6 digits)'))),
+                      Expanded(child: TextField(controller: pinC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6, decoration: _fd('PIN (4-6 digits)'))),
                     ]),
                     // ── Location ──────────────────────────────────────────
                     sectionLabel('Location'),
@@ -1594,112 +1600,107 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-    return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(2),
-        1: FlexColumnWidth(2),
-        2: FlexColumnWidth(2),
-        3: FlexColumnWidth(1.5),
-        4: FlexColumnWidth(2),
-        5: FlexColumnWidth(2),
-      },
+    return Column(
       children: [
-        TableRow(
+        // Header row
+        Container(
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Color(0xFFEDF2F7))),
           ),
-          children: [
-            _th('Patient Name'),
-            _th('Condition'),
-            _th('Risk Status'),
-            _th('Logs'),
-            _th('Last Update'),
-            _th('Action'),
-          ],
-        ),
-        ...patients.map(
-          (p) => TableRow(
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFF7FAFC))),
-            ),
+          child: Row(
             children: [
-              _td(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
-                      ),
-                    ),
-                    Text(
-                      p.patientId,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _td(
-                Text(
-                  p.condition,
-                  style: const TextStyle(color: AppTheme.textDark),
-                ),
-              ),
-              _td(_buildRiskPill(p.lastRiskLevel, p.lastRiskColor)),
-              _td(
-                Text(
-                  '${p.totalCheckins}',
-                  style: const TextStyle(color: AppTheme.textLight),
-                ),
-              ),
-              _td(
-                Text(
-                  p.lastCheckin != null ? _formatDate(p.lastCheckin!) : 'Never',
-                  style: const TextStyle(color: AppTheme.textLight),
-                ),
-              ),
-              _td(
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.message,
-                        color: AppTheme.primaryTeal,
-                      ),
-                      tooltip: 'Message Patient',
-                      onPressed: () => _openMessageDrawer(p),
-                    ),
-                    if (!kIsWeb)
-                      TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('PDF export available on mobile only'),
-                            ),
-                          );
-                        },
-                        child: const Text('Export PDF', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
-                      ),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
-                      ),
-                      child: const Text('Details', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
+              Expanded(flex: 2, child: _th('Patient Name')),
+              Expanded(flex: 2, child: _th('Condition')),
+              Expanded(flex: 2, child: _th('Risk Status')),
+              Expanded(flex: 1, child: _th('Logs')),
+              Expanded(flex: 2, child: _th('Last Update')),
+              Expanded(flex: 2, child: _th('Action')),
             ],
           ),
         ),
+        ...patients.map((p) => _buildPatientTableRow(p)),
       ],
+    );
+  }
+
+  Widget _buildPatientTableRow(Patient p) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
+      ),
+      hoverColor: AppTheme.primaryTeal.withOpacity(0.04),
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFF7FAFC))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _td(Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryTeal,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  Text(p.patientId,
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textLight)),
+                ],
+              )),
+            ),
+            Expanded(
+              flex: 2,
+              child: _td(Text(p.condition, style: const TextStyle(color: AppTheme.textDark))),
+            ),
+            Expanded(flex: 2, child: _td(_buildRiskPill(p.lastRiskLevel, p.lastRiskColor))),
+            Expanded(
+              flex: 1,
+              child: _td(Text('${p.totalCheckins}',
+                  style: const TextStyle(color: AppTheme.textLight))),
+            ),
+            Expanded(
+              flex: 2,
+              child: _td(Text(
+                p.lastCheckin != null ? _formatDate(p.lastCheckin!) : 'Never',
+                style: const TextStyle(color: AppTheme.textLight),
+              )),
+            ),
+            Expanded(
+              flex: 2,
+              child: _td(Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.message, color: AppTheme.primaryTeal),
+                    tooltip: 'Message Patient',
+                    onPressed: () => _openMessageDrawer(p),
+                  ),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.open_in_new, size: 14),
+                    label: const Text('Open'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 13),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
+                    ),
+                  ),
+                ],
+              )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

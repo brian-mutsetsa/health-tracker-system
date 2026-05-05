@@ -297,8 +297,8 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'ID login — Patient ID: PT001–PT015 / Password: test123\n'
-                      'Phone login — e.g. +263771000001 / PIN: 1234',
+                      'ID login - Patient ID: PT001-PT015 / Password: test123\n'
+                      'Phone login - e.g. +263771000001 / PIN: 1234',
                     ),
                   ],
                 ),

@@ -97,7 +97,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Connecting to server — this may take up to 30 seconds on first use…'),
+          content: Text('Connecting to server - this may take up to 30 seconds on first use.'),
           duration: Duration(seconds: 25),
         ),
       );
@@ -274,7 +274,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Navigator.pop(ctx);
                     Navigator.of(context).pushReplacementNamed('/login');
                   },
-                  child: const Text('I have saved my details — Go to Login'),
+                  child: const Text('I have saved my details - Go to Login'),
                 ),
               ],
             ),
@@ -283,14 +283,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('❌ Registration failed. Please try again.')),
+            const SnackBar(content: Text('Registration failed. Please try again.')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
         print('Registration error: $e');
       }

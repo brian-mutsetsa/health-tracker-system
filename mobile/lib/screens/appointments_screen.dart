@@ -379,7 +379,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         if (error == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('✅ Request sent — awaiting provider approval'),
+                              content: Text('Request sent - awaiting provider approval'),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -387,13 +387,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         } else if (error == 'conflict') {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('⚠️ That time slot is already booked. Please choose another time.'),
+                              content: Text('That time slot is already booked. Please choose another time.'),
                               backgroundColor: Colors.orange,
                             ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('❌ $error'), backgroundColor: Colors.red),
+                            SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
                           );
                         }
                       }

@@ -172,7 +172,7 @@ class _CheckInHistoryScreenState extends State<CheckInHistoryScreen> {
         final checkin = _checkins[index];
         final riskColor = _getRiskColor(checkin.riskColor);
         final score = _calculateScore(checkin.answers);
-        final formatted = DateFormat('MMM d · h:mm a').format(checkin.date);
+        final formatted = DateFormat('MMM d, h:mm a').format(checkin.date);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
