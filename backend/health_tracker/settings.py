@@ -144,15 +144,13 @@ JAZZMIN_SETTINGS = {
     "copyright": "Health Tracker System",
     "search_model": ["auth.User"],
     "show_ui_builder": False,
-    "topmenu_links": [
-        {"name": "🗺 Patient Map", "url": "/admin/patient-map/", "new_window": False},
-    ],
-    "usermenu_links": [
-        {"name": "🗺 Patient Map", "url": "/admin/patient-map/", "new_window": False},
-    ],
-    "show_sidebar": True,
-    "navigation_expanded": True,
-    "user_avatar": None,
+    "custom_links": {
+        "api": [{
+            "name": "Patient Map",
+            "url": "admin:patient_map",
+            "icon": "fas fa-map-marked-alt",
+        }]
+    },
 }
 
 JAZZMIN_UI_TWEAKS = {
