@@ -339,6 +339,35 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
 
   // ─── Check-ins Tab ──────────────────────────────────────────────────────────
 
+  static const Map<String, String> _qLabels = {
+    'q1': 'Headaches',
+    'q2': 'Dizziness / lightheadedness',
+    'q3': 'Blurred / disturbed vision',
+    'q4': 'Chest discomfort or pressure',
+    'q5': 'Shortness of breath',
+    'q6': 'Unusual fatigue or weakness',
+    'q7': 'Nosebleeds',
+    'q8': 'Palpitations (rapid/irregular heartbeat)',
+    'q9': 'Took prescribed medication',
+    'q10': 'High-salt food intake',
+    'q11': 'High stress levels',
+    'q12': 'Swelling in limbs or face',
+  };
+
+  static const List<String> _severity = ['None', 'Mild', 'Moderate', 'Severe'];
+
+  String _answerLabel(String qId, int value) {
+    if (qId == 'q9') {
+      const opts = ['Yes fully', 'Missed once', 'Missed more than once', 'Did not take'];
+      return value >= 0 && value < opts.length ? opts[value] : '$value';
+    }
+    if (qId == 'q10') {
+      const opts = ['None', 'Small amount', 'Moderate', 'High intake'];
+      return value >= 0 && value < opts.length ? opts[value] : '$value';
+    }
+    return value >= 0 && value < _severity.length ? _severity[value] : '$value';
+  }
+
   Widget _buildCheckinsTab() {
     if (_checkins.isEmpty) {
       return const Center(
@@ -361,65 +390,99 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
         final color = _riskColor(level);
         final bg = _riskBg(level);
         final date = c['date'] != null ? DateTime.parse(c['date']).toLocal() : null;
+        final condition = (c['condition'] as String?) ?? '';
         final bp = c['blood_pressure_systolic'] != null
             ? '${c['blood_pressure_systolic']}/${c['blood_pressure_diastolic']} mmHg'
             : null;
         final glucose = c['blood_glucose_reading'] != null
             ? '${c['blood_glucose_reading']} mg/dL'
             : null;
+        final answers = (c['answers'] as Map?)?.cast<String, dynamic>() ?? {};
+        final sortedAnswers = answers.entries.toList()
+          ..sort((a, b) {
+            final ai = int.tryParse(a.key.replaceAll('q', '')) ?? 99;
+            final bi = int.tryParse(b.key.replaceAll('q', '')) ?? 99;
+            return ai.compareTo(bi);
+          });
 
         return Card(
           elevation: 0,
           color: bg,
+          clipBehavior: Clip.hardEdge,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
               side: BorderSide(color: color.withOpacity(0.3))),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding: EdgeInsets.zero,
+            backgroundColor: bg,
+            collapsedBackgroundColor: bg,
+            shape: const Border(),
+            collapsedShape: const Border(),
+            // ── Collapsed header ────────────────────────────────────────
+            leading: Container(
+              width: 8,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: color, borderRadius: BorderRadius.circular(4)),
+            ),
+            title: Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(4)),
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withOpacity(0.5))),
+                  child: Text(level,
+                      style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12)),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            level,
-                            style: TextStyle(
-                                color: color,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13),
-                          ),
-                          if (date != null)
-                            Text(_fmtDate(date),
-                                style: const TextStyle(
-                                    color: AppTheme.textLight, fontSize: 12)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
+                if (condition.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text(condition,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textLight)),
+                ],
+              ],
+            ),
+            subtitle: date != null
+                ? Text(_fmtDate(date),
+                    style: const TextStyle(
+                        color: AppTheme.textLight, fontSize: 12))
+                : null,
+            // ── Expanded body ────────────────────────────────────────────
+            children: [
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Vitals row
+                    if (bp != null || glucose != null) ...[
+                      Text('Vitals',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: color)),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           if (bp != null) ...[
                             const Icon(Icons.favorite_border,
-                                size: 12, color: AppTheme.textLight),
+                                size: 13, color: AppTheme.textLight),
                             const SizedBox(width: 4),
                             Text(bp,
                                 style: const TextStyle(
                                     fontSize: 12, color: AppTheme.textLight)),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                           ],
                           if (glucose != null) ...[
                             const Icon(Icons.water_drop_outlined,
-                                size: 12, color: AppTheme.textLight),
+                                size: 13, color: AppTheme.textLight),
                             const SizedBox(width: 4),
                             Text(glucose,
                                 style: const TextStyle(
@@ -427,11 +490,56 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
                           ],
                         ],
                       ),
+                      if (answers.isNotEmpty) const SizedBox(height: 12),
                     ],
-                  ),
+                    // Answers
+                    if (answers.isNotEmpty) ...[
+                      Text('Symptom Responses',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: color)),
+                      const SizedBox(height: 6),
+                      ...sortedAnswers.map((e) {
+                          final label = _qLabels[e.key] ?? e.key;
+                          final val = (e.value as num?)?.toInt() ?? 0;
+                          final answer = _answerLabel(e.key, val);
+                          final isNeutral = val == 0;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(label,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textDark)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      color: isNeutral
+                                          ? Colors.grey.shade100
+                                          : color.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: Text(answer,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isNeutral
+                                              ? AppTheme.textLight
+                                              : color)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
