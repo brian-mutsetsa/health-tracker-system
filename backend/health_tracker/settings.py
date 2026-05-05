@@ -147,10 +147,11 @@ JAZZMIN_SETTINGS = {
     "custom_links": {
         "api": [{
             "name": "Patient Map",
-            "url": "admin:patient_map",
+            "url": "/admin/patient-map/",
             "icon": "fas fa-map-marked-alt",
         }]
     },
+    "custom_css": "admin/css/custom_admin.css",
 }
 
 JAZZMIN_UI_TWEAKS = {

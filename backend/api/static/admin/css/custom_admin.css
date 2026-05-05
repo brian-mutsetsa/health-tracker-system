@@ -1,0 +1,9 @@
+/* Always show the user icon in the top-right navbar button */
+.navbar-nav .nav-link i.fa-user,
+.navbar-nav .nav-link .far.fa-user,
+#jazzy-navbar .nav-link i {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+}
