@@ -16,7 +16,7 @@ PATIENTS = [
     dict(
         patient_id='PT001', name='Judy',    surname='Moyo',    condition='Hypertension',
         gender='F', phone_number='+263771000001', pin='1234',
-        district='Harare', home_address='14 Borrowdale Rd, Harare',
+        district='Goromonzi', home_address='14 Arcturus Rd, Ruwa',
         emergency_contact_name='Tom Moyo',  emergency_contact_phone='+263771000010', emergency_contact_relation='Husband',
         weight_kg=72.0, blood_pressure_systolic=145, blood_pressure_diastolic=92,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
@@ -24,7 +24,7 @@ PATIENTS = [
     dict(
         patient_id='PT002', name='Ivan',    surname='Choto',   condition='Hypertension',
         gender='M', phone_number='+263771000002', pin='2345',
-        district='Harare', home_address='8 Samora Machel Ave, Harare',
+        district='Mazowe', home_address='8 Mazowe Citrus Rd, Mazowe',
         emergency_contact_name='Mary Choto', emergency_contact_phone='+263771000011', emergency_contact_relation='Wife',
         weight_kg=85.0, blood_pressure_systolic=160, blood_pressure_diastolic=100,
         primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
@@ -32,7 +32,7 @@ PATIENTS = [
     dict(
         patient_id='PT003', name='Heidi',   surname='Chiware', condition='Diabetes',
         gender='F', phone_number='+263771000003', pin='3456',
-        district='Chitungwiza', home_address='22 Seke Rd, Chitungwiza',
+        district='Seke', home_address='22 Unit L, Seke',
         emergency_contact_name='Brian Chiware', emergency_contact_phone='+263771000012', emergency_contact_relation='Brother',
         weight_kg=68.0, blood_glucose_baseline=210,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
@@ -40,7 +40,7 @@ PATIENTS = [
     dict(
         patient_id='PT004', name='Grace',   surname='Mutombwa', condition='Heart Disease',
         gender='F', phone_number='+263771000004', pin='4567',
-        district='Bulawayo', home_address='5 Lobengula St, Bulawayo',
+        district='Umguza', home_address='5 Old Khami Rd, Umguza',
         emergency_contact_name='Simon Mutombwa', emergency_contact_phone='+263771000013', emergency_contact_relation='Son',
         weight_kg=78.0, blood_pressure_systolic=155, blood_pressure_diastolic=95,
         primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
@@ -48,7 +48,7 @@ PATIENTS = [
     dict(
         patient_id='PT005', name='Frank',   surname='Mutasa',  condition='Diabetes',
         gender='M', phone_number='+263771000005', pin='5678',
-        district='Gweru', home_address='11 Robert Mugabe Way, Gweru',
+        district='Shurugwi', home_address='11 Mine Ave, Shurugwi',
         emergency_contact_name='Alice Mutasa', emergency_contact_phone='+263771000014', emergency_contact_relation='Wife',
         weight_kg=91.0, blood_glucose_baseline=240,
         primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
@@ -57,7 +57,7 @@ PATIENTS = [
     dict(
         patient_id='PT006', name='Tendai',  surname='Chirombe', condition='Hypertension',
         gender='M', phone_number='+263771000006', pin='6789',
-        district='Harare', home_address='33 Avondale Dr, Harare',
+        district='Zvimba', home_address='33 Murombedzi Rd, Zvimba',
         emergency_contact_name='Rudo Chirombe', emergency_contact_phone='+263771000015', emergency_contact_relation='Wife',
         weight_kg=88.0, blood_pressure_systolic=158, blood_pressure_diastolic=98,
         primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
@@ -65,7 +65,7 @@ PATIENTS = [
     dict(
         patient_id='PT007', name='Simbai',  surname='Ncube',   condition='Asthma',
         gender='M', phone_number='+263771000007', pin='7890',
-        district='Bulawayo', home_address='7 Cecil Ave, Bulawayo',
+        district='Insiza', home_address='7 Filabusi Rd, Insiza',
         emergency_contact_name='Nomsa Ncube', emergency_contact_phone='+263771000016', emergency_contact_relation='Mother',
         weight_kg=62.0,
         primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
@@ -73,7 +73,7 @@ PATIENTS = [
     dict(
         patient_id='PT008', name='Rudo',    surname='Makoni',  condition='Diabetes',
         gender='F', phone_number='+263771000008', pin='8901',
-        district='Mutare', home_address='2 Christmas Pass Rd, Mutare',
+        district='Makoni', home_address='2 Broadway Ave, Rusape',
         emergency_contact_name='Patrick Makoni', emergency_contact_phone='+263771000017', emergency_contact_relation='Husband',
         weight_kg=74.0, blood_glucose_baseline=195,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
@@ -81,7 +81,7 @@ PATIENTS = [
     dict(
         patient_id='PT009', name='Blessing', surname='Dube',   condition='Heart Disease',
         gender='F', phone_number='+263771000009', pin='9012',
-        district='Masvingo', home_address='18 Hughes St, Masvingo',
+        district='Gutu', home_address='18 Gutu Mission Rd, Gutu',
         emergency_contact_name='Joseph Dube', emergency_contact_phone='+263771000018', emergency_contact_relation='Father',
         weight_kg=81.0, blood_pressure_systolic=170, blood_pressure_diastolic=105,
         primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
@@ -89,7 +89,7 @@ PATIENTS = [
     dict(
         patient_id='PT010', name='Tatenda', surname='Mhiripiri', condition='Hypertension',
         gender='M', phone_number='+263771000010', pin='0123',
-        district='Gweru', home_address='45 Main St, Gweru',
+        district='Chirumhanzu', home_address='45 Mine Rd, Mvuma',
         emergency_contact_name='Hope Mhiripiri', emergency_contact_phone='+263771000019', emergency_contact_relation='Sister',
         weight_kg=79.0, blood_pressure_systolic=142, blood_pressure_diastolic=89,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
@@ -97,7 +97,7 @@ PATIENTS = [
     dict(
         patient_id='PT011', name='Chenai',  surname='Zulu',    condition='Diabetes',
         gender='F', phone_number='+263771000011', pin='1122',
-        district='Harare', home_address='91 Mazowe St, Harare',
+        district='Bindura', home_address='91 Trojan Rd, Bindura',
         emergency_contact_name='Victor Zulu', emergency_contact_phone='+263771000020', emergency_contact_relation='Husband',
         weight_kg=69.0, blood_glucose_baseline=230,
         primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
@@ -105,7 +105,7 @@ PATIENTS = [
     dict(
         patient_id='PT012', name='Kudzai',  surname='Banda',   condition='Asthma',
         gender='F', phone_number='+263771000012', pin='2233',
-        district='Chitungwiza', home_address='5 Unit B, Chitungwiza',
+        district='Epworth', home_address='5 Unit B, Epworth',
         emergency_contact_name='Farirai Banda', emergency_contact_phone='+263771000021', emergency_contact_relation='Daughter',
         weight_kg=57.0,
         primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
@@ -113,7 +113,7 @@ PATIENTS = [
     dict(
         patient_id='PT013', name='Takudzwa', surname='Phiri',  condition='Heart Disease',
         gender='M', phone_number='+263771000013', pin='3344',
-        district='Harare', home_address='3 Quinnington Close, Harare',
+        district='Marondera', home_address='3 Diggleford Rd, Marondera',
         emergency_contact_name='Taurai Phiri', emergency_contact_phone='+263771000022', emergency_contact_relation='Brother',
         weight_kg=83.0, blood_pressure_systolic=165, blood_pressure_diastolic=102,
         primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
@@ -121,7 +121,7 @@ PATIENTS = [
     dict(
         patient_id='PT014', name='Mavis',   surname='Chikwanda', condition='Hypertension',
         gender='F', phone_number='+263771000014', pin='4455',
-        district='Bulawayo', home_address='22 Nketa Drive, Bulawayo',
+        district='Matobo', home_address='22 Figtree Rd, Matobo',
         emergency_contact_name='Arnold Chikwanda', emergency_contact_phone='+263771000023', emergency_contact_relation='Son',
         weight_kg=76.5, blood_pressure_systolic=150, blood_pressure_diastolic=94,
         primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
@@ -129,7 +129,7 @@ PATIENTS = [
     dict(
         patient_id='PT015', name='Simba',   surname='Musiiwa',  condition='Diabetes',
         gender='M', phone_number='+263771000015', pin='5566',
-        district='Harare', home_address='60 Highfield Rd, Harare',
+        district='Hwange', home_address='60 Colliery Rd, Hwange',
         emergency_contact_name='Chipo Musiiwa', emergency_contact_phone='+263771000024', emergency_contact_relation='Wife',
         weight_kg=95.0, blood_glucose_baseline=260,
         primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',

@@ -90,22 +90,19 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
       appBar: AppBar(
         backgroundColor: AppTheme.primaryTeal,
         foregroundColor: Colors.white,
-        title: Text(
-          p.displayName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Chip(
-              label: Text(
-                p.condition,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-              backgroundColor: Colors.white24,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              p.displayName,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
-          ),
-        ],
+            Text(
+              'ID: ${p.patientId}  |  ${p.condition}',
+              style: const TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -139,6 +136,44 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Tab guide card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.lightMint,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.primaryTeal.withOpacity(0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 18, color: AppTheme.primaryTeal),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Patient Record Guide',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppTheme.primaryTeal),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Profile  -  Demographics, contact details, baseline vitals and medical history.\n'
+                        'Check-ins  -  Daily health logs submitted by the patient (BP, glucose, risk score).\n'
+                        'Clinical  -  Doctor visit records. Use the Add Visit button to log an in-person consult.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textLight, height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           // Risk banner
           if (p.lastRiskLevel != null)
             _riskBanner(p.lastRiskLevel!, p.lastCheckin),
@@ -148,26 +183,26 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
           _sectionCard('Personal Information', Icons.person_outline, [
             _infoRow('Full Name', '${p.name} ${p.surname}'.trim()),
             _infoRow('Patient ID', p.patientId),
-            _infoRow('Date of Birth', p.dateOfBirth ?? '—'),
-            _infoRow('Age', p.age != null ? '${p.age} years' : '—'),
+            _infoRow('Date of Birth', p.dateOfBirth ?? 'N/A'),
+            _infoRow('Age', p.age != null ? '${p.age} years' : 'N/A'),
             _infoRow('Gender', _genderLabel(p.gender)),
-            _infoRow('National ID', p.idNumber?.isNotEmpty == true ? p.idNumber! : '—'),
-            _infoRow('Phone', p.phoneNumber?.isNotEmpty == true ? p.phoneNumber! : '—'),
+            _infoRow('National ID', p.idNumber?.isNotEmpty == true ? p.idNumber! : 'N/A'),
+            _infoRow('Phone', p.phoneNumber?.isNotEmpty == true ? p.phoneNumber! : 'N/A'),
           ]),
           const SizedBox(height: 12),
 
           // Location
           _sectionCard('Location', Icons.location_on_outlined, [
-            _infoRow('District', p.district?.isNotEmpty == true ? p.district! : '—'),
-            _infoRow('Home Address', p.homeAddress?.isNotEmpty == true ? p.homeAddress! : '—'),
+            _infoRow('District', p.district?.isNotEmpty == true ? p.district! : 'N/A'),
+            _infoRow('Home Address', p.homeAddress?.isNotEmpty == true ? p.homeAddress! : 'N/A'),
           ]),
           const SizedBox(height: 12),
 
           // Emergency contact
           _sectionCard('Emergency Contact', Icons.emergency_outlined, [
-            _infoRow('Name', p.emergencyContactName?.isNotEmpty == true ? p.emergencyContactName! : '—'),
-            _infoRow('Phone', p.emergencyContactPhone?.isNotEmpty == true ? p.emergencyContactPhone! : '—'),
-            _infoRow('Relation', p.emergencyContactRelation?.isNotEmpty == true ? p.emergencyContactRelation! : '—'),
+            _infoRow('Name', p.emergencyContactName?.isNotEmpty == true ? p.emergencyContactName! : 'N/A'),
+            _infoRow('Phone', p.emergencyContactPhone?.isNotEmpty == true ? p.emergencyContactPhone! : 'N/A'),
+            _infoRow('Relation', p.emergencyContactRelation?.isNotEmpty == true ? p.emergencyContactRelation! : 'N/A'),
           ]),
           const SizedBox(height: 12),
 
@@ -176,16 +211,16 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
             _infoRow('Condition', p.condition),
             _infoRow('Status', p.status),
             _infoRow('Baseline BP',
-                p.bpSystolic != null ? '${p.bpSystolic}/${p.bpDiastolic} mmHg' : '—'),
+                p.bpSystolic != null ? '${p.bpSystolic}/${p.bpDiastolic} mmHg' : 'N/A'),
             _infoRow('Baseline Glucose',
-                p.bloodGlucose != null ? '${p.bloodGlucose} mg/dL' : '—'),
-            _infoRow('Weight', p.weightKg != null ? '${p.weightKg} kg' : '—'),
+                p.bloodGlucose != null ? '${p.bloodGlucose} mg/dL' : 'N/A'),
+            _infoRow('Weight', p.weightKg != null ? '${p.weightKg} kg' : 'N/A'),
             _infoRow('Medical History',
-                p.medicalHistory?.isNotEmpty == true ? p.medicalHistory! : '—'),
+                p.medicalHistory?.isNotEmpty == true ? p.medicalHistory! : 'N/A'),
             _infoRow('Medications',
-                p.medications?.isNotEmpty == true ? p.medications! : '—'),
+                p.medications?.isNotEmpty == true ? p.medications! : 'N/A'),
             _infoRow('Allergies',
-                p.allergies?.isNotEmpty == true ? p.allergies! : '—'),
+                p.allergies?.isNotEmpty == true ? p.allergies! : 'N/A'),
           ]),
         ],
       ),
@@ -196,12 +231,12 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
     final color = _riskColor(level);
     final bg = _riskBg(level);
     final label = level == 'RED'
-        ? 'High Risk — Action Required'
+        ? 'High Risk - Action Required'
         : level == 'ORANGE'
-            ? 'Elevated Risk — Monitor Closely'
+            ? 'Elevated Risk - Monitor Closely'
             : level == 'YELLOW'
-                ? 'Moderate Risk — Attention Needed'
-                : 'Low Risk — Stable';
+                ? 'Moderate Risk - Attention Needed'
+                : 'Low Risk - Stable';
     final since = lastCheckin != null
         ? 'Last check-in: ${_fmtDate(lastCheckin)}'
         : 'No check-ins yet';
@@ -298,7 +333,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
       case 'O':
         return 'Other';
       default:
-        return '—';
+        return 'N/A';
     }
   }
 
@@ -460,8 +495,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
     if (v.heartRate != null) vitals.add('HR: ${v.heartRate} bpm');
     if (v.bloodGlucose != null) vitals.add('Glucose: ${v.bloodGlucose} mg/dL');
     if (v.weightKg != null) vitals.add('Weight: ${v.weightKg} kg');
-    if (v.temperature != null) vitals.add('Temp: ${v.temperature}°C');
-    if (v.oxygenSaturation != null) vitals.add('SpO₂: ${v.oxygenSaturation}%');
+    if (v.temperature != null) vitals.add('Temp: ${v.temperature} C');
+    if (v.oxygenSaturation != null) vitals.add('SpO2: ${v.oxygenSaturation}%');
 
     return Card(
       elevation: 0,
@@ -598,11 +633,11 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
                     const SizedBox(width: 8),
                     Expanded(
                         child: _visitField(
-                            _tempC, 'Temperature (°C)', TextInputType.number)),
+                            _tempC, 'Temperature (C)', TextInputType.number)),
                     const SizedBox(width: 8),
                     Expanded(
                         child: _visitField(
-                            _spo2C, 'SpO₂ (%)', TextInputType.number)),
+                            _spo2C, 'SpO2 (%)', TextInputType.number)),
                   ]),
                   const SizedBox(height: 16),
                   const Text('Clinical Notes',

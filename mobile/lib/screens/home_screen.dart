@@ -31,6 +31,12 @@ class _HomeScreenState extends State<HomeScreen> {
   int _upcomingAppointmentCount = 0;
   int _unreadNotificationCount = 0;
   int _lastKnownNotificationCount = 0;
+  // Tracks actual totals from last poll for delta-based badge computation
+  int _actualAppointmentTotal = 0;
+  int _actualMessageTotal = 0;
+  // Baselines at time each tab was last visited (-1 = never visited)
+  int _appointmentCountAtLastView = -1;
+  int _messageCountAtLastView = -1;
 
   @override
   void initState() {
@@ -101,9 +107,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          // Don't restore a badge the user already cleared by navigating to that tab
-          if (_currentIndex != 2) _upcomingAppointmentCount = scheduled;
-          if (_currentIndex != 3) _unreadMessageCount = unread;
+          _actualAppointmentTotal = scheduled;
+          _actualMessageTotal = unread;
+          // Appointments badge: 0 while on tab; 0 after visit unless NEW items arrive
+          if (_currentIndex == 2) {
+            _appointmentCountAtLastView = scheduled;
+            _upcomingAppointmentCount = 0;
+          } else if (_appointmentCountAtLastView < 0) {
+            _upcomingAppointmentCount = scheduled; // never visited: show full count
+          } else {
+            _upcomingAppointmentCount = scheduled > _appointmentCountAtLastView ? scheduled - _appointmentCountAtLastView : 0;
+          }
+          // Messages badge: same pattern
+          if (_currentIndex == 3) {
+            _messageCountAtLastView = unread;
+            _unreadMessageCount = 0;
+          } else if (_messageCountAtLastView < 0) {
+            _unreadMessageCount = unread; // never visited: show full count
+          } else {
+            _unreadMessageCount = unread > _messageCountAtLastView ? unread - _messageCountAtLastView : 0;
+          }
           // For notifications (push screen): only increment for genuinely NEW arrivals
           final newNotifDelta = unreadNotifs > _lastKnownNotificationCount
               ? unreadNotifs - _lastKnownNotificationCount
@@ -747,8 +770,14 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _currentIndex = index;
           // Clear the badge for the tab being opened
-          if (index == 2) _upcomingAppointmentCount = 0;
-          if (index == 3) _unreadMessageCount = 0;
+          if (index == 2) {
+            _appointmentCountAtLastView = _actualAppointmentTotal;
+            _upcomingAppointmentCount = 0;
+          }
+          if (index == 3) {
+            _messageCountAtLastView = _actualMessageTotal;
+            _unreadMessageCount = 0;
+          }
         });
       },
       child: Stack(

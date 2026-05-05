@@ -190,18 +190,18 @@ def create_checkin(request):
 
         if provider_id:
             notif_type = 'HIGH_RISK_ALERT' if is_high_risk else 'GENERAL'
-            risk_emoji = '🚨' if checkin.risk_color.lower() == 'red' else ('⚠️' if is_high_risk else '✅')
+            risk_prefix = 'HIGH RISK - ' if checkin.risk_color.lower() == 'red' else ('ALERT - ' if is_high_risk else '')
             Notification.objects.create(
                 user_id=provider_id,
                 notification_type=notif_type,
-                message=f"{risk_emoji} {patient_name} submitted a check-in — Risk level: {checkin.risk_level}",
+                message=f"{risk_prefix}{patient_name} submitted a check-in. Risk level: {checkin.risk_level}",
                 related_patient_id=patient.patient_id,
             )
             if is_high_risk:
                 Notification.objects.create(
                     user_id='superadmin',
                     notification_type='HIGH_RISK_ALERT',
-                    message=f"🚨 HIGH RISK: {patient_name} reported {checkin.risk_level} risk on latest check-in",
+                    message=f"HIGH RISK: {patient_name} reported {checkin.risk_level} risk on latest check-in",
                     related_patient_id=patient.patient_id,
                 )
 
@@ -317,7 +317,7 @@ def provider_login(request):
     Notification.objects.create(
         user_id='superadmin',
         notification_type='GENERAL',
-        message=f"🔑 Provider '{u.username}' ({u.provider.specialty or 'No specialty'}) logged into the dashboard",
+        message=f"Provider '{u.username}' ({u.provider.specialty or 'No specialty'}) logged into the dashboard",
     )
     return Response(response_data, status=status.HTTP_200_OK)
 
@@ -1312,7 +1312,7 @@ def create_appointment(request):
             Notification.objects.create(
                 user_id=appointment.patient.patient_id,
                 notification_type='APPOINTMENT',
-                message=f"✅ Appointment booked for you on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please attend.",
+                message=f"Appointment booked for you on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please attend.",
                 related_patient_id=appointment.patient.patient_id,
             )
         else:
@@ -1320,7 +1320,7 @@ def create_appointment(request):
             Notification.objects.create(
                 user_id=appointment.provider_id,
                 notification_type='APPOINTMENT',
-                message=f"📅 Appointment request from {patient_name} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please approve or decline.",
+                message=f"Appointment request from {patient_name} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]}. Please approve or decline.",
                 related_patient_id=appointment.patient.patient_id,
             )
 
@@ -1328,7 +1328,7 @@ def create_appointment(request):
         Notification.objects.create(
             user_id='superadmin',
             notification_type='APPOINTMENT',
-            message=f"📅 Appointment ({initiated_by}): {patient_name} → {appointment.provider_id} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} [{appointment.status}]",
+            message=f"Appointment ({initiated_by}): {patient_name} to {appointment.provider_id} on {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} [{appointment.status}]",
             related_patient_id=appointment.patient.patient_id,
         )
         print(f" Appointment created: {appointment.id} [{appointment.status}]")
@@ -1349,7 +1349,7 @@ def approve_appointment(request, appointment_id):
         Notification.objects.create(
             user_id=appointment.patient.patient_id,
             notification_type='APPOINTMENT',
-            message=f"✅ Your appointment request for {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} has been approved.",
+            message=f"Your appointment request for {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} has been approved.",
             related_patient_id=appointment.patient.patient_id,
         )
         return Response(AppointmentSerializer(appointment).data)
@@ -1534,7 +1534,7 @@ def check_high_risk_alerts(request):
             alert = Notification.objects.create(
                 user_id=patient.primary_provider_id or 'admin',
                 notification_type='HIGH_RISK_ALERT',
-                message=f' HIGH RISK ALERT: Patient {patient.patient_id} ({patient.name}) has RED risk level',
+                message=f'HIGH RISK ALERT: Patient {patient.patient_id} ({patient.name}) has RED risk level',
                 related_patient_id=patient.patient_id
             )
             alerts_created.append(alert)

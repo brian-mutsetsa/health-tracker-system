@@ -32,6 +32,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _pendingAppointmentCount = 0;
   int _highRiskCount = 0;
   int _unreadNotificationCount = 0;
+  // Tracks the actual totals from the last poll (used to compute deltas)
+  int _actualPendingTotal = 0;
+  int _actualHighRiskTotal = 0;
+  // Baseline counts when each tab was last visited (-1 = never visited this session)
+  int _pendingCountAtLastView = -1;
+  int _highRiskCountAtLastView = -1;
   Map<String, int> _stats = {
     'total_patients': 0,
     'high_risk': 0,
@@ -68,9 +74,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _stats = stats;
         _appointments = appointments;
         _notifications = notifs;
-        // Don't restore a badge the user already cleared by navigating to that tab
-        if (_selectedIndex != 2) _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
-        if (_selectedIndex != 3) _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+        // Compute actual totals from latest poll
+        final pendingNow = appointments.where((a) => a.status == 'PENDING').length;
+        final highRiskNow = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+        _actualPendingTotal = pendingNow;
+        _actualHighRiskTotal = highRiskNow;
+        // Appointments badge: 0 while on tab; 0 after visit unless NEW items arrive
+        if (_selectedIndex == 2) {
+          _pendingCountAtLastView = pendingNow;
+          _pendingAppointmentCount = 0;
+        } else if (_pendingCountAtLastView < 0) {
+          _pendingAppointmentCount = pendingNow; // never visited: show full count
+        } else {
+          _pendingAppointmentCount = pendingNow > _pendingCountAtLastView ? pendingNow - _pendingCountAtLastView : 0;
+        }
+        // High Risk badge: same pattern
+        if (_selectedIndex == 3) {
+          _highRiskCountAtLastView = highRiskNow;
+          _highRiskCount = 0;
+        } else if (_highRiskCountAtLastView < 0) {
+          _highRiskCount = highRiskNow; // never visited: show full count
+        } else {
+          _highRiskCount = highRiskNow > _highRiskCountAtLastView ? highRiskNow - _highRiskCountAtLastView : 0;
+        }
         if (_selectedIndex != 5) _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
     }
@@ -94,8 +120,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _stats = stats;
       _appointments = appointments;
       _notifications = notifs;
-      _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
-      _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+      _actualPendingTotal = appointments.where((a) => a.status == 'PENDING').length;
+      _actualHighRiskTotal = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+      // Reset view-baselines on full refresh so all tabs re-badge with current data
+      _pendingCountAtLastView = -1;
+      _highRiskCountAtLastView = -1;
+      _pendingAppointmentCount = _actualPendingTotal;
+      _highRiskCount = _actualHighRiskTotal;
       _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       _loading = false;
     });
@@ -108,9 +139,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     setState(() {
       _selectedIndex = index;
-      // Clear the badge as soon as the user lands on the tab (they can now see the content)
-      if (index == 2) _pendingAppointmentCount = 0;
-      if (index == 3) _highRiskCount = 0;
+      // Clear badge on tab visit; record current totals as baselines so poll
+      // only re-badges if genuinely NEW items arrive after this visit.
+      if (index == 2) {
+        _pendingCountAtLastView = _actualPendingTotal;
+        _pendingAppointmentCount = 0;
+      }
+      if (index == 3) {
+        _highRiskCountAtLastView = _actualHighRiskTotal;
+        _highRiskCount = 0;
+      }
       if (index == 5) _unreadNotificationCount = 0;
     });
     // For notifications: also mark all read server-side
@@ -148,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Account setup incomplete — your specialty and hospital have not been configured yet. '
+                'Account setup incomplete - your specialty and hospital have not been configured yet. '
                 'Your administrator has been notified and will complete your profile shortly.',
                 style: TextStyle(color: Colors.white, fontSize: 13),
               ),
@@ -672,7 +710,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
             .toList();
         return _buildPatientsView(
-          'High Risk — Action Required',
+          'High Risk - Action Required',
           highRisk,
           isMobile: isMobile,
         );
@@ -1701,7 +1739,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPatientCard(Patient p) {
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1779,7 +1822,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 
   Widget _infoRow(IconData icon, String text) {
@@ -1911,7 +1955,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text('${patient.name} (${patient.patientId})', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                           const SizedBox(height: 4),
-                          Text('${patient.condition} • ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                          Text('${patient.condition}  |  ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
                         ],
                       ),
                       IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
@@ -2509,7 +2553,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (loadingSlots) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
                         if (!loadingSlots && bookedSlots.isNotEmpty)
                           Text(
-                            '(${bookedSlots.length} slot${bookedSlots.length == 1 ? '' : 's'} already booked — hidden)',
+                            '(${bookedSlots.length} slot${bookedSlots.length == 1 ? '' : 's'} already booked - hidden)',
                             style: const TextStyle(fontSize: 11, color: AppTheme.textLight),
                           ),
                       ],
@@ -2526,7 +2570,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: const Row(children: [
                           Icon(Icons.event_busy, size: 16, color: Colors.orange),
                           SizedBox(width: 8),
-                          Text('No available slots on this date — all times are booked.',
+                          Text('No available slots on this date - all times are booked.',
                               style: TextStyle(fontSize: 12, color: Colors.orange)),
                         ]),
                       ),
