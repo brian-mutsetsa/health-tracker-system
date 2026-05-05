@@ -27,6 +27,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://health-tracker-system-production.up.railway.app',
+    'https://health-tracker-api-blky.onrender.com',
+    'https://health-tracker-zw.web.app',
+]
+
 
 # Application definition
 
