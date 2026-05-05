@@ -1,31 +1,4 @@
 {% extends "admin/index.html" %}
 {% block content %}
 {{ block.super }}
-<div style="
-  margin: 20px 0;
-  padding: 16px 20px;
-  background: #e8f5e9;
-  border: 2px solid #43a047;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-">
-  <span style="font-size: 28px;">🗺️</span>
-  <div>
-    <strong style="font-size: 15px; color: #2e7d32;">Patient Distribution Map</strong><br>
-    <span style="font-size: 13px; color: #555;">View all patients plotted across Zimbabwe, colour-coded by risk level.</span>
-  </div>
-  <a href="patient-map/" style="
-    margin-left: auto;
-    padding: 8px 24px;
-    background: #43a047;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-  ">Open Map</a>
-</div>
 {% endblock %}
