@@ -1640,7 +1640,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryTeal,
-                      decoration: TextDecoration.underline,
                     ),
                   ),
                   Text(p.patientId,
