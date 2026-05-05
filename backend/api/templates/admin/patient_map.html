@@ -1,0 +1,179 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Patient Distribution Map | Django Admin{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  #map {
+    height: 620px;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+  }
+  #map-controls {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    padding: 6px 16px;
+    border: 2px solid #ccc;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .filter-btn.active { color: #fff; border-color: transparent; }
+  .filter-btn[data-risk="ALL"]    { background: #607d8b; color: #fff; border-color: #607d8b; }
+  .filter-btn[data-risk="RED"]    { }
+  .filter-btn[data-risk="RED"].active    { background: #e53935; border-color: #e53935; }
+  .filter-btn[data-risk="ORANGE"].active { background: #fb8c00; border-color: #fb8c00; }
+  .filter-btn[data-risk="YELLOW"].active { background: #f9a825; border-color: #f9a825; }
+  .filter-btn[data-risk="GREEN"].active  { background: #43a047; border-color: #43a047; }
+  #summary {
+    margin-bottom: 12px;
+    padding: 10px 16px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    font-size: 14px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .summary-item { display: flex; align-items: center; gap: 6px; }
+  .dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+  .dot-RED    { background: #e53935; }
+  .dot-ORANGE { background: #fb8c00; }
+  .dot-YELLOW { background: #f9a825; }
+  .dot-GREEN  { background: #43a047; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Patient Distribution Map</h1>
+<p style="color:#666; margin-bottom:16px;">
+  {{ total_patients }} patient{{ total_patients|pluralize }} across Zimbabwe.
+  Click any marker to see patient details.
+</p>
+
+<div id="summary">
+  <span class="summary-item"><span class="dot dot-RED"></span> High Risk: <strong>{{ counts.RED }}</strong></span>
+  <span class="summary-item"><span class="dot dot-ORANGE"></span> Elevated: <strong>{{ counts.ORANGE }}</strong></span>
+  <span class="summary-item"><span class="dot dot-YELLOW"></span> Moderate: <strong>{{ counts.YELLOW }}</strong></span>
+  <span class="summary-item"><span class="dot dot-GREEN"></span> Stable: <strong>{{ counts.GREEN }}</strong></span>
+</div>
+
+<div id="map-controls">
+  <strong style="font-size:13px; color:#555;">Filter:</strong>
+  <button class="filter-btn active" data-risk="ALL">All ({{ total_patients }})</button>
+  <button class="filter-btn" data-risk="RED">High Risk ({{ counts.RED }})</button>
+  <button class="filter-btn" data-risk="ORANGE">Elevated ({{ counts.ORANGE }})</button>
+  <button class="filter-btn" data-risk="YELLOW">Moderate ({{ counts.YELLOW }})</button>
+  <button class="filter-btn" data-risk="GREEN">Stable ({{ counts.GREEN }})</button>
+</div>
+
+<div id="map"></div>
+
+<script>
+const PATIENTS = {{ patients_json|safe }};
+
+const RISK_COLORS = {
+  RED:    '#e53935',
+  ORANGE: '#fb8c00',
+  YELLOW: '#f9a825',
+  GREEN:  '#43a047',
+  '':     '#9e9e9e',
+};
+
+function makeIcon(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24S24 21 24 12C24 5.4 18.6 0 12 0z"
+          fill="${color}" stroke="white" stroke-width="2"/>
+    <circle cx="12" cy="12" r="5" fill="white" opacity="0.9"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [24, 36],
+    iconAnchor: [12, 36],
+    popupAnchor: [0, -36],
+  });
+}
+
+const map = L.map('map').setView([-19.0154, 29.1549], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 14,
+}).addTo(map);
+
+let markers = [];
+
+function renderMarkers(riskFilter) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  PATIENTS.forEach(p => {
+    if (riskFilter !== 'ALL' && p.risk_level !== riskFilter) return;
+    const color = RISK_COLORS[p.risk_level] || RISK_COLORS[''];
+    const m = L.marker([p.lat, p.lng], { icon: makeIcon(color) });
+
+    const lastCheckin = p.last_checkin
+      ? new Date(p.last_checkin).toLocaleDateString('en-GB')
+      : 'No check-ins yet';
+
+    const adminUrl = `/admin/api/patient/?q=${p.patient_id}`;
+
+    m.bindPopup(`
+      <div style="min-width:220px; font-family:sans-serif;">
+        <div style="background:${color}22; border-bottom:2px solid ${color}; padding:10px 12px; margin:-8px -8px 10px -8px; border-radius:4px 4px 0 0;">
+          <strong style="font-size:15px; color:#222;">${p.name}</strong><br>
+          <span style="font-size:12px; color:#666;">${p.patient_id} &nbsp;|&nbsp; ${p.condition}</span>
+        </div>
+        <table style="font-size:13px; border-collapse:collapse; width:100%;">
+          <tr><td style="color:#888; padding:3px 0; width:90px;">District</td><td><strong>${p.district || 'Unknown'}</strong></td></tr>
+          <tr><td style="color:#888; padding:3px 0;">Risk Level</td><td><strong style="color:${color};">${p.risk_level || 'GREEN'}</strong></td></tr>
+          <tr><td style="color:#888; padding:3px 0;">Check-ins</td><td><strong>${p.total_checkins}</strong></td></tr>
+          <tr><td style="color:#888; padding:3px 0;">Last Check-in</td><td><strong>${lastCheckin}</strong></td></tr>
+          <tr><td style="color:#888; padding:3px 0;">Provider</td><td><strong>${p.provider || 'Unassigned'}</strong></td></tr>
+        </table>
+        <div style="margin-top:10px; text-align:center;">
+          <a href="${adminUrl}" style="
+            display:inline-block; padding:6px 20px;
+            background:${color}; color:white; text-decoration:none;
+            border-radius:4px; font-size:13px; font-weight:600;">
+            View in Admin Panel
+          </a>
+        </div>
+      </div>
+    `, { maxWidth: 280 });
+
+    m.addTo(map);
+    markers.push(m);
+  });
+}
+
+renderMarkers('ALL');
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderMarkers(btn.dataset.risk);
+  });
+});
+</script>
+{% endblock %}

@@ -8,7 +8,6 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'patient_detail_screen.dart';
-import 'patient_map_screen.dart';
 
 const double _kMobileBreakpoint = 768.0;
 
@@ -371,9 +370,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildNavItem(3, Icons.warning_amber_rounded, 'High Risk Alerts', badgeCount: _highRiskCount),
         _buildNavItem(4, Icons.analytics_outlined, 'Analytics'),
         _buildNavItem(5, Icons.notifications_outlined, 'Notifications', badgeCount: _unreadNotificationCount),
-        // Map view — super admin only
-        if (DashboardApiService.currentProviderId == 'admin')
-          _buildNavItem(6, Icons.map_outlined, 'Patient Map'),
 
         const Spacer(),
 
@@ -722,8 +718,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _buildAnalytics(isMobile: isMobile);
       case 5:
         return _buildNotificationsView(isMobile: isMobile);
-      case 6:
-        return PatientMapScreen(patients: _patients);
       default:
         return _buildOverview(isMobile: isMobile);
     }
