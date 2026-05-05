@@ -79,13 +79,11 @@ class PatientMapAdminView(View):
                 'provider': p.primary_provider_id or 'Unassigned',
             })
 
-        context = {
+        context = {**admin.site.each_context(request),
             'title': 'Patient Distribution Map',
             'patients_json': json.dumps(patients_data),
             'total_patients': len(patients_data),
             'counts': counts,
-            # Admin breadcrumb context
-            'has_permission': True,
         }
         return render(request, 'admin/patient_map.html', context)
 
