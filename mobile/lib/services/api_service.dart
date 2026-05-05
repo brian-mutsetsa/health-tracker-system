@@ -82,6 +82,35 @@ class ApiService {
   }
 
   // Register new patient
+  Future<Map<String, dynamic>?> patientPhonePinLogin(
+      String phone, String pin) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/patient-phone-pin/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'phone_number': phone, 'pin': pin}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final patientData = jsonDecode(response.body);
+        final settingsBox = Hive.box('settings');
+        await settingsBox.put('patient_id', patientData['patient_id']);
+        await settingsBox.put('patient_name', patientData['name'] ?? '');
+        await settingsBox.put('condition', patientData['condition'] ?? '');
+        if (patientData['session_token'] != null) {
+          await settingsBox.put('session_token', patientData['session_token']);
+        }
+        return patientData;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Register new patient
   Future<Map<String, dynamic>?> registerPatient(Map<String, dynamic> registrationData) async {
     try {
       print('📝 Attempting patient registration...');

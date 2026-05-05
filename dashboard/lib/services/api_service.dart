@@ -6,30 +6,74 @@ class Patient {
   final String id;
   final String patientId;
   final String name;
+  final String surname;
   final String condition;
   final DateTime? lastCheckin;
   final String? lastRiskLevel;
   final String? lastRiskColor;
   final int totalCheckins;
+  final String? gender;
+  final String? dateOfBirth;
+  final int? age;
+  final String? idNumber;
+  final String? phoneNumber;
+  final String? district;
+  final String? homeAddress;
+  final String? emergencyContactName;
+  final String? emergencyContactPhone;
+  final String? emergencyContactRelation;
+  final double? weightKg;
+  final int? bpSystolic;
+  final int? bpDiastolic;
+  final int? bloodGlucose;
+  final String? medicalHistory;
+  final String? medications;
+  final String? allergies;
+  final String? primaryProviderId;
+  final String status;
 
   Patient({
     required this.id,
     required this.patientId,
     required this.name,
+    this.surname = '',
     required this.condition,
     this.lastCheckin,
     this.lastRiskLevel,
     this.lastRiskColor,
     required this.totalCheckins,
+    this.gender,
+    this.dateOfBirth,
+    this.age,
+    this.idNumber,
+    this.phoneNumber,
+    this.district,
+    this.homeAddress,
+    this.emergencyContactName,
+    this.emergencyContactPhone,
+    this.emergencyContactRelation,
+    this.weightKg,
+    this.bpSystolic,
+    this.bpDiastolic,
+    this.bloodGlucose,
+    this.medicalHistory,
+    this.medications,
+    this.allergies,
+    this.primaryProviderId,
+    this.status = 'ACTIVE',
   });
+
+  String get displayName {
+    final full = [name, surname].where((s) => s.isNotEmpty).join(' ');
+    return full.isNotEmpty ? full : patientId;
+  }
 
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
       id: json['id'].toString(),
       patientId: json['patient_id'] ?? 'N/A',
-      name: (json['name'] as String?)?.isNotEmpty == true
-          ? json['name']
-          : (json['patient_id'] ?? 'Unknown'),
+      name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : '',
+      surname: (json['surname'] as String?) ?? '',
       condition: json['condition'] ?? 'Unknown',
       lastCheckin: json['last_checkin'] != null
           ? DateTime.parse(json['last_checkin'])
@@ -37,6 +81,75 @@ class Patient {
       lastRiskLevel: json['last_risk_level'],
       lastRiskColor: json['last_risk_color'],
       totalCheckins: json['total_checkins'] ?? 0,
+      gender: json['gender'],
+      dateOfBirth: json['date_of_birth'],
+      age: json['age'],
+      idNumber: json['id_number'],
+      phoneNumber: json['phone_number'],
+      district: json['district'],
+      homeAddress: json['home_address'],
+      emergencyContactName: json['emergency_contact_name'],
+      emergencyContactPhone: json['emergency_contact_phone'],
+      emergencyContactRelation: json['emergency_contact_relation'],
+      weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      bpSystolic: json['blood_pressure_systolic'],
+      bpDiastolic: json['blood_pressure_diastolic'],
+      bloodGlucose: json['blood_glucose_baseline'],
+      medicalHistory: json['medical_history'],
+      medications: json['medications'],
+      allergies: json['allergies'],
+      primaryProviderId: json['primary_provider_id'],
+      status: json['status'] ?? 'ACTIVE',
+    );
+  }
+}
+
+class ClinicalVisit {
+  final int id;
+  final String hcwId;
+  final DateTime visitDate;
+  final int? systolicBp;
+  final int? diastolicBp;
+  final int? heartRate;
+  final int? bloodGlucose;
+  final double? weightKg;
+  final double? temperature;
+  final double? oxygenSaturation;
+  final String comments;
+  final String medicationIntake;
+  final String changesMade;
+
+  ClinicalVisit({
+    required this.id,
+    required this.hcwId,
+    required this.visitDate,
+    this.systolicBp,
+    this.diastolicBp,
+    this.heartRate,
+    this.bloodGlucose,
+    this.weightKg,
+    this.temperature,
+    this.oxygenSaturation,
+    this.comments = '',
+    this.medicationIntake = '',
+    this.changesMade = '',
+  });
+
+  factory ClinicalVisit.fromJson(Map<String, dynamic> json) {
+    return ClinicalVisit(
+      id: json['id'],
+      hcwId: json['hcw_id'] ?? '',
+      visitDate: DateTime.parse(json['visit_date']),
+      systolicBp: json['systolic_bp'],
+      diastolicBp: json['diastolic_bp'],
+      heartRate: json['heart_rate'],
+      bloodGlucose: json['blood_glucose'],
+      weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      temperature: (json['temperature'] as num?)?.toDouble(),
+      oxygenSaturation: (json['oxygen_saturation'] as num?)?.toDouble(),
+      comments: json['comments'] ?? '',
+      medicationIntake: json['medication_intake'] ?? '',
+      changesMade: json['changes_made'] ?? '',
     );
   }
 }
@@ -564,6 +677,76 @@ class DashboardApiService {
     } catch (e) {
       print('❌ Error deleting notification: $e');
       return false;
+    }
+  }
+
+  /// Fetch full patient detail (includes checkins).
+  Future<Patient?> getPatientDetail(String patientId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/patient/$patientId/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        return Patient.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error fetching patient detail: $e');
+      return null;
+    }
+  }
+
+  /// Fetch clinical visit records for a patient.
+  Future<List<ClinicalVisit>> getClinicalVisits(String patientId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/patient/$patientId/clinical-visits/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((j) => ClinicalVisit.fromJson(j)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching clinical visits: $e');
+      return [];
+    }
+  }
+
+  /// HCW submits a new clinical visit record.
+  Future<String?> addClinicalVisit(String patientId, Map<String, dynamic> visitData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/patient/$patientId/clinical-visits/add/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(visitData),
+      );
+      if (response.statusCode == 201) return null;
+      final data = jsonDecode(response.body);
+      return data.toString();
+    } catch (e) {
+      print('❌ Error adding clinical visit: $e');
+      return 'Network error.';
+    }
+  }
+
+  /// Register a new patient (HCW-initiated with expanded fields).
+  Future<Map<String, dynamic>> registerPatient(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/patients/register/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'data': body};
+      }
+      return {'success': false, 'error': body['error'] ?? body.toString()};
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 }

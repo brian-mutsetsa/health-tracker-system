@@ -14,55 +14,185 @@ from api.models import Provider, Patient, CheckIn, Message, Appointment, Notific
 # ── Canonical patient definitions ────────────────────────────────────────────
 PATIENTS = [
     dict(
-        patient_id='PT001', name='Judy Moyo',    condition='Hypertension',
+        patient_id='PT001', name='Judy',    surname='Moyo',    condition='Hypertension',
+        gender='F', phone_number='+263771000001', pin='1234',
+        district='Harare', home_address='14 Borrowdale Rd, Harare',
+        emergency_contact_name='Tom Moyo',  emergency_contact_phone='+263771000010', emergency_contact_relation='Husband',
         weight_kg=72.0, blood_pressure_systolic=145, blood_pressure_diastolic=92,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
     ),
     dict(
-        patient_id='PT002', name='Ivan Choto',   condition='Hypertension',
+        patient_id='PT002', name='Ivan',    surname='Choto',   condition='Hypertension',
+        gender='M', phone_number='+263771000002', pin='2345',
+        district='Harare', home_address='8 Samora Machel Ave, Harare',
+        emergency_contact_name='Mary Choto', emergency_contact_phone='+263771000011', emergency_contact_relation='Wife',
         weight_kg=85.0, blood_pressure_systolic=160, blood_pressure_diastolic=100,
         primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
     ),
     dict(
-        patient_id='PT003', name='Heidi Chiware', condition='Diabetes',
+        patient_id='PT003', name='Heidi',   surname='Chiware', condition='Diabetes',
+        gender='F', phone_number='+263771000003', pin='3456',
+        district='Chitungwiza', home_address='22 Seke Rd, Chitungwiza',
+        emergency_contact_name='Brian Chiware', emergency_contact_phone='+263771000012', emergency_contact_relation='Brother',
         weight_kg=68.0, blood_glucose_baseline=210,
         primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
     ),
     dict(
-        patient_id='PT004', name='Grace Mutombwa', condition='Heart Disease',
+        patient_id='PT004', name='Grace',   surname='Mutombwa', condition='Heart Disease',
+        gender='F', phone_number='+263771000004', pin='4567',
+        district='Bulawayo', home_address='5 Lobengula St, Bulawayo',
+        emergency_contact_name='Simon Mutombwa', emergency_contact_phone='+263771000013', emergency_contact_relation='Son',
         weight_kg=78.0, blood_pressure_systolic=155, blood_pressure_diastolic=95,
         primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
     ),
     dict(
-        patient_id='PT005', name='Frank Mutasa',  condition='Diabetes',
+        patient_id='PT005', name='Frank',   surname='Mutasa',  condition='Diabetes',
+        gender='M', phone_number='+263771000005', pin='5678',
+        district='Gweru', home_address='11 Robert Mugabe Way, Gweru',
+        emergency_contact_name='Alice Mutasa', emergency_contact_phone='+263771000014', emergency_contact_relation='Wife',
         weight_kg=91.0, blood_glucose_baseline=240,
         primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
     ),
+    # ── Additional patients (PT006–PT015) ─────────────────────────────────────
+    dict(
+        patient_id='PT006', name='Tendai',  surname='Chirombe', condition='Hypertension',
+        gender='M', phone_number='+263771000006', pin='6789',
+        district='Harare', home_address='33 Avondale Dr, Harare',
+        emergency_contact_name='Rudo Chirombe', emergency_contact_phone='+263771000015', emergency_contact_relation='Wife',
+        weight_kg=88.0, blood_pressure_systolic=158, blood_pressure_diastolic=98,
+        primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
+    ),
+    dict(
+        patient_id='PT007', name='Simbai',  surname='Ncube',   condition='Asthma',
+        gender='M', phone_number='+263771000007', pin='7890',
+        district='Bulawayo', home_address='7 Cecil Ave, Bulawayo',
+        emergency_contact_name='Nomsa Ncube', emergency_contact_phone='+263771000016', emergency_contact_relation='Mother',
+        weight_kg=62.0,
+        primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
+    ),
+    dict(
+        patient_id='PT008', name='Rudo',    surname='Makoni',  condition='Diabetes',
+        gender='F', phone_number='+263771000008', pin='8901',
+        district='Mutare', home_address='2 Christmas Pass Rd, Mutare',
+        emergency_contact_name='Patrick Makoni', emergency_contact_phone='+263771000017', emergency_contact_relation='Husband',
+        weight_kg=74.0, blood_glucose_baseline=195,
+        primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
+    ),
+    dict(
+        patient_id='PT009', name='Blessing', surname='Dube',   condition='Heart Disease',
+        gender='F', phone_number='+263771000009', pin='9012',
+        district='Masvingo', home_address='18 Hughes St, Masvingo',
+        emergency_contact_name='Joseph Dube', emergency_contact_phone='+263771000018', emergency_contact_relation='Father',
+        weight_kg=81.0, blood_pressure_systolic=170, blood_pressure_diastolic=105,
+        primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
+    ),
+    dict(
+        patient_id='PT010', name='Tatenda', surname='Mhiripiri', condition='Hypertension',
+        gender='M', phone_number='+263771000010', pin='0123',
+        district='Gweru', home_address='45 Main St, Gweru',
+        emergency_contact_name='Hope Mhiripiri', emergency_contact_phone='+263771000019', emergency_contact_relation='Sister',
+        weight_kg=79.0, blood_pressure_systolic=142, blood_pressure_diastolic=89,
+        primary_provider_id='DR001', last_risk_level='YELLOW', last_risk_color='yellow',
+    ),
+    dict(
+        patient_id='PT011', name='Chenai',  surname='Zulu',    condition='Diabetes',
+        gender='F', phone_number='+263771000011', pin='1122',
+        district='Harare', home_address='91 Mazowe St, Harare',
+        emergency_contact_name='Victor Zulu', emergency_contact_phone='+263771000020', emergency_contact_relation='Husband',
+        weight_kg=69.0, blood_glucose_baseline=230,
+        primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
+    ),
+    dict(
+        patient_id='PT012', name='Kudzai',  surname='Banda',   condition='Asthma',
+        gender='F', phone_number='+263771000012', pin='2233',
+        district='Chitungwiza', home_address='5 Unit B, Chitungwiza',
+        emergency_contact_name='Farirai Banda', emergency_contact_phone='+263771000021', emergency_contact_relation='Daughter',
+        weight_kg=57.0,
+        primary_provider_id='DR001', last_risk_level='GREEN', last_risk_color='green',
+    ),
+    dict(
+        patient_id='PT013', name='Takudzwa', surname='Phiri',  condition='Heart Disease',
+        gender='M', phone_number='+263771000013', pin='3344',
+        district='Harare', home_address='3 Quinnington Close, Harare',
+        emergency_contact_name='Taurai Phiri', emergency_contact_phone='+263771000022', emergency_contact_relation='Brother',
+        weight_kg=83.0, blood_pressure_systolic=165, blood_pressure_diastolic=102,
+        primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
+    ),
+    dict(
+        patient_id='PT014', name='Mavis',   surname='Chikwanda', condition='Hypertension',
+        gender='F', phone_number='+263771000014', pin='4455',
+        district='Bulawayo', home_address='22 Nketa Drive, Bulawayo',
+        emergency_contact_name='Arnold Chikwanda', emergency_contact_phone='+263771000023', emergency_contact_relation='Son',
+        weight_kg=76.5, blood_pressure_systolic=150, blood_pressure_diastolic=94,
+        primary_provider_id='DR001', last_risk_level='ORANGE', last_risk_color='orange',
+    ),
+    dict(
+        patient_id='PT015', name='Simba',   surname='Musiiwa',  condition='Diabetes',
+        gender='M', phone_number='+263771000015', pin='5566',
+        district='Harare', home_address='60 Highfield Rd, Harare',
+        emergency_contact_name='Chipo Musiiwa', emergency_contact_phone='+263771000024', emergency_contact_relation='Wife',
+        weight_kg=95.0, blood_glucose_baseline=260,
+        primary_provider_id='DR001', last_risk_level='RED', last_risk_color='red',
+    ),
 ]
 
-# ── Appointment schedule (relative to today) ──────────────────────────────────
+# ── Appointment schedule (relative to today) ────────────────────────────────
 # Format: (patient_id, days_from_today, HH:MM, reason, status, initiated_by)
+#
+# CONFLICT RESOLUTION DEMO — the following slots are intentionally filled
+# so that the booking dialog shows them as unavailable:
+#   Day+2 : 09:00 PT001, 10:00 PT002, 14:30 PT004  → only 08:xx / 11:xx / 15:xx free
+#   Day+3 : 09:00 PT006, 10:30 PT008, 11:00 PT003, 14:00 PT009, 15:00 PT005
+#             → 08:00 / 08:30 / 12:00 / 14:30 / 15:30 / 16:xx free
+#   Day+4 : 10:00 already booked (PT002 pending) → patient can't re-book same slot
 APPOINTMENTS = [
-    # ── Upcoming SCHEDULED (provider-initiated) ─────────────────────────────
-    ('PT001', +2,  '09:00', 'Blood pressure review',        'SCHEDULED', 'PROVIDER'),
-    ('PT002', +2,  '10:00', 'Hypertension follow-up',       'SCHEDULED', 'PROVIDER'),
-    ('PT004', +2,  '14:30', 'Cardiac monitoring check',     'SCHEDULED', 'PROVIDER'),
-    ('PT003', +3,  '11:00', 'Diabetes management review',   'SCHEDULED', 'PROVIDER'),
-    ('PT005', +3,  '15:00', 'Glucose level assessment',     'SCHEDULED', 'PROVIDER'),
-    ('PT001', +5,  '14:00', 'Medication adjustment',        'SCHEDULED', 'PROVIDER'),
-    ('PT002', +7,  '09:00', 'Monthly check-up',             'SCHEDULED', 'PROVIDER'),
-    ('PT003', +7,  '10:30', 'HbA1c results review',         'SCHEDULED', 'PROVIDER'),
-    ('PT004', +10, '09:00', 'ECG follow-up',                'SCHEDULED', 'PROVIDER'),
-    ('PT005', +14, '14:30', 'Dietary consultation',         'SCHEDULED', 'PROVIDER'),
-    # ── Pending approval (patient-initiated) ────────────────────────────────
-    ('PT002', +4,  '10:00', 'Urgent: headache and dizziness','PENDING',  'PATIENT'),
-    ('PT003', +6,  '15:30', 'Insulin dose query',            'PENDING',  'PATIENT'),
-    # ── Past COMPLETED ───────────────────────────────────────────────────────
-    ('PT001', -1,  '09:00', 'Routine blood pressure check',  'COMPLETED', 'PROVIDER'),
-    ('PT003', -3,  '14:00', 'Diabetes quarterly review',     'COMPLETED', 'PROVIDER'),
-    ('PT002', -7,  '10:00', 'Hypertension medication review','COMPLETED', 'PROVIDER'),
-    ('PT004', -7,  '11:30', 'Heart function assessment',     'COMPLETED', 'PROVIDER'),
-    ('PT005', -14, '09:00', 'Diabetes initial consultation', 'COMPLETED', 'PROVIDER'),
+    # ── Upcoming SCHEDULED ───────────────────────────────────────────────────
+    ('PT001', +2,  '09:00', 'Blood pressure review',           'SCHEDULED', 'PROVIDER'),
+    ('PT002', +2,  '10:00', 'Hypertension follow-up',          'SCHEDULED', 'PROVIDER'),
+    ('PT004', +2,  '14:30', 'Cardiac monitoring check',        'SCHEDULED', 'PROVIDER'),
+    ('PT006', +2,  '11:00', 'BP monitoring — new patient',     'SCHEDULED', 'PROVIDER'),
+    ('PT010', +2,  '15:00', 'Initial hypertension consult',    'SCHEDULED', 'PROVIDER'),
+    ('PT013', +2,  '16:00', 'Heart disease assessment',        'SCHEDULED', 'PROVIDER'),
+    ('PT003', +3,  '11:00', 'Diabetes management review',      'SCHEDULED', 'PROVIDER'),
+    ('PT005', +3,  '15:00', 'Glucose level assessment',        'SCHEDULED', 'PROVIDER'),
+    ('PT006', +3,  '09:00', 'Hypertension follow-up',          'SCHEDULED', 'PROVIDER'),
+    ('PT008', +3,  '10:30', 'HbA1c review',                    'SCHEDULED', 'PROVIDER'),
+    ('PT009', +3,  '14:00', 'Cardiac monitoring',              'SCHEDULED', 'PROVIDER'),
+    ('PT011', +3,  '16:30', 'Diabetes insulin review',         'SCHEDULED', 'PROVIDER'),
+    ('PT001', +5,  '14:00', 'Medication adjustment',           'SCHEDULED', 'PROVIDER'),
+    ('PT007', +5,  '09:00', 'Asthma inhaler technique check',  'SCHEDULED', 'PROVIDER'),
+    ('PT012', +5,  '10:00', 'Asthma spirometry review',        'SCHEDULED', 'PROVIDER'),
+    ('PT014', +5,  '11:00', 'BP medication titration',         'SCHEDULED', 'PROVIDER'),
+    ('PT015', +5,  '15:30', 'Diabetes weight management',      'SCHEDULED', 'PROVIDER'),
+    ('PT002', +7,  '09:00', 'Monthly check-up',                'SCHEDULED', 'PROVIDER'),
+    ('PT003', +7,  '10:30', 'HbA1c results review',            'SCHEDULED', 'PROVIDER'),
+    ('PT004', +10, '09:00', 'ECG follow-up',                   'SCHEDULED', 'PROVIDER'),
+    ('PT005', +14, '14:30', 'Dietary consultation',            'SCHEDULED', 'PROVIDER'),
+    ('PT008', +7,  '14:00', 'Diabetes quarterly review',       'SCHEDULED', 'PROVIDER'),
+    ('PT009', +10, '10:00', 'Heart function assessment',       'SCHEDULED', 'PROVIDER'),
+    ('PT013', +14, '09:00', 'ECG and stress test review',      'SCHEDULED', 'PROVIDER'),
+    # ── Pending approval (patient-initiated) ─────────────────────────────────
+    # PT002 tries 10:00 on day+4 — this slot is free that day so it shows as bookable
+    ('PT002', +4,  '10:00', 'Urgent: headache and dizziness',  'PENDING',  'PATIENT'),
+    ('PT003', +6,  '15:30', 'Insulin dose query',              'PENDING',  'PATIENT'),
+    # PT006 tries 09:00 on day+3 — that slot is ALREADY taken (SCHEDULED above),
+    # so this pending request demonstrates a conflict that admin must resolve
+    ('PT006', +3,  '09:00', 'Urgent chest tightness',          'PENDING',  'PATIENT'),
+    ('PT011', +5,  '10:00', 'High glucose reading concern',    'PENDING',  'PATIENT'),
+    ('PT015', +7,  '09:00', 'Weight spike and fatigue',        'PENDING',  'PATIENT'),
+    # ── Past COMPLETED ────────────────────────────────────────────────────────
+    ('PT001', -1,  '09:00', 'Routine blood pressure check',    'COMPLETED', 'PROVIDER'),
+    ('PT003', -3,  '14:00', 'Diabetes quarterly review',       'COMPLETED', 'PROVIDER'),
+    ('PT002', -7,  '10:00', 'Hypertension medication review',  'COMPLETED', 'PROVIDER'),
+    ('PT004', -7,  '11:30', 'Heart function assessment',       'COMPLETED', 'PROVIDER'),
+    ('PT005', -14, '09:00', 'Diabetes initial consultation',   'COMPLETED', 'PROVIDER'),
+    ('PT006', -2,  '09:00', 'BP baseline measurement',         'COMPLETED', 'PROVIDER'),
+    ('PT007', -5,  '10:00', 'Asthma action plan review',       'COMPLETED', 'PROVIDER'),
+    ('PT008', -4,  '14:00', 'Diabetes education session',      'COMPLETED', 'PROVIDER'),
+    ('PT009', -6,  '11:00', 'Echocardiogram follow-up',        'COMPLETED', 'PROVIDER'),
+    ('PT010', -3,  '15:00', 'Blood pressure log review',       'COMPLETED', 'PROVIDER'),
+    ('PT011', -8,  '09:30', 'Insulin initiation consult',      'COMPLETED', 'PROVIDER'),
+    ('PT013', -10, '14:30', 'Cardiology referral discussion',  'COMPLETED', 'PROVIDER'),
 ]
 
 CHECKIN_ANSWERS_BY_CONDITION = {
@@ -133,6 +263,15 @@ class Command(BaseCommand):
                 patient_id=pid,
                 defaults={
                     'name': pdata['name'],
+                    'surname': pdata.get('surname', ''),
+                    'gender': pdata.get('gender', 'M'),
+                    'phone_number': pdata.get('phone_number', ''),
+                    'pin': pdata.get('pin', ''),
+                    'district': pdata.get('district', ''),
+                    'home_address': pdata.get('home_address', ''),
+                    'emergency_contact_name': pdata.get('emergency_contact_name', ''),
+                    'emergency_contact_phone': pdata.get('emergency_contact_phone', ''),
+                    'emergency_contact_relation': pdata.get('emergency_contact_relation', ''),
                     'condition': pdata['condition'],
                     'weight_kg': pdata.get('weight_kg'),
                     'blood_pressure_systolic': pdata.get('blood_pressure_systolic'),
@@ -181,7 +320,7 @@ class Command(BaseCommand):
                 Message.objects.create(
                     sender_id='DR001',
                     receiver_id=pid,
-                    content=f'Hi {patient.name.split()[0]}, keep monitoring your vitals daily.',
+                    content=f'Hi {patient.name}, keep monitoring your vitals daily.',
                     is_read=True,
                 )
 

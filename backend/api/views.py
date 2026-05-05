@@ -6,11 +6,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.core.management import call_command
-from .models import Patient, CheckIn, Message, Provider, TypingStatus, Appointment, Notification
-from .serializers import (PatientSerializer, CheckInSerializer, CheckInCreateSerializer, 
+from .models import Patient, CheckIn, Message, Provider, TypingStatus, Appointment, Notification, ClinicalVisit
+from .serializers import (PatientSerializer, CheckInSerializer, CheckInCreateSerializer,
                          MessageSerializer, ProviderSerializer, TypingStatusSerializer,
                          PatientRegistrationSerializer, PatientUpdateSerializer, PatientListSerializer,
-                         AppointmentSerializer, NotificationSerializer)
+                         AppointmentSerializer, NotificationSerializer, ClinicalVisitSerializer)
 from django.db import models
 from django.utils import timezone
 from django.db.models import Q
@@ -376,6 +376,61 @@ def patient_login(request):
         return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+@api_view(['POST'])
+def patient_phone_pin_login(request):
+    """
+    Authenticate a patient using phone number + PIN.
+    New login method introduced for client-facing app.
+    """
+    phone_number = request.data.get('phone_number', '').strip()
+    pin = request.data.get('pin', '').strip()
+
+    if not phone_number or not pin:
+        return Response({'error': 'Phone number and PIN required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        patient = Patient.objects.get(phone_number=phone_number)
+    except Patient.DoesNotExist:
+        return Response({'error': 'No account found with that phone number'}, status=status.HTTP_404_NOT_FOUND)
+
+    if patient.pin != pin:
+        return Response({'error': 'Invalid phone number or PIN'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    response_data = PatientSerializer(patient).data
+    response_data['patient_id'] = patient.patient_id
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_clinical_visits(request, patient_id):
+    """Return all clinical visit records for a patient, newest first."""
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    visits = ClinicalVisit.objects.filter(patient=patient)
+    return Response(ClinicalVisitSerializer(visits, many=True).data)
+
+
+@api_view(['POST'])
+def add_clinical_visit(request, patient_id):
+    """HCW submits a new clinical visit record for a patient."""
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    data = request.data.copy()
+    data['patient'] = patient.pk
+
+    serializer = ClinicalVisitSerializer(data=data)
+    if serializer.is_valid():
+        visit = serializer.save()
+        return Response(ClinicalVisitSerializer(visit).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 def trigger_seed(request):
     """
@@ -393,19 +448,30 @@ def trigger_seed(request):
             cursor.execute("DROP TABLE IF EXISTS api_typingstatus CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_notification CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_appointment CASCADE;")
+            cursor.execute("DROP TABLE IF EXISTS api_clinicalvisit CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_checkin CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_message CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_provider CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS api_patient CASCADE;")
             print(" Dropped all tables")
-            
+
             # Recreate Patient table
             cursor.execute("""
                 CREATE TABLE api_patient (
                     id BIGSERIAL PRIMARY KEY,
                     patient_id VARCHAR(100) UNIQUE NOT NULL,
-                    name VARCHAR(200),
+                    name VARCHAR(200) DEFAULT '',
+                    surname VARCHAR(200) DEFAULT '',
                     date_of_birth DATE,
+                    gender VARCHAR(10) DEFAULT '',
+                    id_number VARCHAR(50) DEFAULT '',
+                    phone_number VARCHAR(20) DEFAULT '',
+                    pin VARCHAR(255) DEFAULT '',
+                    district VARCHAR(100) DEFAULT '',
+                    home_address TEXT DEFAULT '',
+                    emergency_contact_name VARCHAR(200) DEFAULT '',
+                    emergency_contact_phone VARCHAR(20) DEFAULT '',
+                    emergency_contact_relation VARCHAR(100) DEFAULT '',
                     condition VARCHAR(50) NOT NULL,
                     status VARCHAR(20) DEFAULT 'ACTIVE',
                     password VARCHAR(255) DEFAULT 'test123',
@@ -413,9 +479,9 @@ def trigger_seed(request):
                     blood_pressure_systolic INTEGER,
                     blood_pressure_diastolic INTEGER,
                     blood_glucose_baseline INTEGER,
-                    medical_history TEXT,
-                    medications TEXT,
-                    allergies TEXT,
+                    medical_history TEXT DEFAULT '',
+                    medications TEXT DEFAULT '',
+                    allergies TEXT DEFAULT '',
                     primary_provider_id VARCHAR(100),
                     last_checkin TIMESTAMP,
                     last_risk_level VARCHAR(20),
@@ -504,6 +570,28 @@ def trigger_seed(request):
                 );
             """)
             print(" Recreated api_typingstatus table")
+
+            # Recreate ClinicalVisit table
+            cursor.execute("""
+                CREATE TABLE api_clinicalvisit (
+                    id BIGSERIAL PRIMARY KEY,
+                    patient_id BIGINT NOT NULL REFERENCES api_patient(id) ON DELETE CASCADE,
+                    hcw_id VARCHAR(100) NOT NULL,
+                    visit_date TIMESTAMP NOT NULL,
+                    systolic_bp INTEGER,
+                    diastolic_bp INTEGER,
+                    heart_rate INTEGER,
+                    blood_glucose INTEGER,
+                    weight_kg DOUBLE PRECISION,
+                    temperature DOUBLE PRECISION,
+                    oxygen_saturation DOUBLE PRECISION,
+                    comments TEXT DEFAULT '',
+                    medication_intake TEXT DEFAULT '',
+                    changes_made TEXT DEFAULT '',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print(" Recreated api_clinicalvisit table")
             
             # Recreate Provider table
             cursor.execute("""
@@ -853,15 +941,20 @@ def register_patient(request):
 
     data = request.data.copy()
 
-    # Auto-generate patient_id
+    # Auto-generate patient_id: parse the highest existing PTxxxx number and increment
     if not data.get('patient_id'):
-        last_patient = Patient.objects.order_by('-id').first()
-        next_num = (last_patient.id + 1) if last_patient else 1
-        data['patient_id'] = f'PT{next_num:04d}'
-        # Ensure uniqueness
+        import re as _re
+        highest = 0
+        for pid in Patient.objects.values_list('patient_id', flat=True):
+            m = _re.match(r'^PT(\d+)$', pid or '')
+            if m:
+                highest = max(highest, int(m.group(1)))
+        next_num = highest + 1
+        data['patient_id'] = f'PT{next_num:03d}'
+        # Ensure uniqueness (shouldn't be needed, but guard anyway)
         while Patient.objects.filter(patient_id=data['patient_id']).exists():
             next_num += 1
-            data['patient_id'] = f'PT{next_num:04d}'
+            data['patient_id'] = f'PT{next_num:03d}'
 
     # Auto-generate password if not provided
     plain_password = data.get('password', '').strip()

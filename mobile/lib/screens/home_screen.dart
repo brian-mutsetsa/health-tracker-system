@@ -101,9 +101,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          _upcomingAppointmentCount = scheduled;
-          _unreadMessageCount = unread;
-          _unreadNotificationCount = unreadNotifs;
+          // Don't restore a badge the user already cleared by navigating to that tab
+          if (_currentIndex != 2) _upcomingAppointmentCount = scheduled;
+          if (_currentIndex != 3) _unreadMessageCount = unread;
+          // For notifications (push screen): only increment for genuinely NEW arrivals
+          final newNotifDelta = unreadNotifs > _lastKnownNotificationCount
+              ? unreadNotifs - _lastKnownNotificationCount
+              : 0;
+          _unreadNotificationCount = _unreadNotificationCount + newNotifDelta;
         });
       }
     } catch (e) {
@@ -302,7 +307,9 @@ class _HomeScreenState extends State<HomeScreen> {
               // Clear the badge immediately — user is about to see the notifications
               setState(() {
                 _unreadNotificationCount = 0;
-                _lastKnownNotificationCount = 0;
+                // Do NOT reset _lastKnownNotificationCount here — keeping it at the
+                // current server count prevents the badge reappearing on next poll
+                // for already-read notifications.
               });
               final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
               if (patientId.isNotEmpty) _apiService.markAllNotificationsRead(patientId);

@@ -11,6 +11,7 @@ urlpatterns = [
     # Custom endpoints FIRST (before router)
     path('auth/login/', views.provider_login, name='provider-login'),
     path('auth/patient-login/', views.patient_login, name='patient-login'),
+    path('auth/patient-phone-pin/', views.patient_phone_pin_login, name='patient-phone-pin-login'),
     path('auth/verify/', views.verify_session, name='verify-session'),
     path('checkin/submit/', views.create_checkin, name='create-checkin'),
     path('patient/<str:patient_id>/', views.get_patient_by_id, name='get-patient'),
@@ -18,6 +19,8 @@ urlpatterns = [
     path('patient/<str:patient_id>/baseline/', views.get_patient_baseline, name='get-patient-baseline'),
     path('patient/<str:patient_id>/baseline/update/', views.update_patient_baseline, name='update-patient-baseline'),
     path('patient/<str:patient_id>/change-password/', views.change_patient_password, name='change-patient-password'),
+    path('patient/<str:patient_id>/clinical-visits/', views.get_clinical_visits, name='get-clinical-visits'),
+    path('patient/<str:patient_id>/clinical-visits/add/', views.add_clinical_visit, name='add-clinical-visit'),
     path('patients/register/', views.register_patient, name='register-patient'),
     path('patients/search/', views.search_patients, name='search-patients'),
     path('patients/', views.list_all_patients, name='list-patients'),

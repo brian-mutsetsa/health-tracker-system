@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
+import 'patient_detail_screen.dart';
 
 const double _kMobileBreakpoint = 768.0;
 
@@ -49,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDataSilently() async {
-    // Check session validity first â€” force logout if admin has deactivated the account
+    // Check session validity first — force logout if admin has deactivated the account
     final sessionStatus = await _apiService.verifySession();
     if (sessionStatus == 'deactivated') {
       await _forceLogout();
@@ -67,9 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _stats = stats;
         _appointments = appointments;
         _notifications = notifs;
-        _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
-        _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
-        _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
+        // Don't restore a badge the user already cleared by navigating to that tab
+        if (_selectedIndex != 2) _pendingAppointmentCount = appointments.where((a) => a.status == 'PENDING').length;
+        if (_selectedIndex != 3) _highRiskCount = patients.where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE').length;
+        if (_selectedIndex != 5) _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
     }
   }
@@ -146,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Account setup incomplete â€” your specialty and hospital have not been configured yet. '
+                'Account setup incomplete — your specialty and hospital have not been configured yet. '
                 'Your administrator has been notified and will complete your profile shortly.',
                 style: TextStyle(color: Colors.white, fontSize: 13),
               ),
@@ -670,7 +672,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
             .toList();
         return _buildPatientsView(
-          'High Risk â€” Action Required',
+          'High Risk — Action Required',
           highRisk,
           isMobile: isMobile,
         );
@@ -1263,13 +1265,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: isMobile ? 20 : 32,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textDark,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: _showRegisterPatientDialog,
+                icon: const Icon(Icons.person_add, size: 18),
+                label: const Text('Register Patient'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 14 : 20, vertical: 12),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: isMobile ? 16 : 32),
           Container(
@@ -1291,6 +1308,238 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     ).animate().fadeIn();
+  }
+
+  Future<void> _showRegisterPatientDialog() async {
+    // Controllers – personal
+    final nameC = TextEditingController();
+    final surnameC = TextEditingController();
+    final idNumC = TextEditingController();
+    final phoneC = TextEditingController();
+    final pinC = TextEditingController();
+    // Location
+    final districtC = TextEditingController();
+    final addressC = TextEditingController();
+    // Emergency contact
+    final ecNameC = TextEditingController();
+    final ecPhoneC = TextEditingController();
+    final ecRelationC = TextEditingController();
+    // Baseline vitals
+    final weightC = TextEditingController();
+    final sbpC = TextEditingController();
+    final dbpC = TextEditingController();
+    final glucoseC = TextEditingController();
+
+    DateTime? selectedDob;
+    String selectedGender = 'M';
+    String selectedCondition = 'Hypertension';
+    bool saving = false;
+
+    const conditions = ['Hypertension', 'Diabetes', 'Heart Disease', 'Asthma', 'Other'];
+    const genders = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')];
+
+    InputDecoration _fd(String label) => InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textLight),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+        );
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          Widget sectionLabel(String t) => Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 8),
+                child: Text(t,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: AppTheme.primaryTeal)),
+              );
+
+          return AlertDialog(
+            title: const Text('Register New Patient',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Personal ──────────────────────────────────────────
+                    sectionLabel('Personal Information'),
+                    Row(children: [
+                      Expanded(child: TextField(controller: nameC, decoration: _fd('First Name *'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: surnameC, decoration: _fd('Surname *'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: DateTime(1985),
+                              firstDate: DateTime(1920),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) setS(() => selectedDob = picked);
+                          },
+                          child: InputDecorator(
+                            decoration: _fd('Date of Birth'),
+                            child: Text(
+                              selectedDob != null
+                                  ? '${selectedDob!.day.toString().padLeft(2, '0')}/${selectedDob!.month.toString().padLeft(2, '0')}/${selectedDob!.year}'
+                                  : 'Select...',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: selectedDob != null
+                                      ? AppTheme.textDark
+                                      : AppTheme.textLight),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: selectedGender,
+                          decoration: _fd('Gender'),
+                          items: genders
+                              .map((g) => DropdownMenuItem(
+                                  value: g.$1, child: Text(g.$2)))
+                              .toList(),
+                          onChanged: (v) => setS(() => selectedGender = v!),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 8),
+                    TextField(controller: idNumC, decoration: _fd('National ID Number')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextField(controller: phoneC, keyboardType: TextInputType.phone, decoration: _fd('Phone Number'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: pinC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6, decoration: _fd('PIN (4–6 digits)'))),
+                    ]),
+                    // ── Location ──────────────────────────────────────────
+                    sectionLabel('Location'),
+                    TextField(controller: districtC, decoration: _fd('District')),
+                    const SizedBox(height: 8),
+                    TextField(controller: addressC, decoration: _fd('Home Address'), maxLines: 2),
+                    // ── Emergency Contact ─────────────────────────────────
+                    sectionLabel('Emergency Contact'),
+                    TextField(controller: ecNameC, decoration: _fd('Contact Name')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextField(controller: ecPhoneC, keyboardType: TextInputType.phone, decoration: _fd('Contact Phone'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: ecRelationC, decoration: _fd('Relation (e.g. Spouse)'))),
+                    ]),
+                    // ── Medical ───────────────────────────────────────────
+                    sectionLabel('Medical'),
+                    DropdownButtonFormField<String>(
+                      value: selectedCondition,
+                      decoration: _fd('Condition *'),
+                      items: conditions
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (v) => setS(() => selectedCondition = v!),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextField(controller: weightC, keyboardType: TextInputType.number, decoration: _fd('Weight (kg)'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: sbpC, keyboardType: TextInputType.number, decoration: _fd('Systolic BP'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: dbpC, keyboardType: TextInputType.number, decoration: _fd('Diastolic BP'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    TextField(controller: glucoseC, keyboardType: TextInputType.number, decoration: _fd('Blood Glucose (mg/dL)')),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (nameC.text.trim().isEmpty || surnameC.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('First name and surname are required')),
+                          );
+                          return;
+                        }
+                        setS(() => saving = true);
+                        final data = <String, dynamic>{
+                          'name': nameC.text.trim(),
+                          'surname': surnameC.text.trim(),
+                          'gender': selectedGender,
+                          'condition': selectedCondition,
+                          'primary_provider_id': DashboardApiService.currentProviderId ?? 'DR001',
+                          'password': 'test123',
+                        };
+                        if (selectedDob != null) {
+                          data['date_of_birth'] =
+                              '${selectedDob!.year}-${selectedDob!.month.toString().padLeft(2, '0')}-${selectedDob!.day.toString().padLeft(2, '0')}';
+                        }
+                        _setIfNotEmpty(data, 'id_number', idNumC.text);
+                        _setIfNotEmpty(data, 'phone_number', phoneC.text);
+                        _setIfNotEmpty(data, 'pin', pinC.text);
+                        _setIfNotEmpty(data, 'district', districtC.text);
+                        _setIfNotEmpty(data, 'home_address', addressC.text);
+                        _setIfNotEmpty(data, 'emergency_contact_name', ecNameC.text);
+                        _setIfNotEmpty(data, 'emergency_contact_phone', ecPhoneC.text);
+                        _setIfNotEmpty(data, 'emergency_contact_relation', ecRelationC.text);
+                        if (weightC.text.trim().isNotEmpty) data['weight_kg'] = double.tryParse(weightC.text.trim());
+                        if (sbpC.text.trim().isNotEmpty) data['blood_pressure_systolic'] = int.tryParse(sbpC.text.trim());
+                        if (dbpC.text.trim().isNotEmpty) data['blood_pressure_diastolic'] = int.tryParse(dbpC.text.trim());
+                        if (glucoseC.text.trim().isNotEmpty) data['blood_glucose_baseline'] = int.tryParse(glucoseC.text.trim());
+
+                        final result = await _apiService.registerPatient(data);
+                        if (!mounted) return;
+                        Navigator.pop(ctx);
+                        if (result['success'] == true) {
+                          final newId = result['data']?['patient_id'] ?? '';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Patient registered! ID: $newId'),
+                              backgroundColor: AppTheme.primaryTeal,
+                            ),
+                          );
+                          _loadData();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: ${result['error']}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.primaryTeal),
+                child: saving
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Register Patient'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _setIfNotEmpty(Map<String, dynamic> map, String key, String value) {
+    if (value.trim().isNotEmpty) map[key] = value.trim();
   }
 
   // â”€â”€â”€ Desktop Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1400,7 +1649,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: const Text('Export PDF', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
                       ),
                     TextButton(
-                      onPressed: () => _showPatientDetailsModal(p),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
+                      ),
                       child: const Text('Details', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
                     ),
                   ],
@@ -1516,7 +1768,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: () => _showPatientDetailsModal(p),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PatientDetailScreen(patient: p)),
+                    ),
                   ),
                 ),
               ],
@@ -1656,7 +1911,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text('${patient.name} (${patient.patientId})', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                           const SizedBox(height: 4),
-                          Text('${patient.condition} â€¢ ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                          Text('${patient.condition} • ${_formatDate(patient.lastCheckin ?? DateTime.now())}', style: const TextStyle(fontSize: 14, color: AppTheme.textLight)),
                         ],
                       ),
                       IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
@@ -2252,31 +2507,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const Text('Time Slot', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(width: 8),
                         if (loadingSlots) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                        if (!loadingSlots && bookedSlots.isNotEmpty)
+                          Text(
+                            '(${bookedSlots.length} slot${bookedSlots.length == 1 ? '' : 's'} already booked — hidden)',
+                            style: const TextStyle(fontSize: 11, color: AppTheme.textLight),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 8),
+                    if (!loadingSlots && timeSlots.every((s) => bookedSlots.contains(s)))
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: const Row(children: [
+                          Icon(Icons.event_busy, size: 16, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('No available slots on this date — all times are booked.',
+                              style: TextStyle(fontSize: 12, color: Colors.orange)),
+                        ]),
+                      ),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: timeSlots.map((slot) {
-                        final isBooked = bookedSlots.contains(slot);
+                      children: timeSlots.where((slot) => !bookedSlots.contains(slot)).map((slot) {
                         final isSelected = selectedTime == slot;
                         return GestureDetector(
-                          onTap: isBooked ? null : () => setDialogState(() => selectedTime = slot),
+                          onTap: () => setDialogState(() => selectedTime = slot),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isBooked
-                                  ? Colors.grey.shade200
-                                  : isSelected
-                                      ? AppTheme.primaryTeal
-                                      : Colors.white,
+                              color: isSelected ? AppTheme.primaryTeal : Colors.white,
                               border: Border.all(
-                                color: isBooked
-                                    ? Colors.grey.shade300
-                                    : isSelected
-                                        ? AppTheme.primaryTeal
-                                        : Colors.grey.shade400,
+                                color: isSelected ? AppTheme.primaryTeal : Colors.grey.shade400,
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -2285,12 +2551,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: isBooked
-                                    ? Colors.grey.shade400
-                                    : isSelected
-                                        ? Colors.white
-                                        : AppTheme.textDark,
-                                decoration: isBooked ? TextDecoration.lineThrough : null,
+                                color: isSelected ? Colors.white : AppTheme.textDark,
                               ),
                             ),
                           ),
@@ -2848,4 +3109,5 @@ class _MessagePanelState extends State<_MessagePanel> {
     );
   }
 }
+
 

@@ -18,13 +18,30 @@ class Patient(models.Model):
         ('INACTIVE', 'Inactive'),
         ('DISCHARGED', 'Discharged'),
     ]
-    
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+
     patient_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=200, blank=True)
+    surname = models.CharField(max_length=200, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True)
+    id_number = models.CharField(max_length=50, blank=True, help_text="National ID number")
+    phone_number = models.CharField(max_length=20, blank=True)
+    pin = models.CharField(max_length=255, blank=True, help_text="Patient PIN for phone+PIN login (plain-text; hash in production)")
+    district = models.CharField(max_length=100, blank=True)
+    home_address = models.TextField(blank=True)
     condition = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
-    password = models.CharField(max_length=255, default='test123', help_text="Patient login password (hashed in production)")
+    password = models.CharField(max_length=255, default='test123', help_text="Legacy password field")
+
+    # Emergency contact
+    emergency_contact_name = models.CharField(max_length=200, blank=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True)
+    emergency_contact_relation = models.CharField(max_length=100, blank=True)
     
     # Baseline clinical data
     weight_kg = models.FloatField(null=True, blank=True, help_text="Weight in kilograms")
@@ -176,3 +193,32 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class ClinicalVisit(models.Model):
+    """A visit record entered by an HCW (nurse/doctor) for a patient."""
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='clinical_visits')
+    hcw_id = models.CharField(max_length=100, help_text="provider_id of the HCW who recorded this visit")
+    visit_date = models.DateTimeField()
+
+    # Vital signs
+    systolic_bp = models.IntegerField(null=True, blank=True)
+    diastolic_bp = models.IntegerField(null=True, blank=True)
+    heart_rate = models.IntegerField(null=True, blank=True)
+    blood_glucose = models.IntegerField(null=True, blank=True, help_text="mg/dL")
+    weight_kg = models.FloatField(null=True, blank=True)
+    temperature = models.FloatField(null=True, blank=True, help_text="Celsius")
+    oxygen_saturation = models.FloatField(null=True, blank=True, help_text="SpO2 %")
+
+    # Narrative fields
+    comments = models.TextField(blank=True)
+    medication_intake = models.TextField(blank=True, help_text="Medications taken at this visit")
+    changes_made = models.TextField(blank=True, help_text="Any changes to treatment/medication")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Visit: {self.patient.patient_id} on {self.visit_date.strftime('%Y-%m-%d')} by {self.hcw_id}"
+
+    class Meta:
+        ordering = ['-visit_date']

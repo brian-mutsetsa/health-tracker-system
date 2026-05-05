@@ -217,6 +217,124 @@ The mobile app calculates risk using an **on-device TensorFlow Lite neural netwo
 
 ---
 
+## 🧪 TEST PHASE 9: Expanded Patient List (15 Patients)
+**Objective:** Verify that the system now shows all 15 seeded patients, not just the original 5.
+
+**Step-by-Step Instructions:**
+1. Trigger a fresh seed: `GET https://health-tracker-api-blky.onrender.com/api/trigger-seed/`
+2. Log in to the dashboard as `admin` / `password`.
+3. Click the **All Patients** tab.
+4. **The Verification:** The table lists all 15 patients — PT001 through PT015 — with names, conditions, risk levels and last check-in dates. You should see a mix of Hypertension, Diabetes, Heart Disease and Asthma patients from various districts (Harare, Bulawayo, Mutare, Masvingo, Gweru, Chitungwiza).
+5. Check the **High Risk** tab.
+6. **The Verification:** Patients PT004 (Grace Mutombwa), PT009 (Blessing Dube), PT013 (Takudzwa Phiri) and PT015 (Simba Musiiwa) should appear as RED; PT002, PT006, PT011, PT014 should appear as ORANGE.
+
+---
+
+## 🧪 TEST PHASE 10: Appointment Conflict Resolution
+**Objective:** Verify that when booking an appointment, only genuinely free time slots are shown — already-booked slots are completely hidden.
+
+### PART A — Booking Shows Only Free Slots
+
+1. Log in to the dashboard as `dr_hyper` / `password`.
+2. Click the **Appointments** tab → **Book Appointment**.
+3. Select patient **Tendai Chirombe (PT006)** from the dropdown.
+4. Select the date **today + 2 days** (the date seeded with heavy bookings).
+5. **The Verification:** The following slots are already booked and will NOT appear in the grid:
+   - `09:00` — PT001 Blood pressure review
+   - `10:00` — PT002 Hypertension follow-up
+   - `11:00` — PT006 BP monitoring
+   - `14:30` — PT004 Cardiac monitoring
+   - `15:00` — PT010 Initial hypertension consult
+   - `16:00` — PT013 Heart disease assessment
+   
+   Only `08:00`, `08:30`, `09:30`, `10:30`, `12:00`, `14:00`, `15:30`, `16:30` will be visible.
+6. Select `08:30`, enter reason **"Urgent BP spike"**, click **Book**.
+7. **The Verification:** Booking succeeds. Go back and try **Book Appointment** again for the same day — `08:30` now also disappears from the grid.
+
+### PART B — Fully Booked Day Shows Warning
+
+1. Open Book Appointment, select today + 3 days (seeded with 6 bookings across morning and afternoon).
+2. **The Verification:** The hint text beneath "Time Slot" reads *"(6 slots already booked — hidden)"*.
+3. If you could fill all 15 slots on a date, the grid would show an orange warning: *"No available slots on this date — all times are booked."*
+
+### PART C — Conflict via Pending Appointment
+
+The seed data includes a **conflict** on day +3 for PT006:
+- `09:00` is already **SCHEDULED** (provider booked PT006 for "Hypertension follow-up").
+- PT006 also submitted a **PENDING** patient request for `09:00` on the same day ("Urgent chest tightness").
+
+1. Log in as `admin` / `password`, go to **Appointments** tab.
+2. **The Verification:** PT006 has a PENDING request at 09:00 on day +3. When you try to **Approve** it, the backend will reject with *"This time slot is already booked"* — demonstrating server-side conflict enforcement even when a slot slips through.
+
+---
+
+## 🧪 TEST PHASE 11: Patient Detail Page (Doctors)
+**Objective:** Verify that clicking a patient opens a full 3-tab detail page instead of just a modal.
+
+**Step-by-Step Instructions:**
+1. Log in to the dashboard as `dr_hyper` / `password`.
+2. Click **All Patients** in the sidebar.
+3. Click the **Details** button on any patient row (e.g., Grace Mutombwa PT004).
+4. **The Verification:** The browser navigates to a full-page view (not a popup) with three tabs:
+   - **Profile** — Shows risk banner (RED for PT004), personal info (name, DOB, ID, phone), location (Bulawayo), emergency contact (Simon Mutombwa / Son), and medical info (Heart Disease, baseline BP 155/95).
+   - **Check-ins** — Lists up to 30 check-in cards colour-coded by risk. Each card shows the date, risk level, BP and glucose readings.
+   - **Clinical** — Shows any recorded clinical visits. An **Add Visit** button opens a form to record vitals (BP, HR, glucose, weight, temperature, SpO₂), medications, comments and changes made.
+5. On the Clinical tab, click **Add Visit** and fill in:
+   - Systolic BP: `160`, Diastolic BP: `100`
+   - Heart Rate: `88`
+   - Comments: `Patient reports increased chest pressure after exertion`
+   - Changes Made: `Increased lisinopril from 5mg to 10mg`
+6. Click **Save Visit**.
+7. **The Verification:** The visit card appears immediately in the list with today's date, the vitals chips, and the comment/changes text.
+
+---
+
+## 🧪 TEST PHASE 12: HCW Patient Registration (Expanded Fields)
+**Objective:** Verify that an HCW can register a new patient with all demographic and emergency contact fields.
+
+**Step-by-Step Instructions:**
+1. Log in to the dashboard as `dr_hyper` / `password`.
+2. Click **All Patients** in the sidebar.
+3. **The Verification:** A **Register Patient** button appears at the top-right of the patients view.
+4. Click **Register Patient**. A multi-section dialog opens.
+5. Fill in:
+   - **First Name:** `Tariro`  **Surname:** `Gumbo`
+   - **Date of Birth:** `1990-03-15` (use the date picker)
+   - **Gender:** `Female`
+   - **National ID:** `63-2991847-R-90`
+   - **Phone Number:** `+263771000099`  **PIN:** `9988`
+   - **District:** `Harare`  **Home Address:** `12 Fife Ave, Harare`
+   - **Emergency Contact Name:** `Blessing Gumbo`  **Phone:** `+263771000098`  **Relation:** `Sister`
+   - **Condition:** `Hypertension`
+   - **Weight:** `68`  **Systolic BP:** `148`  **Diastolic BP:** `91`
+6. Click **Register Patient**.
+7. **The Verification:** A green snackbar appears: *"Patient registered! ID: PT016"* (or the next sequential ID). The patient list reloads and Tariro Gumbo appears at the bottom.
+8. **Sequential ID check:** Register a second patient (any name). Their ID should be **PT017**.
+
+---
+
+## 🧪 TEST PHASE 13: Phone + PIN Patient Login (Mobile)
+**Objective:** Verify that patients can log in using their registered phone number and PIN instead of Patient ID + password.
+
+**Step-by-Step Instructions:**
+1. Open the mobile app on your Android device. You should see the login screen with two tabs: **Patient ID** and **Phone + PIN**.
+2. Tap the **Phone + PIN** tab.
+3. Enter:
+   - **Phone Number:** `+263771000001`
+   - **PIN:** `1234`
+4. Tap **Login**.
+5. **The Verification:** The app logs in as Judy Moyo (PT001) and navigates to the home screen. The patient name and condition (Hypertension) are shown on the home screen header.
+6. Log out and try wrong credentials:
+   - Phone: `+263771000001`, PIN: `0000`
+7. **The Verification:** A red snackbar: *"Invalid phone number or PIN."*
+
+### Legacy Login Still Works
+1. Tap the **Patient ID** tab.
+2. Enter `PT005` / `test123`.
+3. **The Verification:** Logs in as Frank Mutasa — the original login method is unaffected.
+
+---
+
 ### PART C — Conflict Prevention: Same Patient, Same Time (Should be BLOCKED)
 
 > This test confirms that a patient **cannot be double-booked** at the same time, even with a different doctor.
