@@ -22,19 +22,111 @@ Complete the tiers in order. Every step includes an expected outcome.
 
 | System | URL |
 |---|---|
-| Django Admin Panel | https://health-tracker-api-blky.onrender.com/admin/ |
+| Django Admin Panel | https://health-tracker-system-production.up.railway.app/admin/ |
 | Web Dashboard | https://health-tracker-zw.web.app/ |
 | Mobile APK | `Vitalix.apk` in project root |
 
 ---
 
+## Model Training and Clinical Decision Support Notes
+
+The backend risk model was trained as a decision-support tool for patient triage, not as a replacement for a licensed clinician. Its purpose is to help surface patients who may need faster follow-up, especially when providers are reviewing large numbers of check-ins. It should not be treated as a final diagnosis, a fully sourced medical opinion, or a substitute for clinical examination. In practical terms, the model can be useful and still be wrong. A machine can be confidently wrong if the input is incomplete, self-reported answers are inaccurate, or the patient presents in a way that was underrepresented in the training data.
+
+### Training Data Used
+
+The project uses three clinical datasets because the app focuses on overlapping chronic-risk patterns rather than a single disease:
+
+1. **Cardiovascular Disease Dataset** (`cardio_train.csv`, about 70,000 records)
+   - Used for blood pressure, cardiovascular status, age, activity patterns, and broad heart-related risk signals.
+   - This dataset is useful because it is large enough to expose the model to a wide range of low-risk and high-risk cardiovascular profiles.
+2. **Pima Indians Diabetes Dataset** (`diabetes.csv`, 768 records)
+   - Used for glucose-related risk patterns, age, blood pressure, and diabetes outcome signals.
+   - This dataset was chosen because the system supports diabetic patients and needs a grounded source for glucose escalation logic instead of inventing thresholds from scratch.
+3. **Stroke / Hypertension Dataset** (`healthcare-dataset-stroke-data.csv`, 5,110 records)
+   - Used to strengthen hypertension, age-related risk, glucose patterns, and associated vascular risk indicators.
+   - This dataset helps bridge the gap between raw vital signs and broader chronic-event risk, which is relevant for triaging hypertensive and cardiovascular patients.
+
+These datasets were selected because together they cover the main conditions supported by the system and provide structured variables that can be mapped into the app's daily check-in flow: blood pressure, glucose status, age, activity level, medication adherence, and symptom severity.
+
+### Why These Datasets Were Chosen
+
+The model was not trained on one perfect end-to-end dataset from the exact deployed app workflow, because that kind of local longitudinal patient dataset was not available at project stage. Instead, the training process combined reputable structured datasets that contain clinically meaningful signals related to the target use case.
+
+The reasoning was:
+
+1. The app needs to assess **chronic condition deterioration risk**, especially for hypertension, diabetes, and cardio-related cases.
+2. Real-world public datasets already capture the strongest measurable signals behind that deterioration, even if they were originally collected for different prediction tasks.
+3. Combining them allows the system to learn patterns that are more clinically grounded than pure synthetic data, while still being adapted to the app's own 12-question check-in format.
+
+This is a practical engineering compromise. It is stronger than training only on made-up examples, but it is still not the same as validating a hospital-grade model on a local, prospectively collected clinical cohort.
+
+### How the Training Was Done
+
+The backend training pipeline converts the source datasets into the same feature structure expected by the live application. The model ultimately learns from a vector containing:
+
+- 12 symptom-question scores from the app's daily check-in flow
+- systolic blood pressure deviation from baseline
+- diastolic blood pressure deviation from baseline
+- glucose deviation from baseline
+- medication adherence indicator
+- condition code
+- normalized age
+
+The key step is feature engineering. The original datasets do not naturally arrive in the same exact format as the app questionnaire, so the training script maps them into a common structure:
+
+1. **Blood pressure risk** is derived using hypertension threshold bands.
+2. **Glucose risk** is derived using diabetes threshold bands.
+3. **Disease flags** from the source datasets add extra severity where appropriate.
+4. **Symptom-question scores** are then generated to mimic the kind of variability a real patient would report in the app, rather than creating a perfectly deterministic mapping.
+5. **Medication adherence**, **condition category**, and **age normalization** are added so the model sees both symptom burden and context.
+
+This approach was used because the deployed mobile and web systems consume the standardized check-in structure, not the raw original columns from each public dataset. In other words, the training process translates heterogeneous medical datasets into one unified risk input format that matches the production app.
+
+### Labels and Risk Logic
+
+The model predicts four operational risk levels:
+
+- **GREEN**: stable
+- **YELLOW**: moderate concern
+- **ORANGE**: elevated concern
+- **RED**: high concern / urgent follow-up
+
+Those labels are derived from threshold-based clinical logic during training. For example, higher blood pressure ranges, higher glucose ranges, and the presence of disease indicators increase the assigned risk class. This was done so the model does not learn arbitrary labels. Instead, it learns against labels rooted in medically sensible escalation rules.
+
+### Class Balancing and Model Choices
+
+After combining the datasets, the training pipeline balances the classes by upsampling minority risk categories to match the largest class. That decision matters because raw clinical data is usually imbalanced: there are often more mild cases than severe ones. Without balancing, the model could become biased toward predicting safer outcomes too often.
+
+Two model paths are used in the project:
+
+1. **Random Forest classifier** for the backend risk service.
+   - Chosen because it is robust on tabular data, handles mixed feature types well, and is easier to inspect than more opaque architectures.
+2. **Keras neural network exported to TFLite** for mobile offline inference.
+   - Chosen because the mobile app needs compact on-device inference when the user is offline, and TFLite is a practical deployment format for that requirement.
+
+This split lets the system keep a strong server-side model while also supporting fast offline predictions on the handset.
+
+### Important Limitations
+
+This section is critical for interpreting the system responsibly:
+
+1. The model is a **triage aid**, not a doctor.
+2. The model output depends on self-reported answers and derived features, so inaccurate patient input can lead to inaccurate risk predictions.
+3. Public datasets do not perfectly represent the local patient population, local care pathways, or every co-morbidity combination.
+4. Some features are engineered proxies rather than directly observed measurements from the original sources, which is acceptable for a prototype decision-support pipeline but not equivalent to a fully clinically validated diagnostic model.
+5. High-risk predictions should trigger provider review, not automated medical conclusions.
+
+The correct interpretation is therefore: the system helps providers decide who to look at first, who may need follow-up sooner, and which patients may be deteriorating. It does not produce a final medical truth. Clinical judgment remains the deciding authority.
+
+---
+
 ## TIER 1 - Super Admin
 
-The super admin operates entirely through the Django admin panel at https://health-tracker-api-blky.onrender.com/admin/. This includes full database control, provider management, and the patient distribution map.
+The super admin operates entirely through the Django admin panel at https://health-tracker-system-production.up.railway.app/admin/. This includes full database control, provider management, and the patient distribution map.
 
 ### 1.1 Django Admin Login
 
-1. Open https://health-tracker-api-blky.onrender.com/admin/ in a browser.
+1. Open https://health-tracker-system-production.up.railway.app/admin/ in a browser.
 2. Enter username `superadmin` and password `adminpassword123`. Click **Log In**.
    - **Expected:** The Django admin home page loads. The left sidebar lists tables including Users, Patients, Appointments, Check-ins, and Notifications.
 
@@ -80,7 +172,7 @@ The super admin operates entirely through the Django admin panel at https://heal
 
 ### 1.8 Verify Seed Data via API
 
-1. Open https://health-tracker-api-blky.onrender.com/api/patients/ in the browser (while still logged into the admin session, or open in a new tab).
+1. Open https://health-tracker-system-production.up.railway.app/api/patients/ in the browser (while still logged into the admin session, or open in a new tab).
    - **Expected:** A JSON array of 15 patient objects is returned. Each object contains a `district` field with a Zimbabwe district name (e.g. Goromonzi, Mazowe, Bindura, Hwange, Matobo).
 
 ### 1.9 Patient Distribution Map
@@ -89,7 +181,7 @@ The patient map lives inside the Django admin panel. It is accessible only to th
 
 1. While logged into the admin panel as `superadmin`, look at the admin home page.
    - **Expected:** A green banner at the top of the page reads **"Patient Distribution Map"** with an **Open Map** button.
-2. Click **Open Map** (or navigate directly to https://health-tracker-api-blky.onrender.com/admin/patient-map/).
+2. Click **Open Map** (or navigate directly to https://health-tracker-system-production.up.railway.app/admin/patient-map/).
    - **Expected:** A full-page map of Zimbabwe loads using OpenStreetMap tiles. Coloured pin markers are scattered across the country at district locations. Pins are colour-coded: RED = high risk, ORANGE = elevated, YELLOW = moderate, GREEN = stable.
 3. Read the summary bar above the map.
    - **Expected:** Four counters are shown: High Risk, Elevated, Moderate, Stable — each with the correct patient count for that risk level.
