@@ -42,7 +42,10 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  Future<void> _navigateAfterLogin(Map<String, dynamic> result, String patientId) async {
+  Future<void> _navigateAfterLogin(
+    Map<String, dynamic> result,
+    String patientId,
+  ) async {
     final settingsBox = Hive.box('settings');
     await settingsBox.put('is_logged_in', true);
     await settingsBox.put('patient_id', patientId);
@@ -78,9 +81,9 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -110,9 +113,9 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -132,13 +135,17 @@ class _LoginScreenState extends State<LoginScreen>
           child: Column(
             children: [
               const SizedBox(height: 40),
-              Icon(Icons.health_and_safety, size: 80, color: Colors.blue.shade700),
+              Icon(
+                Icons.health_and_safety,
+                size: 80,
+                color: Colors.blue.shade700,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Health Tracker',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 32),
 
@@ -152,8 +159,12 @@ class _LoginScreenState extends State<LoginScreen>
                   controller: _tabController,
                   indicator: BoxDecoration(
                     color: Colors.blue.shade700,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  padding: const EdgeInsets.all(4),
+                  indicatorPadding: EdgeInsets.zero,
+                  labelPadding: EdgeInsets.zero,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.grey.shade600,
                   dividerColor: Colors.transparent,
@@ -172,67 +183,90 @@ class _LoginScreenState extends State<LoginScreen>
                   controller: _tabController,
                   children: [
                     // ── ID + Password ─────────────────────────────────────
-                    Column(children: [
-                      TextField(
-                        controller: _patientIdController,
-                        decoration: InputDecoration(
-                          labelText: 'Patient ID',
-                          hintText: 'e.g., PT001',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.person),
-                        ),
-                        enabled: !_isLoading,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.lock),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    Column(
+                      children: [
+                        TextField(
+                          controller: _patientIdController,
+                          decoration: InputDecoration(
+                            labelText: 'Patient ID',
+                            hintText: 'e.g., PT001',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.person),
                           ),
+                          enabled: !_isLoading,
                         ),
-                        enabled: !_isLoading,
-                      ),
-                    ]),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                            ),
+                          ),
+                          enabled: !_isLoading,
+                        ),
+                      ],
+                    ),
 
                     // ── Phone + PIN ───────────────────────────────────────
-                    Column(children: [
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Phone Number',
-                          hintText: 'e.g., +263771000001',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.phone),
-                        ),
-                        enabled: !_isLoading,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _pinController,
-                        obscureText: _obscurePin,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        decoration: InputDecoration(
-                          labelText: 'PIN',
-                          hintText: '4–6 digits',
-                          counterText: '',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.pin),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePin ? Icons.visibility_off : Icons.visibility),
-                            onPressed: () => setState(() => _obscurePin = !_obscurePin),
+                    Column(
+                      children: [
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                            hintText: 'e.g., +263771000001',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.phone),
                           ),
+                          enabled: !_isLoading,
                         ),
-                        enabled: !_isLoading,
-                      ),
-                    ]),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _pinController,
+                          obscureText: _obscurePin,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: InputDecoration(
+                            labelText: 'PIN',
+                            hintText: '4–6 digits',
+                            counterText: '',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.pin),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePin
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _obscurePin = !_obscurePin),
+                            ),
+                          ),
+                          enabled: !_isLoading,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -245,7 +279,9 @@ class _LoginScreenState extends State<LoginScreen>
                 child: ElevatedButton(
                   onPressed: _isLoading
                       ? null
-                      : () => _tabController.index == 0 ? _loginWithId() : _loginWithPhone(),
+                      : () => _tabController.index == 0
+                            ? _loginWithId()
+                            : _loginWithPhone(),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -255,7 +291,9 @@ class _LoginScreenState extends State<LoginScreen>
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Login'),
@@ -269,13 +307,18 @@ class _LoginScreenState extends State<LoginScreen>
                   onPressed: _isLoading
                       ? null
                       : () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RegistrationScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const RegistrationScreen(),
                           ),
+                        ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.grey.shade300,
                   ),
-                  child: const Text('Sign Up', style: TextStyle(color: Colors.black87)),
+                  child: const Text(
+                    'Sign Up',
+                    style: TextStyle(color: Colors.black87),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -293,7 +336,9 @@ class _LoginScreenState extends State<LoginScreen>
                   children: [
                     Text(
                       'Test Credentials:',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
