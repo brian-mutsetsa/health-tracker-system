@@ -10,35 +10,17 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  // ID + Password tab
+class _LoginScreenState extends State<LoginScreen> {
   final _patientIdController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-
-  // Phone + PIN tab
-  final _phoneController = TextEditingController();
-  final _pinController = TextEditingController();
-  bool _obscurePin = true;
-
+  bool _rememberMe = false;
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _patientIdController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
-    _pinController.dispose();
     super.dispose();
   }
 
@@ -47,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen>
     String patientId,
   ) async {
     final settingsBox = Hive.box('settings');
-    await settingsBox.put('is_logged_in', true);
+    await settingsBox.put('is_logged_in', _rememberMe);
     await settingsBox.put('patient_id', patientId);
     await settingsBox.put('patient_name', result['name'] ?? '');
     await settingsBox.put('condition', result['condition'] ?? '');
@@ -57,58 +39,27 @@ class _LoginScreenState extends State<LoginScreen>
     Navigator.of(context).pushReplacementNamed('/home');
   }
 
-  Future<void> _loginWithId() async {
-    if (_patientIdController.text.isEmpty || _passwordController.text.isEmpty) {
+  Future<void> _login() async {
+    final id = _patientIdController.text.trim();
+    final pw = _passwordController.text;
+    if (id.isEmpty || pw.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Patient ID and password')),
+        const SnackBar(
+          content: Text('Please enter your Patient ID and password'),
+        ),
       );
       return;
     }
     setState(() => _isLoading = true);
     try {
       final apiService = ApiService();
-      final result = await apiService.patientLogin(
-        _patientIdController.text.trim(),
-        _passwordController.text,
-      );
+      final result = await apiService.patientLogin(id, pw);
       if (result != null) {
-        await _navigateAfterLogin(result, _patientIdController.text.trim());
+        await _navigateAfterLogin(result, id);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invalid Patient ID or password.')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loginWithPhone() async {
-    if (_phoneController.text.isEmpty || _pinController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter phone number and PIN')),
-      );
-      return;
-    }
-    setState(() => _isLoading = true);
-    try {
-      final apiService = ApiService();
-      final result = await apiService.patientPhonePinLogin(
-        _phoneController.text.trim(),
-        _pinController.text.trim(),
-      );
-      if (result != null) {
-        await _navigateAfterLogin(result, result['patient_id'] ?? '');
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid phone number or PIN.')),
         );
       }
     } catch (e) {
@@ -149,139 +100,68 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               const SizedBox(height: 32),
 
-              // Tab bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    color: Colors.blue.shade700,
+              // Patient ID field
+              TextField(
+                controller: _patientIdController,
+                decoration: InputDecoration(
+                  labelText: 'Patient ID',
+                  hintText: 'e.g., PT001',
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  padding: const EdgeInsets.all(4),
-                  indicatorPadding: EdgeInsets.zero,
-                  labelPadding: EdgeInsets.zero,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey.shade600,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'Patient ID'),
-                    Tab(text: 'Phone + PIN'),
-                  ],
+                  prefixIcon: const Icon(Icons.person),
                 ),
+                enabled: !_isLoading,
+                textInputAction: TextInputAction.next,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // Tab views
-              SizedBox(
-                height: 220,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // ── ID + Password ─────────────────────────────────────
-                    Column(
-                      children: [
-                        TextField(
-                          controller: _patientIdController,
-                          decoration: InputDecoration(
-                            labelText: 'Patient ID',
-                            hintText: 'e.g., PT001',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            prefixIcon: const Icon(Icons.person),
-                          ),
-                          enabled: !_isLoading,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            prefixIcon: const Icon(Icons.lock),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                            ),
-                          ),
-                          enabled: !_isLoading,
-                        ),
-                      ],
+              // Password field
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
-
-                    // ── Phone + PIN ───────────────────────────────────────
-                    Column(
-                      children: [
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: 'Phone Number',
-                            hintText: 'e.g., +263771000001',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            prefixIcon: const Icon(Icons.phone),
-                          ),
-                          enabled: !_isLoading,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _pinController,
-                          obscureText: _obscurePin,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          decoration: InputDecoration(
-                            labelText: 'PIN',
-                            hintText: '4–6 digits',
-                            counterText: '',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            prefixIcon: const Icon(Icons.pin),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePin
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscurePin = !_obscurePin),
-                            ),
-                          ),
-                          enabled: !_isLoading,
-                        ),
-                      ],
-                    ),
-                  ],
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
                 ),
+                enabled: !_isLoading,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _login(),
               ),
-
               const SizedBox(height: 8),
+
+              // Remember me
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: _isLoading
+                        ? null
+                        : (v) => setState(() => _rememberMe = v ?? false),
+                    activeColor: Colors.blue.shade700,
+                  ),
+                  const Text('Remember me'),
+                ],
+              ),
+              const SizedBox(height: 16),
 
               // Login button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () => _tabController.index == 0
-                            ? _loginWithId()
-                            : _loginWithPhone(),
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -323,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               const SizedBox(height: 20),
 
-              // Test credentials hint
+              // Credentials hint
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -335,16 +215,13 @@ class _LoginScreenState extends State<LoginScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Test Credentials:',
+                      'Login credentials:',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'ID login - Patient ID: PT001-PT015 / Password: test123\n'
-                      'Phone login - e.g. +263771000001 / PIN: 1234',
-                    ),
+                    const Text('Patient ID: PT001 to PT015\nPassword: test123'),
                   ],
                 ),
               ),

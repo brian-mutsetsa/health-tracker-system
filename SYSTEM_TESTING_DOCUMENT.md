@@ -6,17 +6,17 @@ Complete the tiers in order. Every step includes an expected outcome.
 
 ## Reference: Credentials and System URLs
 
-| Role | Username | Password / PIN | Where |
+| Role | Username | Password | Where |
 |---|---|---|---|
 | Super Admin (Django) | `superadmin` | `adminpassword123` | Admin panel (includes patient map) |
 | Provider - Hypertension | `dr_hyper` | `password` | Web dashboard |
 | Provider - Diabetes | `dr_diab` | `password` | Web dashboard |
 | Provider - Asthma | `dr_asthma` | `password` | Web dashboard |
 | Provider - Cardiology | `dr_cardio` | `password` | Web dashboard |
-| Patient PT001 | `PT001` / `+263771000001` | `1234` | Mobile app |
-| Patient PT002 | `PT002` / `+263771000002` | `2345` | Mobile app |
-| Patient PT003 | `PT003` / `+263771000003` | `3456` | Mobile app |
-| Patient PT015 | `PT015` / `+263771000015` | `5566` | Mobile app |
+| Patient PT001 | `PT001` | `test123` | Mobile app |
+| Patient PT002 | `PT002` | `test123` | Mobile app |
+| Patient PT003 | `PT003` | `test123` | Mobile app |
+| Patient PT015 | `PT015` | `test123` | Mobile app |
 
 ## System URLs
 
@@ -410,19 +410,24 @@ This repeats the full appointment-to-visit flow for a second patient with a diff
 
 Install `Vitalix.apk` on an Android device. Enable "Install from unknown sources" in device settings if required.
 
-### 3.1 Phone + PIN Login
+### 3.1 Patient Login
 
-1. Open the Vitalix app. On the login screen, select the **Phone** tab.
-2. Enter phone number `+263771000001` and PIN `1234`. Tap **Login**.
-   - **Expected:** The home screen loads for patient PT001 (Tinashe Moyo). The patient's name and condition are displayed. No garbled characters on any part of the home screen.
+1. Open the Vitalix app. The login screen shows a **Patient ID** field, a **Password** field, a **Remember me** checkbox, a **Login** button, and a **Sign Up** button.
+2. Enter Patient ID `PT001` and password `test123`. Tap **Login**.
+   - **Expected:** The home screen loads for patient PT001. The patient's name and condition are displayed. No garbled characters on any part of the home screen.
 
-### 3.2 Patient ID Login
+### 3.2 Login as a Different Patient
 
-1. Log out and return to the login screen. Select the **ID** tab.
-2. Read the hint text below the patient ID field.
-   - **Expected:** The hint reads "ID login - Patient ID: PT001-PT015" using plain hyphens. No em-dashes, no garbled characters.
-3. Enter patient ID `PT002` and PIN `2345`. Tap **Login**.
+1. Log out and return to the login screen.
+2. Enter Patient ID `PT002` and password `test123`. Tap **Login**.
    - **Expected:** The home screen loads for PT002.
+
+### 3.2a Remember Me
+
+1. Log out and return to the login screen.
+2. Enter Patient ID `PT001` and password `test123`. Check the **Remember me** checkbox. Tap **Login**.
+3. Close the app completely and reopen it.
+   - **Expected:** The app navigates directly to the home screen without showing the login screen. PT001 is still logged in.
 
 ### 3.3 New Patient Registration
 
