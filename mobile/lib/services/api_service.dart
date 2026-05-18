@@ -7,11 +7,8 @@ import '../models/message_model.dart';
 import '../models/appointment_model.dart';
 
 class ApiService {
-  // Change this to your computer's IP address when testing on real device
-  // For emulator, use 10.0.2.2
-  // For localhost testing, use 127.0.0.1
   static const String baseUrl =
-      'https://health-tracker-api-blky.onrender.com/api';
+      'https://health-tracker-system-production.up.railway.app/api';
 
   // Generate or get patient ID
   Future<String> getPatientId() async {

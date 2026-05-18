@@ -280,9 +280,8 @@ class Appointment {
 }
 
 class DashboardApiService {
-  // CHANGE THIS to your computer's IP address (same as mobile app)
   static const String baseUrl =
-      'https://health-tracker-api-blky.onrender.com/api';
+      'https://health-tracker-system-production.up.railway.app/api';
 
   static String? currentProviderId;
   static String? currentProviderName;
