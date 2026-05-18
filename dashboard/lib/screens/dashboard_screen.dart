@@ -87,7 +87,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final providerId = DashboardApiService.currentProviderId ?? '';
     final results = await Future.wait([
       _apiService.getPatients(),
-      _apiService.getStats(),
       _apiService.getAppointments(),
       _apiService.getNotifications(providerId),
       _apiService.getPendingDraftVisitPatients(
@@ -95,10 +94,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ]);
     final patients = results[0] as List<Patient>;
-    final stats = results[1] as Map<String, int>;
-    final appointments = results[2] as List<Appointment>;
-    final notifs = results[3] as List<DashboardNotification>;
-    final draftPatients = results[4] as Set<String>;
+    final appointments = results[1] as List<Appointment>;
+    final notifs = results[2] as List<DashboardNotification>;
+    final draftPatients = results[3] as Set<String>;
+    final stats = {
+      'total_patients': patients.length,
+      'high_risk': patients
+          .where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE')
+          .length,
+      'total_checkins': patients.fold<int>(
+        0,
+        (sum, p) => sum + p.totalCheckins,
+      ),
+    };
     if (mounted) {
       setState(() {
         _patients = patients;
@@ -157,7 +165,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final providerId = DashboardApiService.currentProviderId ?? '';
     final results = await Future.wait([
       _apiService.getPatients(),
-      _apiService.getStats(),
       _apiService.getAppointments(),
       _apiService.getNotifications(providerId),
       _apiService.getPendingDraftVisitPatients(
@@ -165,10 +172,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ]);
     final patients = results[0] as List<Patient>;
-    final stats = results[1] as Map<String, int>;
-    final appointments = results[2] as List<Appointment>;
-    final notifs = results[3] as List<DashboardNotification>;
-    final draftPatients = results[4] as Set<String>;
+    final appointments = results[1] as List<Appointment>;
+    final notifs = results[2] as List<DashboardNotification>;
+    final draftPatients = results[3] as Set<String>;
+    final stats = {
+      'total_patients': patients.length,
+      'high_risk': patients
+          .where((p) => p.lastRiskLevel == 'RED' || p.lastRiskLevel == 'ORANGE')
+          .length,
+      'total_checkins': patients.fold<int>(
+        0,
+        (sum, p) => sum + p.totalCheckins,
+      ),
+    };
     final prefs = await SharedPreferences.getInstance();
     final savedPending = prefs.getInt('badge_seen_pending') ?? -1;
     final savedHighRisk = prefs.getInt('badge_seen_highrisk') ?? -1;
