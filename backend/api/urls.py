@@ -21,6 +21,8 @@ urlpatterns = [
     path('patient/<str:patient_id>/change-password/', views.change_patient_password, name='change-patient-password'),
     path('patient/<str:patient_id>/clinical-visits/', views.get_clinical_visits, name='get-clinical-visits'),
     path('patient/<str:patient_id>/clinical-visits/add/', views.add_clinical_visit, name='add-clinical-visit'),
+    path('patient/<str:patient_id>/clinical-visits/<int:visit_id>/', views.get_clinical_visit, name='get-clinical-visit'),
+    path('patient/<str:patient_id>/clinical-visits/<int:visit_id>/update/', views.update_clinical_visit, name='update-clinical-visit'),
     path('patients/register/', views.register_patient, name='register-patient'),
     path('patients/search/', views.search_patients, name='search-patients'),
     path('patients/', views.list_all_patients, name='list-patients'),
@@ -40,6 +42,7 @@ urlpatterns = [
     
     # ==================== PHASE 2: NOTIFICATIONS ====================
     path('notifications/', views.get_notifications, name='get-notifications'),
+    path('clinical-visits/pending-summary/', views.pending_visits_summary, name='pending-visits-summary'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark-all-read'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark-read'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete-notification'),

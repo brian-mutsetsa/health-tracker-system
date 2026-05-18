@@ -61,8 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchBadgeCounts() async {
     try {
       final appointments = await _apiService.getAppointments();
-      final scheduled = appointments.where((a) => a.status == 'SCHEDULED').length;
-      
+      final scheduled = appointments
+          .where((a) => a.status == 'SCHEDULED')
+          .length;
+
       if (_isFirstPoll) {
         _lastKnownAppointmentCount = appointments.length;
         _isFirstPoll = false;
@@ -90,7 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // Get notifications
       int unreadNotifs = 0;
       try {
-        final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
+        final patientId = Hive.box(
+          'settings',
+        ).get('patient_id', defaultValue: '');
         if (patientId.isNotEmpty) {
           final notifs = await _apiService.getNotifications(patientId);
           unreadNotifs = notifs.where((n) => n['is_read'] != true).length;
@@ -114,9 +118,12 @@ class _HomeScreenState extends State<HomeScreen> {
             _appointmentCountAtLastView = scheduled;
             _upcomingAppointmentCount = 0;
           } else if (_appointmentCountAtLastView < 0) {
-            _upcomingAppointmentCount = scheduled; // never visited: show full count
+            _upcomingAppointmentCount =
+                scheduled; // never visited: show full count
           } else {
-            _upcomingAppointmentCount = scheduled > _appointmentCountAtLastView ? scheduled - _appointmentCountAtLastView : 0;
+            _upcomingAppointmentCount = scheduled > _appointmentCountAtLastView
+                ? scheduled - _appointmentCountAtLastView
+                : 0;
           }
           // Messages badge: same pattern
           if (_currentIndex == 3) {
@@ -125,7 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (_messageCountAtLastView < 0) {
             _unreadMessageCount = unread; // never visited: show full count
           } else {
-            _unreadMessageCount = unread > _messageCountAtLastView ? unread - _messageCountAtLastView : 0;
+            _unreadMessageCount = unread > _messageCountAtLastView
+                ? unread - _messageCountAtLastView
+                : 0;
           }
           // For notifications (push screen): only increment for genuinely NEW arrivals
           final newNotifDelta = unreadNotifs > _lastKnownNotificationCount
@@ -144,7 +153,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings').listenable(),
       builder: (context, Box settingsBox, _) {
-        final String savedCondition = settingsBox.get('condition', defaultValue: 'Hypertension');
+        final String savedCondition = settingsBox.get(
+          'condition',
+          defaultValue: 'Hypertension',
+        );
         return Scaffold(
           backgroundColor: AppTheme.background,
           body: _buildBody(savedCondition),
@@ -334,8 +346,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 // current server count prevents the badge reappearing on next poll
                 // for already-read notifications.
               });
-              final patientId = Hive.box('settings').get('patient_id', defaultValue: '');
-              if (patientId.isNotEmpty) _apiService.markAllNotificationsRead(patientId);
+              final patientId = Hive.box(
+                'settings',
+              ).get('patient_id', defaultValue: '');
+              if (patientId.isNotEmpty)
+                _apiService.markAllNotificationsRead(patientId);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
@@ -362,14 +377,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     top: 0,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
                       decoration: const BoxDecoration(
                         color: Colors.red,
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        _unreadNotificationCount > 9 ? '9+' : '$_unreadNotificationCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        _unreadNotificationCount > 9
+                            ? '9+'
+                            : '$_unreadNotificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -589,9 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const CheckInHistoryScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const CheckInHistoryScreen()),
         );
       },
       child: Container(
@@ -624,10 +646,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Track your health progress',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
@@ -669,31 +688,66 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 24,
-            backgroundImage: const NetworkImage(
-              'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=1470&auto=format&fit=crop',
+            backgroundColor: Colors.white24,
+            child: Icon(
+              Icons.medical_services_outlined,
+              color: Colors.white,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Dr. Olivia Grant',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Family Physician',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
+            child: Builder(
+              builder: (context) {
+                final box = Hive.box('settings');
+                final condition =
+                    box.get('condition', defaultValue: '') as String;
+                final providerName =
+                    box.get('provider_name', defaultValue: '') as String;
+                final displayName = providerName.isNotEmpty
+                    ? providerName
+                    : 'Your Care Provider';
+                // Show specialty relevant to the patient's condition, not the provider's generic specialty
+                final String displaySpec;
+                switch (condition.toLowerCase()) {
+                  case 'diabetes':
+                    displaySpec = 'Endocrinologist & Diabetes Specialist';
+                    break;
+                  case 'asthma':
+                    displaySpec = 'Pulmonologist & Respiratory Specialist';
+                    break;
+                  case 'heart disease':
+                  case 'cardiovascular':
+                    displaySpec = 'Cardiologist & Heart Disease Specialist';
+                    break;
+                  case 'hypertension':
+                  default:
+                    displaySpec = 'Cardiologist & Hypertension Specialist';
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      displaySpec,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           Container(
@@ -725,7 +779,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNav(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.only(bottom: bottomPadding + 8, left: 24, right: 24, top: 12),
+      padding: EdgeInsets.only(
+        bottom: bottomPadding + 8,
+        left: 24,
+        right: 24,
+        top: 12,
+      ),
       decoration: const BoxDecoration(color: AppTheme.background),
       child: Container(
         height: 70,
@@ -745,8 +804,18 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildNavItem(context, 0, Icons.home_rounded, 0),
             _buildNavItem(context, 1, Icons.assignment_outlined, 0),
-            _buildNavItem(context, 2, Icons.calendar_month_rounded, _upcomingAppointmentCount),
-            _buildNavItem(context, 3, Icons.mail_outline_rounded, _unreadMessageCount),
+            _buildNavItem(
+              context,
+              2,
+              Icons.calendar_month_rounded,
+              _upcomingAppointmentCount,
+            ),
+            _buildNavItem(
+              context,
+              3,
+              Icons.mail_outline_rounded,
+              _unreadMessageCount,
+            ),
             _buildNavItem(context, 4, Icons.person_outline_rounded, 0),
           ],
         ),
@@ -754,16 +823,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, int badgeCount) {
+  Widget _buildNavItem(
+    BuildContext context,
+    int index,
+    IconData icon,
+    int badgeCount,
+  ) {
     bool isSelected = _currentIndex == index;
     bool isAction = index == 1; // Check-in is a direct-action button
     return GestureDetector(
       onTap: () {
         if (isAction) {
-          final condition = Hive.box('settings').get('condition', defaultValue: 'Hypertension');
+          final condition = Hive.box(
+            'settings',
+          ).get('condition', defaultValue: 'Hypertension');
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => DailyCheckinScreen(condition: condition)),
+            MaterialPageRoute(
+              builder: (_) => DailyCheckinScreen(condition: condition),
+            ),
           );
           return;
         }
@@ -793,7 +871,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 : null,
             child: Icon(
               icon,
-              color: (isSelected || isAction) ? Colors.white : AppTheme.textLight,
+              color: (isSelected || isAction)
+                  ? Colors.white
+                  : AppTheme.textLight,
               size: 26,
             ),
           ),
@@ -810,7 +890,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Text(
                   badgeCount > 9 ? '9+' : '$badgeCount',
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),

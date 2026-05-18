@@ -229,10 +229,17 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class ClinicalVisitSerializer(serializers.ModelSerializer):
+    appointment_id = serializers.IntegerField(source='appointment.id', read_only=True)
+    appointment_reason = serializers.CharField(source='appointment.reason', read_only=True)
+
     class Meta:
         model = ClinicalVisit
-        fields = ['id', 'patient', 'hcw_id', 'visit_date',
-                  'systolic_bp', 'diastolic_bp', 'heart_rate', 'blood_glucose',
-                  'weight_kg', 'temperature', 'oxygen_saturation',
-                  'comments', 'medication_intake', 'changes_made', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            'id', 'patient', 'appointment_id', 'appointment_reason',
+            'hcw_id', 'visit_date', 'visit_type', 'is_completed',
+            'previous_data_snapshot',
+            'systolic_bp', 'diastolic_bp', 'heart_rate', 'blood_glucose',
+            'weight_kg', 'temperature', 'oxygen_saturation',
+            'comments', 'medication_intake', 'changes_made', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'appointment_id', 'appointment_reason', 'previous_data_snapshot']

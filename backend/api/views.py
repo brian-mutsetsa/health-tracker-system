@@ -369,6 +369,8 @@ def patient_login(request):
             response_data = PatientSerializer(patient).data
             response_data['session_token'] = request.session.session_key
             response_data['patient_id'] = patient.patient_id
+            # Attach the assigned provider's display name and specialty
+            _attach_provider_info(response_data, patient.primary_provider_id)
             return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -398,6 +400,7 @@ def patient_phone_pin_login(request):
 
     response_data = PatientSerializer(patient).data
     response_data['patient_id'] = patient.patient_id
+    _attach_provider_info(response_data, patient.primary_provider_id)
     return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -427,7 +430,84 @@ def add_clinical_visit(request, patient_id):
     serializer = ClinicalVisitSerializer(data=data)
     if serializer.is_valid():
         visit = serializer.save()
+        # Update patient vitals from this visit if fields are present
+        updated = False
+        if visit.systolic_bp:
+            patient.blood_pressure_systolic = visit.systolic_bp
+            updated = True
+        if visit.diastolic_bp:
+            patient.blood_pressure_diastolic = visit.diastolic_bp
+            updated = True
+        if visit.blood_glucose:
+            patient.blood_glucose_baseline = visit.blood_glucose
+            updated = True
+        if visit.weight_kg:
+            patient.weight_kg = visit.weight_kg
+            updated = True
+        if updated:
+            patient.save()
         return Response(ClinicalVisitSerializer(visit).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_clinical_visit(request, patient_id, visit_id):
+    """Get a single clinical visit record (with reference snapshot)."""
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        visit = ClinicalVisit.objects.get(id=visit_id, patient=patient)
+    except ClinicalVisit.DoesNotExist:
+        return Response({'error': 'Visit not found'}, status=status.HTTP_404_NOT_FOUND)
+    return Response(ClinicalVisitSerializer(visit).data)
+
+
+@api_view(['PUT', 'PATCH'])
+def update_clinical_visit(request, patient_id, visit_id):
+    """
+    Provider fills in / completes a draft clinical visit.
+    Passing is_completed=true marks the visit as done and updates the
+    patient's latest vitals automatically.
+    """
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        visit = ClinicalVisit.objects.get(id=visit_id, patient=patient)
+    except ClinicalVisit.DoesNotExist:
+        return Response({'error': 'Visit not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = ClinicalVisitSerializer(visit, data=request.data, partial=True)
+    if serializer.is_valid():
+        visit = serializer.save()
+
+        # When a visit is completed, push new vitals back onto the patient record
+        if visit.is_completed:
+            updated = False
+            if visit.systolic_bp:
+                patient.blood_pressure_systolic = visit.systolic_bp
+                updated = True
+            if visit.diastolic_bp:
+                patient.blood_pressure_diastolic = visit.diastolic_bp
+                updated = True
+            if visit.blood_glucose:
+                patient.blood_glucose_baseline = visit.blood_glucose
+                updated = True
+            if visit.weight_kg:
+                patient.weight_kg = visit.weight_kg
+                updated = True
+            if updated:
+                patient.save()
+
+            # Mark the linked appointment as COMPLETED too
+            if visit.appointment:
+                visit.appointment.status = 'COMPLETED'
+                visit.appointment.save(update_fields=['status', 'updated_at'])
+
+        return Response(ClinicalVisitSerializer(visit).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -1200,6 +1280,124 @@ def list_all_patients(request):
     })
 
 
+# ==================== CLINICAL VISIT AUTO-CREATION HELPER ====================
+
+def _build_previous_data_snapshot(patient):
+    """
+    Build a JSON snapshot of the patient's most recent clinical data for
+    side-by-side comparison inside the auto-created clinical visit.
+    Captures: last check-in vitals, patient baseline, and last completed appointment.
+    """
+    snapshot = {}
+
+    # ---- last check-in ----
+    last_checkin = CheckIn.objects.filter(patient=patient).order_by('-date').first()
+    if last_checkin:
+        snapshot['last_checkin'] = {
+            'date': last_checkin.date.isoformat(),
+            'risk_level': last_checkin.risk_level,
+            'risk_color': last_checkin.risk_color,
+            'blood_pressure_systolic': last_checkin.blood_pressure_systolic,
+            'blood_pressure_diastolic': last_checkin.blood_pressure_diastolic,
+            'blood_glucose_reading': last_checkin.blood_glucose_reading,
+            'answers': last_checkin.answers,
+        }
+
+    # ---- patient baseline ----
+    snapshot['patient_baseline'] = {
+        'weight_kg': patient.weight_kg,
+        'blood_pressure_systolic': patient.blood_pressure_systolic,
+        'blood_pressure_diastolic': patient.blood_pressure_diastolic,
+        'blood_glucose_baseline': patient.blood_glucose_baseline,
+        'medications': patient.medications,
+        'allergies': patient.allergies,
+        'medical_history': patient.medical_history,
+    }
+
+    # ---- last completed appointment (excluding the current one being approved) ----
+    last_appt = (
+        Appointment.objects
+        .filter(patient=patient, status='COMPLETED')
+        .order_by('-scheduled_date', '-scheduled_time')
+        .first()
+    )
+    if last_appt:
+        snapshot['last_appointment'] = {
+            'id': last_appt.id,
+            'date': str(last_appt.scheduled_date),
+            'time': str(last_appt.scheduled_time)[:5],
+            'reason': last_appt.reason,
+            'notes': last_appt.notes,
+        }
+
+    return snapshot
+
+
+def _attach_provider_info(response_data: dict, provider_id: str):
+    """Adds provider_name and provider_specialty to a login response dict."""
+    if not provider_id:
+        return
+    try:
+        from django.contrib.auth.models import User as DjangoUser
+        provider = Provider.objects.select_related('user').get(provider_id=provider_id)
+        first = provider.user.first_name or ''
+        last = provider.user.last_name or ''
+        full = f"{first} {last}".strip() or provider.user.username
+        response_data['provider_name'] = f"Dr. {full}" if full else provider_id
+        response_data['provider_specialty'] = provider.specialty or 'General Practitioner'
+    except Provider.DoesNotExist:
+        response_data['provider_name'] = provider_id
+        response_data['provider_specialty'] = ''
+
+
+def _auto_create_clinical_visit(appointment):
+    """
+    Create a draft ClinicalVisit linked to the given approved appointment.
+    Skips creation if one already exists for this appointment.
+    Pre-populates visit_date from the appointment schedule and stores a
+    reference snapshot for comparison during the actual visit.
+    """
+    # Guard: don't double-create
+    if ClinicalVisit.objects.filter(appointment=appointment).exists():
+        return None
+
+    patient = appointment.patient
+    snapshot = _build_previous_data_snapshot(patient)
+
+    # Combine scheduled_date + scheduled_time into a datetime
+    import datetime as _dt
+    visit_dt = _dt.datetime.combine(appointment.scheduled_date, appointment.scheduled_time)
+    # Make timezone-aware if USE_TZ is on
+    try:
+        from django.utils import timezone as _tz
+        if _tz.is_naive(visit_dt):
+            visit_dt = _tz.make_aware(visit_dt)
+    except Exception:
+        pass
+
+    visit = ClinicalVisit.objects.create(
+        patient=patient,
+        appointment=appointment,
+        hcw_id=appointment.provider_id,
+        visit_date=visit_dt,
+        visit_type='APPOINTMENT',
+        is_completed=False,
+        previous_data_snapshot=snapshot,
+        # Pre-fill vitals from baseline so provider only needs to update changes
+        systolic_bp=patient.blood_pressure_systolic,
+        diastolic_bp=patient.blood_pressure_diastolic,
+        blood_glucose=patient.blood_glucose_baseline,
+        weight_kg=patient.weight_kg,
+        comments=(
+            f"[AUTO] Appointment visit for: {appointment.reason or 'Follow-up'}. "
+            f"Please update all readings and complete this record."
+        ),
+        medication_intake=patient.medications,
+    )
+    print(f" Auto-created draft clinical visit {visit.id} for appointment {appointment.id}")
+    return visit
+
+
 # ==================== PHASE 2: APPOINTMENT MANAGEMENT ====================
 
 @api_view(['GET'])
@@ -1308,6 +1506,8 @@ def create_appointment(request):
         patient_name = appointment.patient.name or appointment.patient.patient_id
 
         if initiated_by == 'PROVIDER':
+            # Auto-create draft clinical visit immediately (provider-approved)
+            _auto_create_clinical_visit(appointment)
             # Notify the patient their appointment is confirmed
             Notification.objects.create(
                 user_id=appointment.patient.patient_id,
@@ -1338,13 +1538,20 @@ def create_appointment(request):
 
 @api_view(['POST'])
 def approve_appointment(request, appointment_id):
-    """Provider approves a PENDING patient-requested appointment."""
+    """Provider approves a PENDING patient-requested appointment.
+    Also auto-creates a draft ClinicalVisit pre-loaded with the patient's
+    last check-in vitals and baseline data for side-by-side comparison.
+    """
     try:
         appointment = Appointment.objects.get(id=appointment_id)
         if appointment.status != 'PENDING':
             return Response({'error': f'Appointment is already {appointment.status}'}, status=status.HTTP_400_BAD_REQUEST)
         appointment.status = 'SCHEDULED'
         appointment.save()
+
+        # Auto-create draft clinical visit linked to this appointment
+        visit = _auto_create_clinical_visit(appointment)
+
         # Notify the patient
         Notification.objects.create(
             user_id=appointment.patient.patient_id,
@@ -1352,7 +1559,10 @@ def approve_appointment(request, appointment_id):
             message=f"Your appointment request for {appointment.scheduled_date} at {str(appointment.scheduled_time)[:5]} has been approved.",
             related_patient_id=appointment.patient.patient_id,
         )
-        return Response(AppointmentSerializer(appointment).data)
+        response_data = AppointmentSerializer(appointment).data
+        if visit:
+            response_data['clinical_visit_id'] = visit.id
+        return Response(response_data)
     except Appointment.DoesNotExist:
         return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1443,6 +1653,26 @@ def cancel_appointment(request, appointment_id):
 
 
 # ==================== PHASE 2: NOTIFICATIONS & ALERTS ====================
+
+@api_view(['GET'])
+def pending_visits_summary(request):
+    """
+    Return a list of patient_ids that have at least one draft (is_completed=False)
+    clinical visit. Used by the dashboard to show per-patient badge dots.
+    Optionally filter by provider_id.
+    """
+    provider_id = request.query_params.get('provider_id')
+    qs = ClinicalVisit.objects.filter(is_completed=False)
+    if provider_id:
+        qs = qs.filter(hcw_id=provider_id)
+    patient_ids = list(
+        qs.values_list('patient__patient_id', flat=True).distinct()
+    )
+    return Response({
+        'patient_ids': patient_ids,
+        'total': len(patient_ids),
+    })
+
 
 @api_view(['GET'])
 def get_notifications(request):

@@ -29,8 +29,11 @@ class ApiService {
   // Get dynamically assigned provider ID based on condition
   Future<String> getAssignedProviderId() async {
     final settingsBox = Hive.box('settings');
-    final String condition = settingsBox.get('condition', defaultValue: 'Unknown');
-    
+    final String condition = settingsBox.get(
+      'condition',
+      defaultValue: 'Unknown',
+    );
+
     switch (condition.toLowerCase()) {
       case 'hypertension':
         return 'DR002';
@@ -47,16 +50,15 @@ class ApiService {
 
   // Patient login - returns patient data if successful
   Future<Map<String, dynamic>?> patientLogin(
-      String patientId, String password) async {
+    String patientId,
+    String password,
+  ) async {
     try {
       final response = await http
           .post(
             Uri.parse('$baseUrl/auth/patient-login/'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'patient_id': patientId,
-              'password': password,
-            }),
+            body: jsonEncode({'patient_id': patientId, 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -68,6 +70,14 @@ class ApiService {
         await settingsBox.put('patient_name', patientData['name']);
         await settingsBox.put('condition', patientData['condition']);
         await settingsBox.put('session_token', patientData['session_token']);
+        await settingsBox.put(
+          'provider_name',
+          patientData['provider_name'] ?? '',
+        );
+        await settingsBox.put(
+          'provider_specialty',
+          patientData['provider_specialty'] ?? '',
+        );
         print('✅ Login successful: ${patientData['name']}');
         return patientData;
       } else {
@@ -83,7 +93,9 @@ class ApiService {
 
   // Register new patient
   Future<Map<String, dynamic>?> patientPhonePinLogin(
-      String phone, String pin) async {
+    String phone,
+    String pin,
+  ) async {
     try {
       final response = await http
           .post(
@@ -99,6 +111,14 @@ class ApiService {
         await settingsBox.put('patient_id', patientData['patient_id']);
         await settingsBox.put('patient_name', patientData['name'] ?? '');
         await settingsBox.put('condition', patientData['condition'] ?? '');
+        await settingsBox.put(
+          'provider_name',
+          patientData['provider_name'] ?? '',
+        );
+        await settingsBox.put(
+          'provider_specialty',
+          patientData['provider_specialty'] ?? '',
+        );
         if (patientData['session_token'] != null) {
           await settingsBox.put('session_token', patientData['session_token']);
         }
@@ -111,11 +131,13 @@ class ApiService {
   }
 
   // Register new patient
-  Future<Map<String, dynamic>?> registerPatient(Map<String, dynamic> registrationData) async {
+  Future<Map<String, dynamic>?> registerPatient(
+    Map<String, dynamic> registrationData,
+  ) async {
     try {
       print('📝 Attempting patient registration...');
       print('📦 Registration data: $registrationData');
-      
+
       final response = await http
           .post(
             Uri.parse('$baseUrl/patients/register/'),
@@ -235,25 +257,27 @@ class ApiService {
   // Fetch historical check-ins from backend and populate local Hive
   Future<void> fetchAndPopulateCheckinsFromAPI(String patientId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/patient/$patientId/checkins/'),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(Uri.parse('$baseUrl/patient/$patientId/checkins/'))
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
         final checkinsBox = Hive.box<CheckinModel>('checkins');
-        
+
         // Clear existing check-ins first to prevent duplicates on re-login
         await checkinsBox.clear();
-        
+
         for (var checkinJson in data) {
           try {
             // Parse the check-in JSON
             final date = DateTime.parse(checkinJson['date']);
-            final rawAnswers = checkinJson['answers'] is Map ? checkinJson['answers'] : {};
+            final rawAnswers = checkinJson['answers'] is Map
+                ? checkinJson['answers']
+                : {};
             final answers = <String, String>{};
             rawAnswers.forEach((k, v) => answers[k.toString()] = v.toString());
-            
+
             final checkin = CheckinModel(
               condition: checkinJson['condition'] ?? 'Unknown',
               date: date,
@@ -264,13 +288,13 @@ class ApiService {
               bpDiastolic: checkinJson['blood_pressure_diastolic']?.toDouble(),
               bloodGlucose: checkinJson['blood_glucose_reading']?.toDouble(),
             );
-            
+
             await checkinsBox.add(checkin);
           } catch (e) {
             print('⚠️ Error parsing check-in: $e');
           }
         }
-        
+
         print('✅ Populated ${data.length} historical check-ins from API');
       }
     } catch (e) {
@@ -361,7 +385,7 @@ class ApiService {
       return false;
     }
   }
-  
+
   // Fetch appointments for the patient
   Future<List<AppointmentModel>> getAppointments() async {
     try {
@@ -431,10 +455,14 @@ class ApiService {
   Future<List<String>> getBookedSlots(String providerId, DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
-      final response = await http.get(
-        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$dateStr'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$dateStr',
+            ),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return List<String>.from(data['booked_times'] ?? []);
@@ -448,16 +476,22 @@ class ApiService {
 
   /// Change the patient's password.
   /// Returns null on success or an error message string on failure.
-  Future<String?> changePassword(String patientId, String currentPassword, String newPassword) async {
+  Future<String?> changePassword(
+    String patientId,
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/patient/$patientId/change-password/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'current_password': currentPassword,
-          'new_password': newPassword,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/patient/$patientId/change-password/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'current_password': currentPassword,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         print('✅ Password changed for $patientId');
@@ -473,13 +507,17 @@ class ApiService {
 
   Future<List<Map<String, dynamic>>> getNotifications(String patientId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/notifications/?user_id=$patientId'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/notifications/?user_id=$patientId'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> items = data is List ? data : (data['results'] ?? []);
+        final List<dynamic> items = data is List
+            ? data
+            : (data['results'] ?? []);
         return items.cast<Map<String, dynamic>>();
       }
       return [];
@@ -491,10 +529,12 @@ class ApiService {
 
   Future<bool> markNotificationRead(int id) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/notifications/$id/read/'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/notifications/$id/read/'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       return false;
@@ -503,11 +543,13 @@ class ApiService {
 
   Future<void> markAllNotificationsRead(String userId) async {
     try {
-      await http.post(
-        Uri.parse('$baseUrl/notifications/mark-all-read/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId}),
-      ).timeout(const Duration(seconds: 10));
+      await http
+          .post(
+            Uri.parse('$baseUrl/notifications/mark-all-read/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 10));
     } catch (_) {}
   }
 }

@@ -4,7 +4,186 @@ Complete the tiers in order. Every step includes an expected outcome.
 
 ---
 
-## Credentials Quick Reference
+## DEFENCE DEMONSTRATION SCRIPTS
+
+These are five scripted walk-throughs designed for the project defence. Each one is self-contained, tells you exactly what to type, and points out what the examiner should see. Run them in order for the smoothest presentation.
+
+> **All demonstrations use the live production system — no local setup required.**
+>
+> | System | Live URL |
+> |---|---|
+> | Web Dashboard | https://health-tracker-zw.web.app/ |
+> | Backend / Admin | https://health-tracker-system-production.up.railway.app/admin/ |
+> | Mobile | Install `Vitalix.apk` from the project root |
+
+> **Provider credentials for the demos** — use the specialist whose patients are being demonstrated:
+>
+> | Demo | Provider Account | Reason |
+> |---|---|---|
+> | DEMO 1, 2, 3, 5 | `dr_hyper` / `password` | Ivan (PT002) is a Hypertension patient |
+> | DEMO 4 | `dr_diab` / `password` | Heidi (PT003) is a Diabetes patient |
+
+---
+
+### DEMO 1 — Notification Bell Badge and Read-State Persistence
+
+**What this shows:** The bell icon in the top bar shows a live unread count. Clicking it clears the badge. After a full browser reload the badge does not reappear for notifications already read.
+
+**Steps:**
+
+1. Open https://health-tracker-zw.web.app/ and log in as `dr_hyper` / `password`.
+   - *Look at the top-right corner of the screen.* The bell icon should have a red badge showing a number (e.g. **3**). This is the count of unread notifications.
+
+2. Without clicking the bell, note the number on the badge. Point it out to the examiner.
+
+3. Click the bell icon directly.
+   - *Expected:* The view switches to the **Notifications** tab automatically. The red badge on the bell icon disappears immediately.
+
+4. In the Notifications list, find any card that still has a coloured background and a small **red dot** on its right edge. That is an unread notification.
+
+5. Click anywhere on that notification card (not a button — just the card itself).
+   - *Expected:* The card background turns white. The red dot changes to a faint grey tick. The notification is now marked as read without any page reload.
+
+6. Now reload the entire browser page (press `F5` or `Ctrl+R`).
+   - *Expected:* The bell badge does **not** come back for the notification just marked as read. The badge count reflects only any genuinely unread items remaining.
+
+7. Point out to the examiner: "Read state is stored server-side so it survives any reload."
+
+---
+
+### DEMO 2 — Appointment Approval Auto-Creates a Draft Clinical Visit
+
+**What this shows:** When a provider approves a pending appointment, the system automatically creates a draft clinical visit record linked to that appointment. An orange badge appears on the patient's card immediately.
+
+**Log in as:** `dr_hyper` / `password` (Ivan is a Hypertension patient assigned to the Hypertension specialist.)
+
+**What to prepare:** You need one pending appointment in the live system. If none exists, go to **Appointments → Book Appointment**, select patient **Ivan (PT002)**, pick any future date and time, and enter the reason `"Follow-up: Blood pressure monitoring and medication review"`. Submit it — it will appear with status Pending.
+
+**Steps:**
+
+1. Click **Appointments** in the left sidebar.
+   - *Expected:* The Appointments tab opens. Ivan (PT002) appears in the pending list.
+
+2. Find Ivan's pending appointment and click **Confirm** (or **Approve**).
+   - *Expected:* The status changes to **Scheduled/Confirmed**. The pending badge on the sidebar decreases by one.
+
+3. Click **All Patients** in the sidebar.
+   - *Expected:* Find **Ivan** in the list. His patient card now has a small orange **"Visit Pending"** label next to his name and an orange border. This badge was not there before the approval.
+
+4. Point this out to the examiner: "The system instantly flagged that Ivan needs a clinical visit record filled in."
+
+5. Reload the browser.
+   - *Expected:* The "Visit Pending" label is **still there**. It will only disappear after the visit record is completed (demonstrated in Demo 3).
+
+---
+
+### DEMO 3 — Filling In the Clinical Visit Record with Reference Comparison
+
+**What this shows:** The provider opens the draft clinical visit, sees the patient's previous vitals for comparison, enters today's readings, and completes the record. The draft badge then clears.
+
+**Continue directly from Demo 2 — still logged in as `dr_hyper` / `password`.**
+
+**Steps:**
+
+1. Click on **Ivan (PT002)** in the All Patients list to open his detail screen.
+   - *Expected:* The Patient Detail screen opens on the Profile tab.
+
+2. Look at the **Clinical** tab label at the top. It should have a small **orange badge showing "1"**.
+   - Point this out: "One visit record is waiting to be filled in."
+
+3. Click the **Clinical** tab.
+   - *Expected:* A section labelled **"Pending Visit Records"** appears at the top in orange. Inside it is one card for the appointment just confirmed, showing the appointment reason and reference vitals from Ivan's last check-in.
+
+4. Click the orange button **"Fill In & Complete Visit"** on the draft card.
+   - *Expected:* A wide dialog opens. The **left panel** (orange background) shows Ivan's previous reference data — last check-in blood pressure, glucose, and risk level. The **right panel** has editable vital sign fields, already pre-filled with Ivan's baseline values.
+
+5. In the right panel, enter the following values to simulate today's clinic readings:
+   - **Systolic BP:** `148`
+   - **Diastolic BP:** `94`
+   - **Heart Rate:** `82`
+   - **Blood Glucose:** `105`
+   - **Weight:** `78`
+   - **Temperature:** `36.8`
+   - **SpO2:** `97`
+   - **Medication Intake:** `Amlodipine 5mg — taken as prescribed`
+   - **Comments:** `Patient reports occasional headaches in the morning. BP slightly elevated compared to last visit.`
+   - **Changes Made:** `Increased amlodipine to 10mg. Scheduled follow-up in 4 weeks.`
+
+6. Click **Complete & Save**.
+   - *Expected:* The dialog closes. The "Pending Visit Records" section disappears. A new card appears in the **"Completed Visits"** section with all the values just entered. The orange badge on the Clinical tab label disappears.
+
+7. Navigate back to **All Patients**.
+   - *Expected:* Ivan's card no longer has the "Visit Pending" label or orange border.
+
+---
+
+### DEMO 4 — Second Patient: Diabetes Review (End-to-End in One Flow)
+
+**What this shows:** The same full workflow for a different patient with a different condition, demonstrating the feature works generically across the system.
+
+**Log in as:** `dr_diab` / `password` (Heidi is a Diabetes patient assigned to the Diabetes specialist.)
+
+**What to prepare:** If no pending appointment exists for Heidi, go to **Appointments → Book Appointment**, select **Heidi (PT003)**, pick any future date and time, and enter the reason `"Diabetes review: glucose control and insulin dosage assessment"`. Submit it.
+
+**Steps:**
+
+1. Click **Appointments** in the sidebar. Find Heidi (PT003) and click **Confirm**.
+   - *Expected:* Status changes to Confirmed. A draft clinical visit is auto-created for Heidi.
+
+2. Click **All Patients**. Find **Heidi (PT003)**.
+   - *Expected:* Her card shows the orange **"Visit Pending"** label.
+
+3. Click Heidi's card. Go to the **Clinical** tab.
+   - *Expected:* The tab badge shows **"1"**. The Pending Visit Records section has one card for the diabetes review appointment.
+
+4. Click **"Fill In & Complete Visit"**. Enter the following values:
+   - **Systolic BP:** `122`
+   - **Diastolic BP:** `80`
+   - **Heart Rate:** `76`
+   - **Blood Glucose:** `210`
+   - **Weight:** `65`
+   - **Temperature:** `36.5`
+   - **SpO2:** `99`
+   - **Medication Intake:** `Metformin 500mg twice daily — patient reports compliance`
+   - **Comments:** `Fasting glucose elevated at 210 mg/dL. Patient admitted to skipping evening dose twice this week. No symptoms of hypoglycaemia.`
+   - **Changes Made:** `Reinforced medication adherence. Added dietary counselling referral. Repeat glucose check in 2 weeks.`
+
+5. Click **Complete & Save**.
+   - *Expected:* Visit moves to Completed. Tab badge clears. Heidi's patient card clears the pending label.
+
+6. Point out to the examiner: "The completed visit now serves as a reference point. The next time a visit is created for Heidi, this data will appear in the reference panel."
+
+---
+
+### DEMO 5 — Badge Persistence: Reload Proves Badges Survive Correctly
+
+**What this shows:** Appointment and high-risk badges use SharedPreferences to remember what the provider has already seen. New items badge correctly; already-seen items do not re-badge after a reload.
+
+**Log in as:** `dr_hyper` / `password` (or whichever specialist account was used in Demos 2–3).
+
+**Steps:**
+
+1. Click **Appointments** in the sidebar. Note the current badge count (even if it is 0 after completing Demos 2–4).
+   - The act of visiting this tab marks the current count as "seen" and saves it.
+
+2. Reload the browser (`F5`).
+   - *Expected:* The Appointments badge does **not** reappear for the appointments confirmed in Demos 2 and 3. The badge remains at 0 (or shows only genuinely new pending items if any exist).
+
+3. Click **High Risk Alerts** in the sidebar.
+   - *Expected:* The badge count on this tab reflects the number of RED/ORANGE patients. Visiting the tab saves this count.
+
+4. Reload again.
+   - *Expected:* The High Risk badge does not reappear for the same patients. It will only badge again if a new high-risk check-in arrives.
+
+5. Click the bell icon to open Notifications. Count the unread items.
+   - Reload the browser.
+   - *Expected:* The bell badge shows the same count as before (server-side `is_read` field drives this one — it survives reload by design).
+
+6. Point out to the examiner: "Badge counts are persisted locally so providers are not interrupted by stale alerts they have already seen. Only genuinely new events trigger the badge."
+
+---
+
+
 
 | Role | Username | Password / PIN | Where |
 |---|---|---|---|
@@ -253,7 +432,13 @@ Test with a regular provider account. The patient map is not part of the web das
 ### 2.7 Patient Detail - Clinical Visits Tab
 
 1. Click the **Clinical Visits** tab on the patient detail screen.
-   - **Expected:** A list of appointments for this patient appears, showing the date, status (Pending / Confirmed / Completed), and any notes.
+   - **Expected:** The tab label shows a small orange badge with a number if the patient has any visit records that have not yet been filled in by the provider. If there are no pending records the badge is absent.
+2. Approve a pending appointment for this patient (see section 2.9) if one has not already been approved.
+   - **Expected:** The Clinical Visits tab now shows a highlighted orange section at the top labelled **"Pending Visit Records"**. Inside that section there is a card for the appointment that was just approved. The card displays the appointment reason, a **"DRAFT – Awaiting Completion"** status badge, and a reference row showing the patient's last recorded blood pressure and blood glucose from their most recent check-in (or baseline values if no check-in exists yet).
+3. Click **Fill In & Complete Visit** on the draft visit card.
+   - **Expected:** A wide dialog opens. The left panel is read-only and shows the reference snapshot: previous BP and glucose readings, risk level, and the baseline values stored for this patient. The right panel has editable fields for today's vital readings (systolic BP, diastolic BP, heart rate, blood glucose, weight, temperature, oxygen saturation), medication intake, general comments, and any changes made to the care plan.
+4. Enter values in the vital sign fields and click **Complete & Save**.
+   - **Expected:** The dialog closes. The draft card disappears from the Pending section. A new card appears in the **"Completed Visits"** section showing the filled-in values. The orange badge on the Clinical tab label decreases or disappears.
 
 ### 2.8 Risk Banner
 
@@ -265,7 +450,9 @@ Test with a regular provider account. The patient map is not part of the web das
 1. Click **Appointments** in the sidebar.
    - **Expected:** A list of appointment requests appears, grouped or labelled by status (Pending, Confirmed, Completed). The badge count on the sidebar item matches the number of pending items shown.
 2. Click **Confirm** on a pending appointment.
-   - **Expected:** The appointment status changes to Confirmed. The pending badge count on the sidebar decreases by one.
+   - **Expected:** The appointment status changes to Confirmed. The pending badge count on the sidebar decreases by one. A draft clinical visit record is automatically created for this patient linked to the appointment (visible in the patient's Clinical Visits tab as described in section 2.7).
+3. Reload the browser and navigate back to the Appointments tab.
+   - **Expected:** The sidebar badge count for Appointments does **not** reappear for appointments that were already visible before the reload. Only new appointments arriving after the last visit to this tab will increment the badge.
 
 ### 2.10 High Risk Alerts Tab
 
@@ -281,10 +468,19 @@ Test with a regular provider account. The patient map is not part of the web das
 
 ### 2.12 Notifications Tab
 
-1. Click **Notifications** in the sidebar.
+1. Before opening the Notifications tab, look at the **bell icon** in the top navigation bar on desktop.
+   - **Expected:** If there are any unread notifications, a red badge with the unread count is visible on the bell icon. If all notifications are already read the badge is absent.
+2. Click the bell icon.
+   - **Expected:** The view switches to the Notifications tab. The badge on the bell icon disappears immediately.
+3. With the Notifications tab open, look at the notification feed.
    - **Expected:** A feed of system notifications appears (appointment requests, high-risk alerts, new check-ins). All message text is plain readable English with no emoji and no garbled characters.
-2. Click on a notification.
-   - **Expected:** The app navigates to the relevant patient or appointment that the notification refers to.
+4. Find any notification card that has not been read yet (it will have a slightly coloured background and a small red dot on the right side).
+5. Click anywhere on that notification card.
+   - **Expected:** The card background becomes white and the red dot changes to a faint grey check icon, indicating the notification has been marked as read. This happens instantly without a full page reload.
+6. Reload the browser and navigate back to the Notifications tab.
+   - **Expected:** The notification that was just read remains shown as read. The red dot does not reappear.
+7. Reload the browser and look at the bell icon.
+   - **Expected:** The bell badge reflects only the remaining unread notifications, not the one that was marked as read.
 
 ### 2.13 Register a New Patient
 
@@ -308,6 +504,44 @@ Test with a regular provider account. The patient map is not part of the web das
    - **Expected:** A message composer opens (drawer or dialog) showing the patient's name.
 2. Type a short message and click **Send**.
    - **Expected:** The message appears in the conversation thread. No error is shown.
+
+### 2.16 Patient Card - Pending Visit Badge
+
+1. Open the **All Patients** list.
+   - **Expected:** Any patient that has at least one draft clinical visit record (not yet filled in by the provider) shows a small orange **"Visit Pending"** label next to their name. The card border is a faint orange instead of the standard grey. Patients with no pending visits show a plain grey border and no label.
+2. Click on a patient with the "Visit Pending" label to open their detail screen.
+   - **Expected:** The Clinical Visits tab badge (orange dot with a number) is visible on the tab label, matching the number of pending draft records.
+3. Complete the draft visit (see section 2.7 steps 3–4).
+4. Return to the **All Patients** list.
+   - **Expected:** The "Visit Pending" label and orange border are gone from that patient's card.
+
+### 2.17 Badge Persistence Across Reloads
+
+This section verifies that notification and count badges correctly survive a browser refresh.
+
+1. Log in as a provider. Note the badge count on the **Appointments** sidebar item.
+2. Click **Appointments** to view the list (this marks the current count as "seen").
+3. Reload the entire browser page.
+   - **Expected:** The Appointments sidebar badge does **not** reappear. The count resets only when new pending appointments arrive after the last visit to that tab.
+4. Repeat steps 1–3 for the **High Risk Alerts** tab.
+   - **Expected:** Same behaviour — the high-risk badge does not reappear after reload if no new high-risk patients have appeared since the last visit to that tab.
+5. Note the unread count on the bell icon. Click the bell icon to open Notifications. Reload the browser.
+   - **Expected:** The bell badge count reflects only notifications that remain unread server-side, not ones already marked read. Previously-read notifications do not increment the badge count after a reload.
+
+### 2.18 End-to-End Appointment to Clinical Visit Flow
+
+This section tests the complete workflow from appointment approval to a completed clinical visit record.
+
+1. Log in as `dr_hyper`. Go to **Appointments** and approve a pending appointment for any patient.
+   - **Expected:** The appointment status changes to Confirmed. The Appointments badge decreases.
+2. Open the patient whose appointment was just approved. Go to the **Clinical Visits** tab.
+   - **Expected:** The tab label shows an orange badge with **"1"**. The Pending Visit Records section contains exactly one draft card showing the appointment reason and reference vitals.
+3. Click **Fill In & Complete Visit** on the draft card. In the dialog, enter realistic values for all vital fields. Click **Complete & Save**.
+   - **Expected:** The dialog closes. The pending section disappears (or shows zero items). The Completed Visits section now shows the visit with the values just entered. The orange tab badge disappears.
+4. Return to the **All Patients** list.
+   - **Expected:** The "Visit Pending" orange label and border are gone from that patient's card.
+5. Reload the browser and reopen the same patient's Clinical Visits tab.
+   - **Expected:** The completed visit record is still present with all saved values. The tab label has no badge.
 
 ---
 
@@ -419,4 +653,23 @@ Install `Vitalix.apk` on an Android device. Enable "Install from unknown sources
 3. **(Tier 1)** Re-activate `dr_diab` in the admin panel.
 4. **(Tier 2)** Log in as `dr_diab` again.
    - **Expected:** Login succeeds. The dashboard loads normally.
+
+### CT-4: Appointment approval triggers clinical visit, badge appears, mark complete clears badge
+
+1. **(Tier 3)** Log in on the mobile app as PT001 and request a new appointment for a future date.
+   - **Expected:** The appointment appears in the PT001 Appointments tab with status Pending.
+2. **(Tier 2)** Log in to the web dashboard as `dr_hyper`. Go to the Appointments tab. An Appointments sidebar badge or an increased badge count should be visible.
+   - **Expected:** The pending appointment from PT001 appears in the Appointments list.
+3. **(Tier 2)** Confirm the appointment by clicking **Confirm** on that row.
+   - **Expected:** The status changes to Confirmed. The sidebar badge decreases.
+4. **(Tier 2)** Go to the **All Patients** list and find PT001.
+   - **Expected:** The PT001 card shows a small orange **"Visit Pending"** label next to the patient name and an orange border.
+5. **(Tier 2)** Click the PT001 card to open their detail. Go to the **Clinical Visits** tab.
+   - **Expected:** The tab label has an orange badge showing **"1"**. The Pending Visit Records section contains a draft card showing the appointment reason and a reference row of PT001's last known vitals (blood pressure, glucose, risk level).
+6. **(Tier 2)** Click **Fill In & Complete Visit** on the draft card. Enter valid vitals in the dialog. Click **Complete & Save**.
+   - **Expected:** The dialog closes. The Pending section disappears. A completed visit card appears in the Completed Visits section with the values just entered. The orange tab badge disappears.
+7. **(Tier 3)** On the mobile app, check PT001's Appointments tab.
+   - **Expected:** The appointment status has changed to Completed.
+8. **(Tier 2)** Reload the browser and reopen the PT001 patient detail Clinical Visits tab.
+   - **Expected:** The completed visit record is still present with all saved values. The tab label has no badge. The PT001 card on the All Patients list no longer shows the "Visit Pending" label or orange border.
 

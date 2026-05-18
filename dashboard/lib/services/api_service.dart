@@ -106,8 +106,13 @@ class Patient {
 
 class ClinicalVisit {
   final int id;
+  final int? appointmentId;
+  final String? appointmentReason;
   final String hcwId;
   final DateTime visitDate;
+  final String visitType;
+  final bool isCompleted;
+  final Map<String, dynamic>? previousDataSnapshot;
   final int? systolicBp;
   final int? diastolicBp;
   final int? heartRate;
@@ -121,8 +126,13 @@ class ClinicalVisit {
 
   ClinicalVisit({
     required this.id,
+    this.appointmentId,
+    this.appointmentReason,
     required this.hcwId,
     required this.visitDate,
+    this.visitType = 'APPOINTMENT',
+    this.isCompleted = false,
+    this.previousDataSnapshot,
     this.systolicBp,
     this.diastolicBp,
     this.heartRate,
@@ -138,8 +148,15 @@ class ClinicalVisit {
   factory ClinicalVisit.fromJson(Map<String, dynamic> json) {
     return ClinicalVisit(
       id: json['id'],
+      appointmentId: json['appointment_id'],
+      appointmentReason: json['appointment_reason'],
       hcwId: json['hcw_id'] ?? '',
       visitDate: DateTime.parse(json['visit_date']),
+      visitType: json['visit_type'] ?? 'APPOINTMENT',
+      isCompleted: json['is_completed'] ?? false,
+      previousDataSnapshot: json['previous_data_snapshot'] != null
+          ? Map<String, dynamic>.from(json['previous_data_snapshot'])
+          : null,
       systolicBp: json['systolic_bp'],
       diastolicBp: json['diastolic_bp'],
       heartRate: json['heart_rate'],
@@ -269,11 +286,14 @@ class DashboardApiService {
 
   static String? currentProviderId;
   static String? currentProviderName;
+
   /// Specialty of the logged-in provider. Empty string means not yet configured.
   static String currentProviderSpecialty = '';
+
   /// Holds the error type from the last failed login attempt.
   /// Values: 'not_found', 'deactivated', 'invalid_credentials', or null.
   static String? lastLoginErrorType;
+
   /// True when the logged-in account has no specialty/hospital configured yet.
   static bool setupIncomplete = false;
 
@@ -336,7 +356,9 @@ class DashboardApiService {
   Future<List<Patient>> getPatients() async {
     try {
       final providerId = currentProviderId ?? '';
-      print('📤 Fetching patients from: $baseUrl/patients/?provider_id=$providerId');
+      print(
+        '📤 Fetching patients from: $baseUrl/patients/?provider_id=$providerId',
+      );
 
       final response = await http.get(
         Uri.parse('$baseUrl/patients/?provider_id=$providerId'),
@@ -347,7 +369,7 @@ class DashboardApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        
+
         // Handle paginated response: {count, page, page_size, total_pages, results}
         List<dynamic> data;
         if (responseData is Map && responseData.containsKey('results')) {
@@ -569,11 +591,17 @@ class DashboardApiService {
 
   /// Returns the list of already-booked HH:MM time strings for a provider on a date.
   /// Optionally pass [patientId] to also grey out slots where that patient is already booked.
-  Future<List<String>> getBookedSlots(String providerId, String date, {String? patientId}) async {
+  Future<List<String>> getBookedSlots(
+    String providerId,
+    String date, {
+    String? patientId,
+  }) async {
     try {
       final extra = patientId != null ? '&patient_id=$patientId' : '';
       final response = await http.get(
-        Uri.parse('$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$date$extra'),
+        Uri.parse(
+          '$baseUrl/appointments/booked-slots/?provider_id=$providerId&date=$date$extra',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {
@@ -623,19 +651,23 @@ class DashboardApiService {
   }
 
   Future<List<DashboardNotification>> getNotifications(
-      String userId, {bool unreadOnly = false}) async {
+    String userId, {
+    bool unreadOnly = false,
+  }) async {
     try {
       final uri = Uri.parse(
-          '$baseUrl/notifications/?user_id=$userId&unread_only=${unreadOnly ? 'true' : 'false'}');
-      final response =
-          await http.get(uri, headers: {'Content-Type': 'application/json'});
+        '$baseUrl/notifications/?user_id=$userId&unread_only=${unreadOnly ? 'true' : 'false'}',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> items =
-            data is List ? data : (data['results'] ?? []);
-        return items
-            .map((j) => DashboardNotification.fromJson(j))
-            .toList();
+        final List<dynamic> items = data is List
+            ? data
+            : (data['results'] ?? []);
+        return items.map((j) => DashboardNotification.fromJson(j)).toList();
       }
       return [];
     } catch (e) {
@@ -716,7 +748,10 @@ class DashboardApiService {
   }
 
   /// HCW submits a new clinical visit record.
-  Future<String?> addClinicalVisit(String patientId, Map<String, dynamic> visitData) async {
+  Future<String?> addClinicalVisit(
+    String patientId,
+    Map<String, dynamic> visitData,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/patient/$patientId/clinical-visits/add/'),
@@ -732,8 +767,58 @@ class DashboardApiService {
     }
   }
 
+  /// Update (fill in / complete) an existing draft clinical visit.
+  Future<String?> updateClinicalVisit(
+    String patientId,
+    int visitId,
+    Map<String, dynamic> visitData,
+  ) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(
+          '$baseUrl/patient/$patientId/clinical-visits/$visitId/update/',
+        ),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(visitData),
+      );
+      if (response.statusCode == 200) return null;
+      final data = jsonDecode(response.body);
+      return data.toString();
+    } catch (e) {
+      print('❌ Error updating clinical visit: $e');
+      return 'Network error.';
+    }
+  }
+
+  /// Returns the set of patient_ids that have at least one pending draft visit.
+  Future<Set<String>> getPendingDraftVisitPatients({String? providerId}) async {
+    try {
+      final uri = Uri.parse('$baseUrl/clinical-visits/pending-summary/')
+          .replace(
+            queryParameters: providerId != null
+                ? {'provider_id': providerId}
+                : null,
+          );
+      final response = await http.get(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final ids = body['patient_ids'] as List<dynamic>? ?? [];
+        return ids.map((e) => e.toString()).toSet();
+      }
+      return {};
+    } catch (e) {
+      print('❌ Error fetching pending draft visits: $e');
+      return {};
+    }
+  }
+
   /// Register a new patient (HCW-initiated with expanded fields).
-  Future<Map<String, dynamic>> registerPatient(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> registerPatient(
+    Map<String, dynamic> data,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/patients/register/'),

@@ -197,11 +197,38 @@ class Notification(models.Model):
 
 class ClinicalVisit(models.Model):
     """A visit record entered by an HCW (nurse/doctor) for a patient."""
+
+    VISIT_TYPE_CHOICES = [
+        ('APPOINTMENT', 'Scheduled Appointment'),
+        ('EMERGENCY', 'Emergency Visit'),
+        ('OTHER', 'Other'),
+    ]
+
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='clinical_visits')
+    # Nullable FK: populated when visit is derived from an approved appointment
+    appointment = models.OneToOneField(
+        'Appointment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clinical_visit',
+        help_text="The appointment this visit was auto-created from (null for walk-ins/emergencies)"
+    )
     hcw_id = models.CharField(max_length=100, help_text="provider_id of the HCW who recorded this visit")
     visit_date = models.DateTimeField()
+    visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='APPOINTMENT')
+    # False = draft auto-created from appointment; True = provider has filled it in
+    is_completed = models.BooleanField(default=False)
 
-    # Vital signs
+    # Snapshot of patient data at scheduling time for side-by-side comparison
+    # Stores: last_checkin, patient_baseline, last_appointment_summary
+    previous_data_snapshot = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Snapshot of last check-in vitals + baseline at appointment approval time for comparison"
+    )
+
+    # Vital signs recorded during this visit
     systolic_bp = models.IntegerField(null=True, blank=True)
     diastolic_bp = models.IntegerField(null=True, blank=True)
     heart_rate = models.IntegerField(null=True, blank=True)
