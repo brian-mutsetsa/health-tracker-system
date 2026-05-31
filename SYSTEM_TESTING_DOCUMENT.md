@@ -418,6 +418,17 @@ This repeats the full appointment-to-visit flow for a second patient with a diff
 5. Click **Complete & Save**.
    - **Expected:** Visit moves to Completed. The tab badge clears. Heidi's patient card clears the "Visit Pending" label and orange border. The completed visit now serves as a reference point — the next time a visit is created for Heidi, this data will appear in the reference panel.
 
+### 2.20 Download PDF Patient Report
+
+This section verifies that the provider can generate and download a comprehensive PDF report for a patient.
+
+1. Navigate to the **All Patients** tab and click on any patient to open their Patient Detail Screen.
+2. In the top app bar of the Patient Detail Screen, locate and click the **PDF Download Icon** (it looks like a document with a PDF label).
+3. **Expected:** 
+   - A new browser tab opens or a download prompt appears.
+   - The generated PDF document downloads or displays successfully.
+   - The PDF contains the patient's demographics, baseline vitals, and a summary of their most recent check-ins in a clean, readable layout.
+
 ---
 
 ## TIER 3 - Mobile App (Vitalix)
