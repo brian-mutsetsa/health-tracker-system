@@ -254,6 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 32),
 
+                      // Risk Recommendation
+                      if (latestCheckin != null) ...[
+                        _buildRiskRecommendationCard(context, latestCheckin),
+                        const SizedBox(height: 32),
+                      ],
+
                       // Categories Section
                       _buildHeader(context, 'Categories', 'See All'),
                       const SizedBox(height: 16),
@@ -263,13 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       // History Quick Access
                       _buildHistoryCard(context),
-
-                      const SizedBox(height: 32),
-
-                      // Suggested Doctors Mock
-                      _buildHeader(context, 'Suggested Doctors', 'See All'),
-                      const SizedBox(height: 16),
-                      _buildDoctorCard(),
 
                       const SizedBox(height: 30),
                     ],
@@ -671,109 +670,99 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().fadeIn(delay: 250.ms).slideX(begin: -0.1);
   }
 
-  Widget _buildDoctorCard() {
+  Widget _buildRiskRecommendationCard(BuildContext context, CheckinModel latestCheckin) {
+    String riskLevel = latestCheckin.riskLevel.toUpperCase();
+    String title = '';
+    String message = '';
+    Color color = Colors.grey;
+    IconData icon = Icons.info_outline;
+
+    switch (riskLevel) {
+      case 'RED':
+      case 'CRITICAL':
+        title = 'Critical Risk Detected';
+        message = 'Contact your Healthcare Worker within 24 hours.';
+        color = Colors.red;
+        icon = Icons.warning_amber_rounded;
+        break;
+      case 'ORANGE':
+        title = 'High Risk';
+        message = 'Please monitor yourself closely and maintain your daily check-ins.';
+        color = Colors.orange;
+        icon = Icons.warning_amber_rounded;
+        break;
+      case 'YELLOW':
+      case 'ELEVATED':
+        title = 'Elevated Risk';
+        message = 'Moderate risk detected.';
+        color = Colors.amber;
+        icon = Icons.info_outline;
+        break;
+      case 'GREEN':
+      case 'SAFE':
+        title = 'Safe';
+        message = 'Maintain your current healthy habits.';
+        color = Colors.green;
+        icon = Icons.check_circle_outline;
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryTeal,
-        gradient: AppTheme.mintGradient,
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryTeal.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.white24,
-            child: Icon(
-              Icons.medical_services_outlined,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                final box = Hive.box('settings');
-                final condition =
-                    box.get('condition', defaultValue: '') as String;
-                final providerName =
-                    box.get('provider_name', defaultValue: '') as String;
-                final displayName = providerName.isNotEmpty
-                    ? providerName
-                    : 'Your Care Provider';
-                // Show specialty relevant to the patient's condition, not the provider's generic specialty
-                final String displaySpec;
-                switch (condition.toLowerCase()) {
-                  case 'diabetes':
-                    displaySpec = 'Endocrinologist & Diabetes Specialist';
-                    break;
-                  case 'asthma':
-                    displaySpec = 'Pulmonologist & Respiratory Specialist';
-                    break;
-                  case 'heart disease':
-                  case 'cardiovascular':
-                    displaySpec = 'Cardiologist & Heart Disease Specialist';
-                    break;
-                  case 'hypertension':
-                  default:
-                    displaySpec = 'Cardiologist & Hypertension Specialist';
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      displaySpec,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.star, color: Colors.amber, size: 14),
-                const SizedBox(width: 4),
-                const Text(
-                  '4.8',
-                  style: TextStyle(
-                    color: AppTheme.textDark,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+          Row(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              color: AppTheme.textDark,
+              fontSize: 15,
             ),
           ),
+          if (riskLevel == 'RED' || riskLevel == 'CRITICAL') ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Calling Doctor...')),
+                  );
+                },
+                icon: const Icon(Icons.phone),
+                label: const Text('Call Doctor'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
-    ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1);
   }
 
   Widget _buildBottomNav(BuildContext context) {

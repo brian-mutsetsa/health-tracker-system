@@ -14,7 +14,10 @@ from .serializers import (PatientSerializer, CheckInSerializer, CheckInCreateSer
 from django.db import models
 from django.utils import timezone
 from django.db.models import Q
-
+from django.http import HttpResponse
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 # Load ML model
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml_models', 'risk_model.pkl')
 try:
@@ -1776,3 +1779,60 @@ def check_high_risk_alerts(request):
         'alerts_created': len(alerts_created),
         'alerts': serializer.data
     }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def generate_patient_pdf_report(request, patient_id):
+    """Generate a PDF report for a patient."""
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+    except Patient.DoesNotExist:
+        return HttpResponse('Patient not found', status=404)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, height - 50, f"Patient Report: {patient.name} {patient.surname}")
+    
+    # Demographics
+    p.setFont("Helvetica", 12)
+    p.drawString(50, height - 80, f"Patient ID: {patient.patient_id}")
+    p.drawString(50, height - 100, f"Condition: {patient.condition}")
+    p.drawString(50, height - 120, f"Date of Birth: {patient.date_of_birth or 'N/A'}")
+    p.drawString(50, height - 140, f"Phone: {patient.phone_number or 'N/A'}")
+    
+    # Vitals
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, height - 180, "Baseline Vitals")
+    p.setFont("Helvetica", 12)
+    p.drawString(50, height - 200, f"Blood Pressure: {patient.blood_pressure_systolic or 'N/A'}/{patient.blood_pressure_diastolic or 'N/A'} mmHg")
+    p.drawString(50, height - 220, f"Blood Glucose: {patient.blood_glucose_baseline or 'N/A'} mg/dL")
+    p.drawString(50, height - 240, f"Weight: {patient.weight_kg or 'N/A'} kg")
+    
+    # Check-ins summary
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, height - 280, "Recent Check-ins")
+    
+    checkins = CheckIn.objects.filter(patient=patient).order_by('-date')[:5]
+    y_pos = height - 310
+    p.setFont("Helvetica", 10)
+    if not checkins:
+        p.drawString(50, y_pos, "No recent check-ins found.")
+    else:
+        for c in checkins:
+            date_str = c.date.strftime("%Y-%m-%d %H:%M")
+            p.drawString(50, y_pos, f"{date_str} - Risk: {c.risk_level} - BP: {c.blood_pressure_systolic}/{c.blood_pressure_diastolic} - Glucose: {c.blood_glucose_reading}")
+            y_pos -= 20
+            if y_pos < 50:
+                p.showPage()
+                y_pos = height - 50
+                p.setFont("Helvetica", 10)
+
+    p.save()
+    
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="patient_{patient.patient_id}_report.pdf"'
+    return response

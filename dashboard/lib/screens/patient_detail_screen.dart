@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
@@ -103,6 +104,25 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Download PDF Report',
+            onPressed: () async {
+              // The base URL can be grabbed from ApiService or hardcoded if it's constant
+              final url = Uri.parse('https://health-tracker-api-blky.onrender.com/api/patient/${p.patientId}/report/');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not launch PDF report')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,

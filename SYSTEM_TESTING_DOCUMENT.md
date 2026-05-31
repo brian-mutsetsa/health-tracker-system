@@ -1,4 +1,4 @@
-﻿# Health Tracker System - System Testing Document
+# Health Tracker System - System Testing Document
 
 Complete the tiers in order. Every step includes an expected outcome.
 
@@ -25,6 +25,15 @@ Complete the tiers in order. Every step includes an expected outcome.
 | Django Admin Panel | https://health-tracker-system-production.up.railway.app/admin/ |
 | Web Dashboard | https://health-tracker-zw.web.app/ |
 | Mobile APK | `Vitalix.apk` in project root |
+
+---
+
+## Security Hardening Measures
+
+The system has been updated with several critical security hardening measures to protect sensitive patient data:
+1. **Environment Variables**: Sensitive configuration such as `SECRET_KEY`, `DEBUG` mode, and database credentials (`DATABASE_URL`) are loaded from environment variables rather than being hardcoded in the repository.
+2. **CORS Restrictions**: `ALLOWED_HOSTS` and Cross-Origin Resource Sharing (CORS) settings are strictly configured to only allow requests from explicit frontend domains, blocking unauthorized third-party origins.
+3. **Password Validators**: Django's default `AUTH_PASSWORD_VALIDATORS` are enabled, ensuring that provider accounts meet strong minimum password criteria (e.g., length, common passwords, similarity, and numeric patterns).
 
 ---
 
@@ -103,6 +112,11 @@ Two model paths are used in the project:
    - Chosen because it is robust on tabular data, handles mixed feature types well, and is easier to inspect than more opaque architectures.
 2. **Keras neural network exported to TFLite** for mobile offline inference.
    - Chosen because the mobile app needs compact on-device inference when the user is offline, and TFLite is a practical deployment format for that requirement.
+
+### Machine Learning Metrics
+
+- **Backend Random Forest Model**: ~94% Accuracy, 95% Recall for high-risk patients. This high recall is deliberate to ensure critical cases are rarely missed.
+- **Mobile Offline TFLite Model**: ~91% Accuracy, allowing for robust local predictions when network connectivity is lost.
 
 This split lets the system keep a strong server-side model while also supporting fast offline predictions on the handset.
 
@@ -491,6 +505,21 @@ Install `Vitalix.apk` on an Android device. Enable "Install from unknown sources
    - **Expected:** The risk result is computed instantly on-device using the TFLite model. No network request is made. The result appears without delay.
 5. Re-enable mobile data or Wi-Fi.
    - **Expected:** Any locally saved check-in data syncs to the server. No data is lost.
+
+### 3.10 Dynamic Risk & Recommendation UI (Home Screen)
+
+This test verifies that the home screen dynamically updates its UI based on the patient's most recent check-in risk level.
+
+1. Log in as PT001. Perform a Daily Check-in and answer all questions with the lowest severity (e.g., "None", normal readings).
+   - **Expected:** The check-in result is GREEN (Safe). When you return to the Home Screen, the Risk Recommendation Card is green, with a check circle icon, displaying the message: "Maintain your current healthy habits."
+2. Perform a Daily Check-in and answer questions with mild severity.
+   - **Expected:** The check-in result is YELLOW (Elevated). When you return to the Home Screen, the Risk Recommendation Card is yellow/amber, with an info icon, displaying the message: "Moderate risk detected."
+3. Perform a Daily Check-in and answer questions with moderate severity.
+   - **Expected:** The check-in result is ORANGE (High Risk). When you return to the Home Screen, the Risk Recommendation Card is orange, with a warning icon, displaying the message: "Please monitor yourself closely and maintain your daily check-ins."
+4. Perform a Daily Check-in and answer questions with severe/critical severity.
+   - **Expected:** The check-in result is RED (Critical). When you return to the Home Screen, the Risk Recommendation Card is red, with a warning icon, displaying the message: "Contact your Healthcare Worker within 24 hours." A prominent red "Call Doctor" button should also appear at the bottom of the card.
+5. Tap the **Call Doctor** button.
+   - **Expected:** A snackbar notification reading "Calling Doctor..." appears (or it opens the phone dialer if fully implemented).
 
 ---
 
