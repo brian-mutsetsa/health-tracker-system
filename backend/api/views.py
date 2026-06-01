@@ -1166,7 +1166,12 @@ def search_patients(request):
                 queryset = queryset.none()
             elif 'General Practice' not in provider.specialty:
                 # Specialists only see patients with their matching condition
-                queryset = queryset.filter(condition__icontains=provider.specialty)
+                import re
+                specialties = [s.strip() for s in re.split(r'[&,]', provider.specialty) if s.strip()]
+                query = Q()
+                for s in specialties:
+                    query |= Q(condition__icontains=s)
+                queryset = queryset.filter(query)
             # General Practice sees everyone — no filter
         except Provider.DoesNotExist:
             queryset = queryset.none()
@@ -1274,7 +1279,12 @@ def list_all_patients(request):
                 queryset = queryset.none()
             elif 'General Practice' not in provider.specialty:
                 # Specialists only see patients with their matching condition
-                queryset = queryset.filter(condition__icontains=provider.specialty)
+                import re
+                specialties = [s.strip() for s in re.split(r'[&,]', provider.specialty) if s.strip()]
+                query = Q()
+                for s in specialties:
+                    query |= Q(condition__icontains=s)
+                queryset = queryset.filter(query)
             # General Practice sees everyone — no filter
         except Provider.DoesNotExist:
             # Unknown provider_id — show nothing
