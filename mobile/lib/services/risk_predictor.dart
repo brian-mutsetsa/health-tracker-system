@@ -66,9 +66,21 @@ class RiskPredictor {
       for (int i = 1; i < probs.length; i++) {
         if (probs[i] > probs[maxIdx]) maxIdx = i;
       }
+      
+      String predictedLabel = _labels[maxIdx];
+
+      // Clinical Safety Override
+      final score = features.sublist(0, 12).fold<double>(0, (a, b) => a + b);
+      if (score >= 20) {
+        predictedLabel = 'RED';
+      } else if (score >= 13 && maxIdx < 2) {
+        // If score is Moderate, but ML predicts Green/Yellow, override to Orange
+        predictedLabel = 'ORANGE';
+      }
+
       debugPrint(
-          'RiskPredictor: probs=$probs → ${_labels[maxIdx]}');
-      return _labels[maxIdx];
+          'RiskPredictor: probs=$probs → $predictedLabel (after override)');
+      return predictedLabel;
     } catch (e) {
       debugPrint('RiskPredictor: Inference error — $e');
       return _ruleBased(features);

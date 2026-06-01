@@ -54,13 +54,28 @@ def predict_risk_with_ml(answers, condition, patient=None):
         int_answers = {}
         for k, v in answers.items():
             if isinstance(v, str):
-                scale = {'None': 0, 'Mild': 1, 'Moderate': 2, 'Severe': 3}
-                int_answers[k] = scale.get(v, 0)
+                if v.isdigit():
+                    int_answers[k] = int(v)
+                else:
+                    scale = {
+                        'None': 0, 'Mild': 1, 'Moderate': 2, 'Severe': 3,
+                        'Yes fully': 0, 'Missed once': 1, 'Missed more than once': 2, 'Did not take': 3,
+                        'Small amount': 1, 'Moderate amount': 2, 'High amount': 3, 'High intake': 3,
+                        'Light activity': 1, 'Vigorous': 3,
+                        'Minor deviations': 1, 'Moderate deviations': 2, 'Did not follow': 3
+                    }
+                    int_answers[k] = scale.get(v, 0)
             else:
-                int_answers[k] = v
+                int_answers[k] = int(v)
         
-        # Get 12 question scores
-        question_scores = [int_answers.get(f'q{i}', 0) for i in range(1, 13)]
+        # Get 12 question scores (invert physical activity)
+        question_scores = []
+        for i in range(1, 13):
+            val = int_answers.get(f'q{i}', 0)
+            is_activity = (condition == 'Diabetes' and i == 11) or (condition in ['Cardiovascular', 'Heart Disease'] and i == 10)
+            if is_activity:
+                val = 3 - val
+            question_scores.append(val)
         
         # Calculate baseline deviations if patient data available
         systolic_dev = 0
@@ -80,8 +95,8 @@ def predict_risk_with_ml(answers, condition, patient=None):
             current_glucose = answers.get('blood_glucose_reading', patient.blood_glucose_baseline)
             glucose_dev = int(current_glucose) - int(patient.blood_glucose_baseline)
         
-        # Medication adherence (q11 usually)
-        medication = int_answers.get('q11', 0) / 3  # Normalize to 0-1
+        # Medication adherence
+        medication = 1.0 if int_answers.get('q9', 3) == 0 else 0.0
         
         # Condition encoding
         condition_map = {'Hypertension': 0, 'Diabetes': 1, 'Cardiovascular': 2, 'Heart Disease': 2}
@@ -91,7 +106,7 @@ def predict_risk_with_ml(answers, condition, patient=None):
         age = patient.get_age() if patient else 50
         age_normalized = (age - 25) / 60 if age else 0.5
         
-        # Build feature vector (19 features)
+        # Build feature vector (18 features)
         features = np.array([[
             *question_scores,  # q1-q12: 12 features
             systolic_dev, diastolic_dev, glucose_dev,  # 3 features
@@ -107,16 +122,24 @@ def predict_risk_with_ml(answers, condition, patient=None):
         risk_level = risk_map[int(prediction)]
         risk_confidence = float(confidence[int(prediction)] * 100)
         
+        # Clinical Safety Override
+        heuristic_score = sum(question_scores)
+        if heuristic_score >= 20:
+            risk_level = 'RED'
+            risk_confidence = 100.0
+        elif heuristic_score >= 13 and int(prediction) < 2:
+            risk_level = 'ORANGE'
+            
         return risk_level, risk_confidence
     except Exception as e:
         print(f" ML prediction error: {e}")
         # Fallback to score calculation
         total_score = sum(question_scores) if 'question_scores' in locals() else 12
-        if total_score >= 24:
+        if total_score >= 20:
             return 'RED', 90
-        elif total_score >= 16:
+        elif total_score >= 13:
             return 'ORANGE', 70
-        elif total_score >= 8:
+        elif total_score >= 6:
             return 'YELLOW', 50
         else:
             return 'GREEN', 30
