@@ -77,14 +77,16 @@ class ApiService {
         );
         print('✅ Login successful: ${patientData['name']}');
         return patientData;
-      } else {
+      } else if (response.statusCode == 401 || response.statusCode == 404) {
         print('❌ Login failed: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
+        return null; // Return null ONLY for actual invalid credentials/not found
+      } else {
+        print('❌ Server error: ${response.statusCode}');
+        throw Exception('Server error: ${response.statusCode}. Please wait a moment and try again.');
       }
     } catch (e) {
       print('❌ Login error: $e');
-      return null;
+      throw Exception(e.toString());
     }
   }
 
