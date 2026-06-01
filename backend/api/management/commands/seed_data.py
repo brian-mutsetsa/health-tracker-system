@@ -247,6 +247,33 @@ class Command(BaseCommand):
             defaults={'user': legacy_user, 'specialty': 'General Practice', 'hospital': 'Harare Central Hospital'},
         )
 
+        # ── Specialist Providers (Required for Mobile App Routing) ────────────
+        specialists = [
+            {'id': 'DR002', 'user': 'dr_hyper', 'first': 'Sarah', 'last': 'Jones', 'spec': 'Hypertension'},
+            {'id': 'DR003', 'user': 'dr_diab', 'first': 'Michael', 'last': 'Chen', 'spec': 'Diabetes'},
+            {'id': 'DR004', 'user': 'dr_asthma', 'first': 'Emily', 'last': 'Ndlovu', 'spec': 'Asthma'},
+            {'id': 'DR005', 'user': 'dr_cardio', 'first': 'Robert', 'last': 'Smith', 'spec': 'Cardiovascular'},
+        ]
+
+        for sp in specialists:
+            sp_user, created = User.objects.get_or_create(
+                username=sp['user'],
+                defaults={'email': f"{sp['user']}@hararehospital.co.zw", 'first_name': sp['first'], 'last_name': sp['last']},
+            )
+            if created:
+                sp_user.set_password('password')
+                sp_user.save()
+                self.stdout.write(f"  Created User {sp['id']}")
+
+            Provider.objects.update_or_create(
+                provider_id=sp['id'],
+                defaults={
+                    'user': sp_user,
+                    'specialty': sp['spec'],
+                    'hospital': 'Harare Central Hospital',
+                },
+            )
+
         # ── Superadmin ────────────────────────────────────────────────────────
         if not User.objects.filter(username='admin').exists():
             su = User.objects.create_superuser('admin', 'admin@hararehospital.co.zw', 'password')
