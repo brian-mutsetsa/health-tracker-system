@@ -274,4 +274,167 @@ class PdfGenerator {
       filename: 'HealthReport_${patient.patientId}.pdf',
     );
   }
+
+  static Future<void> generateWeeklyAnalyticsReport(
+    Map<String, dynamic> stats,
+    Map<String, int> conditionCounts,
+    Map<String, int> riskCounts,
+    String providerNotes,
+  ) async {
+    final pdf = pw.Document();
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+    final primaryTeal = PdfColor.fromHex('#1B9C85');
+    final darkText = PdfColor.fromHex('#212529');
+    
+    final dateStr = DateFormat('MMM d, yyyy').format(DateTime.now());
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'HEALTH TRACKER SYSTEM',
+                        style: pw.TextStyle(font: fontBold, fontSize: 24, color: primaryTeal),
+                      ),
+                      pw.Text(
+                        'Weekly Analytics Report',
+                        style: pw.TextStyle(font: font, fontSize: 14, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                  pw.Text('Date: $dateStr', style: pw.TextStyle(font: font, fontSize: 12)),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.Divider(color: PdfColors.grey300),
+              pw.SizedBox(height: 20),
+
+              // KPI Section
+              pw.Text('Key Performance Indicators', style: pw.TextStyle(font: fontBold, fontSize: 18, color: darkText)),
+              pw.SizedBox(height: 10),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildStatBox('Total Patients', '${stats['total_patients'] ?? 0}', font, fontBold, primaryTeal),
+                  _buildStatBox('High Risk', '${stats['high_risk'] ?? 0}', font, fontBold, PdfColors.red),
+                  _buildStatBox('Total Check-ins', '${stats['total_checkins'] ?? 0}', font, fontBold, primaryTeal),
+                ],
+              ),
+              pw.SizedBox(height: 30),
+
+              // Breakdown Section
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Risk
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Risk Distribution', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+                        pw.SizedBox(height: 8),
+                        ...riskCounts.entries.map((e) => pw.Padding(
+                          padding: const pw.EdgeInsets.only(bottom: 4),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text(e.key, style: pw.TextStyle(font: font, fontSize: 12)),
+                              pw.Text('${e.value}', style: pw.TextStyle(font: fontBold, fontSize: 12)),
+                            ]
+                          )
+                        )).toList(),
+                      ]
+                    )
+                  ),
+                  pw.SizedBox(width: 40),
+                  // Conditions
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Condition Breakdown', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+                        pw.SizedBox(height: 8),
+                        ...conditionCounts.entries.take(6).map((e) => pw.Padding(
+                          padding: const pw.EdgeInsets.only(bottom: 4),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text(e.key, style: pw.TextStyle(font: font, fontSize: 12)),
+                              pw.Text('${e.value}', style: pw.TextStyle(font: fontBold, fontSize: 12)),
+                            ]
+                          )
+                        )).toList(),
+                      ]
+                    )
+                  ),
+                ]
+              ),
+              
+              pw.SizedBox(height: 30),
+              pw.Divider(color: PdfColors.grey300),
+              pw.SizedBox(height: 20),
+
+              // Provider Notes
+              pw.Text('Provider Clinical Notes & Observations', style: pw.TextStyle(font: fontBold, fontSize: 16, color: darkText)),
+              pw.SizedBox(height: 10),
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  border: pw.Border.all(color: PdfColors.grey300),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Text(
+                  providerNotes.isEmpty ? 'No notes provided for this week.' : providerNotes,
+                  style: pw.TextStyle(font: font, fontSize: 12, lineSpacing: 2),
+                ),
+              ),
+              
+              pw.Spacer(),
+              pw.Center(
+                child: pw.Text('-- End of Weekly Report --', style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey600)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Analytics_Weekly_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+    );
+  }
+
+  static pw.Widget _buildStatBox(String title, String value, pw.Font font, pw.Font fontBold, PdfColor color) {
+    return pw.Container(
+      width: 130,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: color, width: 1.5),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(value, style: pw.TextStyle(font: fontBold, fontSize: 24, color: color)),
+          pw.SizedBox(height: 4),
+          pw.Text(title, style: pw.TextStyle(font: font, fontSize: 12)),
+        ],
+      ),
+    );
+  }
 }

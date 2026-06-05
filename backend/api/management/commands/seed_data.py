@@ -307,10 +307,17 @@ class Command(BaseCommand):
                     'primary_provider_id': pdata.get('primary_provider_id'),
                     'last_risk_level': pdata.get('last_risk_level'),
                     'last_risk_color': pdata.get('last_risk_color'),
-                    'password': 'test123',
+                    'password': 'test123', # Will be overwritten immediately
                     'status': 'ACTIVE',
                 },
             )
+            
+            # Generate unique password and hash it
+            from django.contrib.auth.hashers import make_password
+            unique_password = f"{pdata['surname']}2026!"
+            patient.password = make_password(unique_password)
+            patient.save(update_fields=['password'])
+            pdata['_generated_password'] = unique_password
             patient_objects[pid] = patient
             action = 'Created' if created else 'Updated'
             self.stdout.write(f'  {action}: {pid} - {patient.name} ({patient.condition})')
@@ -382,9 +389,18 @@ class Command(BaseCommand):
 
         self.stdout.write(f'  Appointments: {created_count} created, {skipped_count} already existed')
 
-        self.stdout.write(self.style.SUCCESS(
-            '\nSeed complete!\n'
-            '  Provider login : DR001 / provider123\n'
-            '  Patient login  : PT001 (or PT002-PT005) / test123\n'
-            '  Admin login    : admin / password\n'
-        ))
+        self.stdout.write(self.style.SUCCESS('\\nSeed complete!\\n'))
+        self.stdout.write(self.style.WARNING('================================================================='))
+        self.stdout.write(self.style.WARNING('                          LOGIN DETAILS                          '))
+        self.stdout.write(self.style.WARNING('================================================================='))
+        self.stdout.write('  Superadmin     : admin / password')
+        self.stdout.write('  Provider 1     : DR001 / provider123')
+        self.stdout.write('  Provider 2     : dr_hyper / password')
+        self.stdout.write('  Provider 3     : dr_diab / password')
+        self.stdout.write('  Provider 4     : dr_asthma / password')
+        self.stdout.write('  Provider 5     : dr_cardio / password\\n')
+        self.stdout.write(self.style.WARNING('--- UNIQUE PATIENT CREDENTIALS ---'))
+        for pdata in PATIENTS:
+            pwd = pdata.get('_generated_password', 'test123')
+            self.stdout.write(f"  {pdata['patient_id']:<6} ({pdata['name']} {pdata['surname']:<10}) : {pwd}")
+        self.stdout.write(self.style.WARNING('=================================================================\\n'))

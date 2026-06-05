@@ -390,8 +390,17 @@ def patient_login(request):
     try:
         patient = Patient.objects.get(patient_id__iexact=patient_id.strip())
         
-        # Simple password check (in production, use hashed passwords)
-        if patient.password == password:
+        from django.contrib.auth.hashers import check_password as check_django_password
+        
+        # Secure password check (handles hashed passwords from seed_data and plaintext fallback)
+        is_password_valid = False
+        if patient.password.startswith('pbkdf2_sha256$'):
+            is_password_valid = check_django_password(password, patient.password)
+        else:
+            # Fallback for old plaintext passwords during transition
+            is_password_valid = (patient.password == password)
+
+        if is_password_valid:
             response_data = PatientSerializer(patient).data
             response_data['session_token'] = request.session.session_key
             response_data['patient_id'] = patient.patient_id
@@ -1863,9 +1872,80 @@ def generate_patient_pdf_report(request, patient_id):
                 y_pos = height - 50
                 p.setFont("Helvetica", 10)
 
+    # Clinical Visits Summary
+    y_pos -= 20
+    if y_pos < 50:
+        p.showPage()
+        y_pos = height - 50
+    
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y_pos, "Recent Clinical Visits")
+    y_pos -= 30
+    
+    clinical_visits = ClinicalVisit.objects.filter(patient=patient).order_by('-visit_date')[:5]
+    p.setFont("Helvetica", 10)
+    if not clinical_visits:
+        p.drawString(50, y_pos, "No recent clinical visits found.")
+    else:
+        for v in clinical_visits:
+            date_str = v.visit_date.strftime("%Y-%m-%d %H:%M")
+            p.drawString(50, y_pos, f"{date_str} - Provider: {v.provider_id}")
+            y_pos -= 15
+            p.drawString(60, y_pos, f"Notes: {v.notes[:80] + '...' if len(v.notes) > 80 else v.notes}")
+            y_pos -= 15
+            p.drawString(60, y_pos, f"Comments: {v.comments[:80] + '...' if len(v.comments) > 80 else v.comments}")
+            y_pos -= 20
+            if y_pos < 80:
+                p.showPage()
+                y_pos = height - 50
+                p.setFont("Helvetica", 10)
+
     p.save()
     
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="patient_{patient.patient_id}_report.pdf"'
     return response
+
+@api_view(['POST'])
+def trigger_emergency_alert(request, patient_id):
+    """
+    Called by the mobile app's Call Doctor button.
+    Sends a high-priority emergency notification to the primary provider.
+    """
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+        provider_id = patient.primary_provider_id
+        if not provider_id:
+            provider_id = 'admin' # Fallback
+            
+        Notification.objects.create(
+            user_id=provider_id,
+            notification_type='HIGH_RISK_ALERT',
+            message=f"🚨 EMERGENCY: Patient {patient.name} {patient.surname} ({patient_id}) has triggered a Call Doctor alert! Please contact them immediately.",
+            related_patient_id=patient.patient_id
+        )
+        return Response({'status': 'Emergency alert sent'}, status=status.HTTP_200_OK)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def send_patient_reminder(request, patient_id):
+    """
+    Called by the web dashboard to send a manual reminder (Medication/Appointment) to the patient.
+    """
+    try:
+        patient = Patient.objects.get(patient_id=patient_id)
+        reminder_type = request.data.get('type', 'GENERAL') # MEDICATION, APPOINTMENT
+        message = request.data.get('message', 'You have a new reminder from your healthcare provider.')
+        
+        Notification.objects.create(
+            user_id=patient.patient_id,
+            notification_type=reminder_type,
+            message=message,
+            related_patient_id=patient.patient_id
+        )
+        return Response({'status': 'Reminder sent successfully'}, status=status.HTTP_200_OK)
+    except Patient.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)

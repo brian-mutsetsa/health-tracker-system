@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/checkin_model.dart';
@@ -551,4 +552,19 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
     } catch (_) {}
   }
+
+  // --- EMERGENCY ALERT ---
+  Future<bool> triggerEmergencyAlert(String patientId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/patient/$patientId/emergency-alert/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error triggering emergency alert: $e');
+      return false;
+    }
+  }
+
 }

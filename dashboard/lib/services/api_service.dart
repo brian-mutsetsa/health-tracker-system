@@ -833,4 +833,19 @@ class DashboardApiService {
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
+
+  /// Sends a manual medication or appointment reminder to a patient.
+  Future<void> sendPatientReminder(String patientId, String type, String message) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/patient/$patientId/send-reminder/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'type': type,
+        'message': message,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send reminder');
+    }
+  }
 }

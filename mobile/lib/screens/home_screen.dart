@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -746,10 +747,19 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Calling Doctor...')),
+                    const SnackBar(content: Text('Sending Emergency Alert & Calling Doctor...')),
                   );
+                  final patientId = Hive.box('settings').get('patient_id') as String?;
+                  if (patientId != null) {
+                    await ApiService().triggerEmergencyAlert(patientId);
+                  }
+                  
+                  final Uri url = Uri.parse('tel:112');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
                 },
                 icon: const Icon(Icons.phone),
                 label: const Text('Call Doctor'),

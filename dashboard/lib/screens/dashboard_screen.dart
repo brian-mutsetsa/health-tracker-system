@@ -1,4 +1,5 @@
-﻿import 'dart:async';
+import '../utils/pdf_generator.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -52,6 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _restorePersistedBadgeCounts();
+    _loadProviderNotes();
     _loadData();
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _loadDataSilently();
@@ -151,6 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (_selectedIndex != 5)
           _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
+      _checkAutoDownloadWeeklyReport();
     }
   }
 
@@ -1152,6 +1155,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // â”€â”€â”€ Analytics Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  // ─── Analytics Page ──────────────────────────────────────────────────────────
+
+  final _providerNotesController = TextEditingController();
+
+  Future<void> _loadProviderNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _providerNotesController.text = prefs.getString('provider_analytics_notes') ?? '';
+    });
+  }
+
+  Future<void> _saveProviderNotes(String text) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('provider_analytics_notes', text);
+  }
+
+  Future<void> _checkAutoDownloadWeeklyReport() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    // Auto download on Fridays after 5 PM
+    if (now.weekday == DateTime.friday && now.hour >= 17) {
+      final currentWeekStr = '${now.year}-W${(now.day / 7).ceil()}';
+      final lastDownloadedWeek = prefs.getString('last_auto_download_week');
+      if (lastDownloadedWeek != currentWeekStr) {
+        // Calculate the risk and condition distributions for the report
+        final conditionCounts = <String, int>{};
+        final riskCounts = <String, int>{'GREEN': 0, 'YELLOW': 0, 'ORANGE': 0, 'RED': 0, 'Unknown': 0};
+        for (final p in _patients) {
+          conditionCounts[p.condition] = (conditionCounts[p.condition] ?? 0) + 1;
+          final level = p.lastRiskLevel ?? 'Unknown';
+          if (riskCounts.containsKey(level)) {
+            riskCounts[level] = riskCounts[level]! + 1;
+          } else {
+            riskCounts['Unknown'] = riskCounts['Unknown']! + 1;
+          }
+        }
+        
+        await PdfGenerator.generateWeeklyAnalyticsReport(
+          _stats,
+          conditionCounts,
+          riskCounts,
+          _providerNotesController.text,
+        );
+        await prefs.setString('last_auto_download_week', currentWeekStr);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Weekly Analytics Report Auto-Downloaded!')),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildAnalytics({required bool isMobile}) {
     final pad = isMobile ? 16.0 : 40.0;
     final total = _stats['total_patients'] ?? 0;
@@ -1187,18 +1243,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Analytics',
-            style: TextStyle(
-              fontSize: isMobile ? 22 : 32,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textDark,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Summary of patient data across your practice.',
-            style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Analytics',
+                    style: TextStyle(
+                      fontSize: isMobile ? 22 : 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Summary of patient data across your practice.',
+                    style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                  ),
+                ],
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  await PdfGenerator.generateWeeklyAnalyticsReport(
+                    _stats,
+                    conditionCounts,
+                    riskCounts,
+                    _providerNotesController.text,
+                  );
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('Weekly Report'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                ),
+              ),
+            ],
           ),
           SizedBox(height: isMobile ? 20 : 32),
 
@@ -1288,6 +1369,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(child: _buildConditionPanel(conditionCounts)),
               ],
             ),
+          
+          SizedBox(height: isMobile ? 20 : 32),
+          
+          // Provider Comments & Observations
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Provider Clinical Notes & Observations',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _providerNotesController,
+                  maxLines: 5,
+                  onChanged: _saveProviderNotes,
+                  decoration: const InputDecoration(
+                    hintText: 'Add your high-level analytics notes, observations, or general practice reminders here...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ).animate().fadeIn();

@@ -579,3 +579,34 @@ This test verifies that the home screen dynamically updates its UI based on the 
 8. **(Tier 2)** Reload the browser and reopen the PT001 patient detail Clinical Visits tab.
    - **Expected:** The completed visit record is still present with all saved values. The tab label has no badge. The PT001 card on the All Patients list no longer shows the "Visit Pending" label or orange border.
 
+### CT-5: Emergency "Call Doctor" Alerts
+
+1. **(Tier 3)** Log in as PT001. Navigate to the Home Screen and tap the "Call Doctor" button (only visible when in RED/CRITICAL risk state, or manually accessible).
+   - **Expected:** The mobile app immediately triggers the backend emergency alert endpoint and shows a snackbar "Sending Emergency Alert & Calling Doctor...".
+2. **(Tier 2)** Log in to the web dashboard as `dr_hyper` (PT001's assigned provider).
+   - **Expected:** A high-priority 🚨 EMERGENCY notification appears in the Notifications tab stating that PT001 has triggered a Call Doctor alert and requires immediate contact.
+
+### CT-6: Healthcare Worker Reminders
+
+1. **(Tier 2)** Log in to the dashboard as `dr_hyper`. Open PT001's details and click the **"Send Reminder"** bell icon in the top right.
+2. Select "MEDICATION", write a message like "Please remember to take your evening dose of Amlodipine.", and click **Send Reminder**.
+   - **Expected:** The dashboard displays a success snackbar.
+3. **(Tier 3)** Wait for up to 15 seconds on the PT001 mobile app home screen (or navigate around).
+   - **Expected:** A local push notification banner appears on the device with the reminder text. The Notifications screen updates with the new reminder.
+
+### CT-7: Provider Comments & Analytics Weekly Report
+
+1. **(Tier 2)** In the web dashboard, navigate to the **Analytics** tab. Scroll to the bottom and enter notes into the **"Provider Clinical Notes & Observations"** text field.
+2. Navigate to another tab and then back to Analytics.
+   - **Expected:** The notes persist locally via SharedPreferences.
+3. Click the **"Download Weekly Report"** button (to be implemented).
+   - **Expected:** A PDF report is generated and downloaded locally containing the analytics summary, risk/condition distributions, and the provider's weekly comments.
+
+### 1.10 Security: Unique Patient Passwords
+
+1. **(Tier 1)** Run `python manage.py seed_data` in the backend terminal.
+   - **Expected:** The terminal outputs a clean table of unique, securely hashed passwords for every patient (e.g., PT001 / Surname2026!).
+2. **(Tier 3)** Attempt to log in to the mobile app as PT001 using the old `test123` password.
+   - **Expected:** Login fails with an "Invalid credentials" error because the system now enforces uniquely hashed passwords.
+3. **(Tier 3)** Log in using the unique password provided in the console output.
+   - **Expected:** Login succeeds.
