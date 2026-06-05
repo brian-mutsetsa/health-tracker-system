@@ -1,0 +1,51 @@
+Database migrations completed
+Starting idempotent seed...
+  Updated: PT001 - Judy (Hypertension)
+  Updated: PT002 - Ivan (Hypertension)
+  Updated: PT003 - Heidi (Diabetes)
+  Updated: PT004 - Grace (Heart Disease)
+  Updated: PT005 - Frank (Diabetes)
+  Updated: PT006 - Tendai (Hypertension)
+  Updated: PT007 - Simbai (Asthma)
+  Updated: PT008 - Rudo (Diabetes)
+  Updated: PT009 - Blessing (Heart Disease)
+  Updated: PT010 - Tatenda (Hypertension)
+  Updated: PT011 - Chenai (Diabetes)
+  Updated: PT012 - Kudzai (Asthma)
+  Updated: PT013 - Takudzwa (Heart Disease)
+  Updated: PT014 - Mavis (Hypertension)
+  Updated: PT015 - Simba (Diabetes)
+  Appointments: 0 created, 41 already existed
+\nSeed complete!\n
+=================================================================
+                          LOGIN DETAILS                          
+=================================================================
+  Superadmin     : admin / AdminSecure2026!
+  Provider 1     : DR001 / SarahJ2026!
+  Provider Legacy: provider / LegacyProv2026!
+  Provider 2     : dr_hyper / JonesH2026!
+  Provider 3     : dr_diab / ChenD2026!
+  Provider 4     : dr_asthma / NdlovuA2026!
+  Provider 5     : dr_cardio / SmithC2026!\n
+--- UNIQUE PATIENT CREDENTIALS ---
+  PT001  (Judy Moyo      ) : Moyo2026!
+  PT002  (Ivan Choto     ) : Choto2026!
+  PT003  (Heidi Chiware   ) : Chiware2026!
+  PT004  (Grace Mutombwa  ) : Mutombwa2026!
+  PT005  (Frank Mutasa    ) : Mutasa2026!
+  PT006  (Tendai Chirombe  ) : Chirombe2026!
+  PT007  (Simbai Ncube     ) : Ncube2026!
+  PT008  (Rudo Makoni    ) : Makoni2026!
+  PT009  (Blessing Dube      ) : Dube2026!
+  PT010  (Tatenda Mhiripiri ) : Mhiripiri2026!
+  PT011  (Chenai Zulu      ) : Zulu2026!
+  PT012  (Kudzai Banda     ) : Banda2026!
+  PT013  (Takudzwa Phiri     ) : Phiri2026!
+  PT014  (Mavis Chikwanda ) : Chikwanda2026!
+  PT015  (Simba Musiiwa   ) : Musiiwa2026!
+=================================================================\n
+Test data seeded successfully.
+Automated reminders background thread started.
+20 objects imported automatically (use -v 2 for details).
+
+[{"provider_id": "DR001", "patient__patient_id": "PT005", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT013", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT009", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT004", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT008", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT003", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT002", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT015", "status": "PENDING"}, {"provider_id": "DR001", "patient__patient_id": "PT003", "status": "PENDING"}, {"provider_id": "DR001", "patient__patient_id": "PT015", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT001", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT014", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT012", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT011", "status": "PENDING"}, {"provider_id": "DR001", "patient__patient_id": "PT007", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT002", "status": "PENDING"}, {"provider_id": "DR001", "patient__patient_id": "PT011", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT005", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT009", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT003", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT008", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT006", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT013", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT010", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT004", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT006", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT002", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT001", "status": "SCHEDULED"}, {"provider_id": "DR001", "patient__patient_id": "PT001", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT006", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT010", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT003", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT008", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT007", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT009", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT004", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT002", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT011", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT013", "status": "COMPLETED"}, {"provider_id": "DR001", "patient__patient_id": "PT005", "status": "COMPLETED"}]
