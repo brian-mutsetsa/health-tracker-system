@@ -7,12 +7,12 @@ Complete the tiers in order. Every step includes an expected outcome.
 ## Reference: Credentials and System URLs
 
 | Role | Username | Password | Where |
-|---|---|---|---|
-| Super Admin (Django) | `superadmin` | `adminpassword123` | Admin panel (includes patient map) |
-| Provider - Hypertension | `dr_hyper` | `password` | Web dashboard |
-| Provider - Diabetes | `dr_diab` | `password` | Web dashboard |
-| Provider - Asthma | `dr_asthma` | `password` | Web dashboard |
-| Provider - Cardiology | `dr_cardio` | `password` | Web dashboard |
+| :--- | :--- | :--- | :--- |
+| Super Admin (Django) | `admin` | `AdminSecure2026!` | Admin panel (includes patient map) |
+| Provider - Hypertension | `dr_hyper` | `JonesH2026!` | Web dashboard |
+| Provider - Diabetes | `dr_diab` | `ChenD2026!` | Web dashboard |
+| Provider - Asthma | `dr_asthma` | `NdlovuA2026!` | Web dashboard |
+| Provider - Cardiology | `dr_cardio` | `SmithC2026!` | Web dashboard |
 | Patient PT001 | `PT001` | `test123` | Mobile app |
 | Patient PT002 | `PT002` | `test123` | Mobile app |
 | Patient PT003 | `PT003` | `test123` | Mobile app |
@@ -141,7 +141,7 @@ The super admin operates entirely through the Django admin panel at https://heal
 ### 1.1 Django Admin Login
 
 1. Open https://health-tracker-system-production.up.railway.app/admin/ in a browser.
-2. Enter username `superadmin` and password `adminpassword123`. Click **Log In**.
+2. Enter username `admin` and password `AdminSecure2026!`. Click **Log In**.
    - **Expected:** The Django admin home page loads. The left sidebar lists tables including Users, Patients, Appointments, Check-ins, and Notifications.
 
 ### 1.2 View All Provider Accounts
@@ -155,7 +155,7 @@ The super admin operates entirely through the Django admin panel at https://heal
 
 1. On the dr_hyper user form, uncheck the **Active** checkbox and click **Save**.
    - **Expected:** The record saves. The user list shows dr_hyper without a green active indicator.
-2. Open the web dashboard (https://health-tracker-zw.web.app/) in a new tab and attempt to log in as `dr_hyper` / `password`.
+2. Open the web dashboard (https://health-tracker-zw.web.app/) in a new tab and attempt to log in as `dr_hyper` / `JonesH2026!`.
    - **Expected:** Login is rejected with an error message. Access is denied.
 3. Return to the admin panel and re-check **Active** on dr_hyper. Click **Save**.
    - **Expected:** dr_hyper can now log in to the web dashboard again.
@@ -218,7 +218,7 @@ Test with a regular provider account. The patient map is not part of the web das
 
 ### 2.1 Login
 
-1. Open https://health-tracker-zw.web.app/ and log in as `dr_hyper` / `password`.
+1. Open https://health-tracker-zw.web.app/ and log in as `dr_hyper` / `JonesH2026!`.
    - **Expected:** The dashboard loads on the Overview tab. The provider name is shown in the top bar. No garbled characters, emoji, or encoding errors anywhere on the screen.
 
 ### 2.2 Overview Tab
@@ -292,7 +292,7 @@ Test with a regular provider account. The patient map is not part of the web das
 
 ### 2.9 Appointments Tab
 
-> **Demo preparation:** Log in as `dr_hyper` / `password`. If there is no pending appointment for **Ivan (PT002)**, click **Book Appointment**, select Ivan (PT002), pick any future date and time, and enter the reason `"Follow-up: Blood pressure monitoring and medication review"`. Submit — the appointment appears with status Pending.
+> **Demo preparation:** Log in as `dr_hyper` / `JonesH2026!`. If there is no pending appointment for **Ivan (PT002)**, click **Book Appointment**, select Ivan (PT002), pick any future date and time, and enter the reason `"Follow-up: Blood pressure monitoring and medication review"`. Submit — the appointment appears with status Pending.
 
 1. Click **Appointments** in the left sidebar.
    - **Expected:** The Appointments tab opens. Appointment requests appear grouped by status (Pending, Confirmed, Completed). The badge count on the sidebar item matches the number of pending appointments shown.
@@ -396,7 +396,7 @@ This section tests the complete workflow from appointment approval to a complete
 
 This repeats the full appointment-to-visit flow for a second patient with a different condition, confirming the feature works across conditions.
 
-> **Log in as:** `dr_diab` / `password`. If no pending appointment exists for **Heidi (PT003)**, click **Book Appointment**, select Heidi (PT003), pick any future date and time, and enter the reason `"Diabetes review: glucose control and insulin dosage assessment"`.
+> **Log in as:** `dr_diab` / `ChenD2026!`. If no pending appointment exists for **Heidi (PT003)**, click **Book Appointment**, select Heidi (PT003), pick any future date and time, and enter the reason `"Diabetes review: glucose control and insulin dosage assessment"`.
 
 1. Click **Appointments** in the sidebar. Find **Heidi (PT003)** and click **Confirm**.
    - **Expected:** Status changes to Confirmed. A draft clinical visit is automatically created for Heidi.
@@ -438,19 +438,19 @@ Install `Vitalix.apk` on an Android device. Enable "Install from unknown sources
 ### 3.1 Patient Login
 
 1. Open the Vitalix app. The login screen shows a **Patient ID** field, a **Password** field, a **Remember me** checkbox, a **Login** button, and a **Sign Up** button.
-2. Enter Patient ID `PT001` and password `test123`. Tap **Login**.
+2. Enter Patient ID `PT001` and password `Moyo2026!`. Tap **Login**.
    - **Expected:** The home screen loads for patient PT001. The patient's name and condition are displayed. No garbled characters on any part of the home screen.
 
 ### 3.2 Login as a Different Patient
 
 1. Log out and return to the login screen.
-2. Enter Patient ID `PT002` and password `test123`. Tap **Login**.
+2. Enter Patient ID `PT002` and password `Choto2026!`. Tap **Login**.
    - **Expected:** The home screen loads for PT002.
 
 ### 3.2a Remember Me
 
 1. Log out and return to the login screen.
-2. Enter Patient ID `PT001` and password `test123`. Check the **Remember me** checkbox. Tap **Login**.
+2. Enter Patient ID `PT001` and password `Moyo2026!`. Check the **Remember me** checkbox. Tap **Login**.
 3. Close the app completely and reopen it.
    - **Expected:** The app navigates directly to the home screen without showing the login screen. PT001 is still logged in.
 
@@ -554,7 +554,7 @@ This test verifies that the home screen dynamically updates its UI based on the 
 
 1. **(Tier 1)** In the Django admin panel, deactivate `dr_diab` (uncheck Active, save).
    - **Expected:** The admin panel shows the change saved successfully.
-2. **(Tier 2)** Attempt to log in to the web dashboard as `dr_diab` / `password`.
+2. **(Tier 2)** Attempt to log in to the web dashboard as `dr_diab` / `ChenD2026!`.
    - **Expected:** Login is rejected. An error message is displayed. The dashboard does not load.
 3. **(Tier 1)** Re-activate `dr_diab` in the admin panel.
 4. **(Tier 2)** Log in as `dr_diab` again.
@@ -602,10 +602,10 @@ This test verifies that the home screen dynamically updates its UI based on the 
 3. Click the **"Download Weekly Report"** button (to be implemented).
    - **Expected:** A PDF report is generated and downloaded locally containing the analytics summary, risk/condition distributions, and the provider's weekly comments.
 
-### 1.10 Security: Unique Patient Passwords
+### 1.10 Security: Unique Credentials Validation
 
 1. **(Tier 1)** Run `python manage.py seed_data` in the backend terminal.
-   - **Expected:** The terminal outputs a clean table of unique, securely hashed passwords for every patient (e.g., PT001 / Surname2026!).
+   - **Expected:** The terminal outputs a clean table of unique, securely hashed passwords for both providers (e.g. `JonesH2026!`) and every patient (e.g., PT001 / `Moyo2026!`).
 2. **(Tier 3)** Attempt to log in to the mobile app as PT001 using the old `test123` password.
    - **Expected:** Login fails with an "Invalid credentials" error because the system now enforces uniquely hashed passwords.
 3. **(Tier 3)** Log in using the unique password provided in the console output.
