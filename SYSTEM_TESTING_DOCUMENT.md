@@ -579,22 +579,35 @@ This test verifies that the home screen dynamically updates its UI based on the 
 8. **(Tier 2)** Reload the browser and reopen the PT001 patient detail Clinical Visits tab.
    - **Expected:** The completed visit record is still present with all saved values. The tab label has no badge. The PT001 card on the All Patients list no longer shows the "Visit Pending" label or orange border.
 
-### CT-5: Emergency "Call Doctor" Alerts
+### CT-5: Emergency "Call Doctor" Face-to-Face Alert
 
 1. **(Tier 3)** Log in as PT001. Navigate to the Home Screen and tap the "Call Doctor" button (only visible when in RED/CRITICAL risk state, or manually accessible).
    - **Expected:** The mobile app immediately triggers the backend emergency alert endpoint and shows a snackbar "Sending Emergency Alert & Calling Doctor...".
-2. **(Tier 2)** Log in to the web dashboard as `dr_hyper` (PT001's assigned provider).
-   - **Expected:** A high-priority 🚨 EMERGENCY notification appears in the Notifications tab stating that PT001 has triggered a Call Doctor alert and requires immediate contact.
+2. **(Tier 2)** Log in to the web dashboard as `dr_hyper` (PT001's assigned provider) and remain on the Overview tab.
+   - **Expected:** Within 10 seconds, the dashboard's background polling intercepts the emergency alert.
+3. **(Tier 2)** Wait for the dashboard to process the background poll.
+   - **Expected:** A high-priority, non-dismissible **red AlertDialog** instantly pops up on the screen, titled "EMERGENCY ALERT". It explicitly reads that PT001 has triggered an emergency and requires immediate contact. The doctor must click "Acknowledge & Close" to dismiss it, ensuring the emergency is seen face-to-face.
 
-### CT-6: Healthcare Worker Reminders
+### CT-6: Smart Healthcare Worker Manual Reminders
 
 1. **(Tier 2)** Log in to the dashboard as `dr_hyper`. Open PT001's details and click the **"Send Reminder"** bell icon in the top right.
-2. Select "MEDICATION", write a message like "Please remember to take your evening dose of Amlodipine.", and click **Send Reminder**.
-   - **Expected:** The dashboard displays a success snackbar.
-3. **(Tier 3)** Wait for up to 15 seconds on the PT001 mobile app home screen (or navigate around).
+2. Select the **"MEDICATION"** category from the dropdown menu.
+   - **Expected:** The dashboard automatically pre-fills the message text box with: "Please remember to take your medication as prescribed."
+3. Edit the pre-filled message to add context, e.g., "Please remember to take your evening dose of Amlodipine.", and click **Send Reminder**.
+   - **Expected:** The dashboard displays a success snackbar indicating the reminder was dispatched.
+4. **(Tier 3)** Wait for up to 15 seconds on the PT001 mobile app home screen (or navigate around).
    - **Expected:** A local push notification banner appears on the device with the reminder text. The Notifications screen updates with the new reminder.
 
-### CT-7: Provider Comments & Analytics Weekly Report
+### CT-7: Automated Medication Reminder Scheduling (Daemon Thread)
+
+1. **(Tier 1)** Ensure the backend server is running (Railway or local).
+   - **Expected:** The `apps.py` automated daemon thread initializes in the background on startup.
+2. **(Tier 1)** Observe the server logs or wait for the system clock to hit `09:00`, `12:00`, `15:00`, or `18:00` server time.
+   - **Expected:** The daemon automatically dispatches medication reminders to all active patients assigned to the active provider.
+3. **(Tier 2)** Log in to the web dashboard as `dr_hyper` and open the **Notifications** tab.
+   - **Expected:** A new notification titled "System Automaton" appears, confirming that "Automated medication reminders sent for the X:00 cycle." This allows the doctor to verify the automation executed successfully without manual intervention.
+
+### CT-8: Provider Comments & Analytics Weekly Report
 
 1. **(Tier 2)** In the web dashboard, navigate to the **Analytics** tab. Scroll to the bottom and enter notes into the **"Provider Clinical Notes & Observations"** text field.
 2. Navigate to another tab and then back to Analytics.
