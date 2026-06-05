@@ -220,9 +220,9 @@ class Command(BaseCommand):
             username='DR001',
             defaults={'email': 'sarah.johnson@hararehospital.co.zw', 'first_name': 'Sarah', 'last_name': 'Johnson'},
         )
+        dr_user.set_password('SarahJ2026!')
+        dr_user.save()
         if created:
-            dr_user.set_password('provider123')
-            dr_user.save()
             self.stdout.write('  Created User DR001')
 
         Provider.objects.update_or_create(
@@ -239,9 +239,8 @@ class Command(BaseCommand):
             username='provider',
             defaults={'email': 'provider@hararehospital.co.zw', 'first_name': 'Sarah', 'last_name': 'Johnson'},
         )
-        if lc:
-            legacy_user.set_password('provider123')
-            legacy_user.save()
+        legacy_user.set_password('LegacyProv2026!')
+        legacy_user.save()
         Provider.objects.update_or_create(
             provider_id='provider',
             defaults={'user': legacy_user, 'specialty': 'General Practice', 'hospital': 'Harare Central Hospital'},
@@ -249,10 +248,10 @@ class Command(BaseCommand):
 
         # ── Specialist Providers (Required for Mobile App Routing) ────────────
         specialists = [
-            {'id': 'DR002', 'user': 'dr_hyper', 'first': 'Sarah', 'last': 'Jones', 'spec': 'Hypertension'},
-            {'id': 'DR003', 'user': 'dr_diab', 'first': 'Michael', 'last': 'Chen', 'spec': 'Diabetes'},
-            {'id': 'DR004', 'user': 'dr_asthma', 'first': 'Emily', 'last': 'Ndlovu', 'spec': 'Asthma'},
-            {'id': 'DR005', 'user': 'dr_cardio', 'first': 'Robert', 'last': 'Smith', 'spec': 'Cardiovascular'},
+            {'id': 'DR002', 'user': 'dr_hyper', 'first': 'Sarah', 'last': 'Jones', 'spec': 'Hypertension', 'pwd': 'JonesH2026!'},
+            {'id': 'DR003', 'user': 'dr_diab', 'first': 'Michael', 'last': 'Chen', 'spec': 'Diabetes', 'pwd': 'ChenD2026!'},
+            {'id': 'DR004', 'user': 'dr_asthma', 'first': 'Emily', 'last': 'Ndlovu', 'spec': 'Asthma', 'pwd': 'NdlovuA2026!'},
+            {'id': 'DR005', 'user': 'dr_cardio', 'first': 'Robert', 'last': 'Smith', 'spec': 'Cardiovascular', 'pwd': 'SmithC2026!'},
         ]
 
         for sp in specialists:
@@ -260,9 +259,9 @@ class Command(BaseCommand):
                 username=sp['user'],
                 defaults={'email': f"{sp['user']}@hararehospital.co.zw", 'first_name': sp['first'], 'last_name': sp['last']},
             )
+            sp_user.set_password(sp['pwd'])
+            sp_user.save()
             if created:
-                sp_user.set_password('password')
-                sp_user.save()
                 self.stdout.write(f"  Created User {sp['id']}")
 
             Provider.objects.update_or_create(
@@ -275,11 +274,15 @@ class Command(BaseCommand):
             )
 
         # ── Superadmin ────────────────────────────────────────────────────────
-        if not User.objects.filter(username='admin').exists():
-            su = User.objects.create_superuser('admin', 'admin@hararehospital.co.zw', 'password')
-            su.first_name = 'System'
-            su.last_name = 'Admin'
-            su.save()
+        su, created_su = User.objects.get_or_create(
+            username='admin',
+            defaults={'email': 'admin@hararehospital.co.zw', 'first_name': 'System', 'last_name': 'Admin'},
+        )
+        su.set_password('AdminSecure2026!')
+        su.is_superuser = True
+        su.is_staff = True
+        su.save()
+        if created_su:
             self.stdout.write('  Created superuser admin')
 
         # ── Patients ─────────────────────────────────────────────────────────
@@ -393,12 +396,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING('================================================================='))
         self.stdout.write(self.style.WARNING('                          LOGIN DETAILS                          '))
         self.stdout.write(self.style.WARNING('================================================================='))
-        self.stdout.write('  Superadmin     : admin / password')
-        self.stdout.write('  Provider 1     : DR001 / provider123')
-        self.stdout.write('  Provider 2     : dr_hyper / password')
-        self.stdout.write('  Provider 3     : dr_diab / password')
-        self.stdout.write('  Provider 4     : dr_asthma / password')
-        self.stdout.write('  Provider 5     : dr_cardio / password\\n')
+        self.stdout.write('  Superadmin     : admin / AdminSecure2026!')
+        self.stdout.write('  Provider 1     : DR001 / SarahJ2026!')
+        self.stdout.write('  Provider Legacy: provider / LegacyProv2026!')
+        self.stdout.write('  Provider 2     : dr_hyper / JonesH2026!')
+        self.stdout.write('  Provider 3     : dr_diab / ChenD2026!')
+        self.stdout.write('  Provider 4     : dr_asthma / NdlovuA2026!')
+        self.stdout.write('  Provider 5     : dr_cardio / SmithC2026!\\n')
         self.stdout.write(self.style.WARNING('--- UNIQUE PATIENT CREDENTIALS ---'))
         for pdata in PATIENTS:
             pwd = pdata.get('_generated_password', 'test123')
