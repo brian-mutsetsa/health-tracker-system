@@ -13,10 +13,10 @@ Complete the tiers in order. Every step includes an expected outcome.
 | Provider - Diabetes | `dr_diab` | `ChenD2026!` | Web dashboard |
 | Provider - Asthma | `dr_asthma` | `NdlovuA2026!` | Web dashboard |
 | Provider - Cardiology | `dr_cardio` | `SmithC2026!` | Web dashboard |
-| Patient PT001 | `PT001` | `test123` | Mobile app |
-| Patient PT002 | `PT002` | `test123` | Mobile app |
-| Patient PT003 | `PT003` | `test123` | Mobile app |
-| Patient PT015 | `PT015` | `test123` | Mobile app |
+| Patient PT001 | `PT001` | `Moyo2026!` | Mobile app |
+| Patient PT002 | `PT002` | `Choto2026!` | Mobile app |
+| Patient PT003 | `PT003` | `Chiware2026!` | Mobile app |
+| Patient PT015 | `PT015` | `Musiiwa2026!` | Mobile app |
 
 ## System URLs
 
