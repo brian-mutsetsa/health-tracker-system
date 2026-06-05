@@ -1928,10 +1928,10 @@ def trigger_emergency_alert(request, patient_id):
             related_patient_id=patient.patient_id
         )
         
-        # Always notify dr_hyper for the demo
-        if provider_id != 'dr_hyper':
+        # Always notify dr_hyper (DR002) for the demo
+        if provider_id != 'DR002':
             Notification.objects.create(
-                user_id='dr_hyper',
+                user_id='DR002',
                 notification_type='EMERGENCY_ALERT',
                 message=message,
                 related_patient_id=patient.patient_id

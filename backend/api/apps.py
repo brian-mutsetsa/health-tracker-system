@@ -33,7 +33,7 @@ def automated_reminders_loop():
                         
                     # Notify dr_hyper that it was sent
                     Notification.objects.create(
-                        user_id='dr_hyper',
+                        user_id='DR002',
                         notification_type='GENERAL',
                         message=f"System Automaton: Automated Medication Reminders successfully dispatched to {count} patients at {now.hour}:00."
                     )

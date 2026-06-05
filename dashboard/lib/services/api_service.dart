@@ -487,9 +487,8 @@ class DashboardApiService {
 
   Future<List<Appointment>> getAppointments() async {
     try {
-      final providerId = currentProviderId ?? '';
       final response = await http.get(
-        Uri.parse('$baseUrl/appointments/?provider_id=$providerId'),
+        Uri.parse('$baseUrl/appointments/'),
         headers: {'Content-Type': 'application/json'},
       );
 
