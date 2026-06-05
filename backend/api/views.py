@@ -1634,7 +1634,20 @@ def list_appointments(request):
     if patient_id:
         queryset = queryset.filter(patient__patient_id=patient_id)
     if provider_id:
-        queryset = queryset.filter(provider_id=provider_id)
+        from django.db.models import Q
+        try:
+            provider = Provider.objects.get(provider_id=provider_id)
+            if provider.specialty and 'General Practice' not in provider.specialty:
+                import re
+                specialties = [s.strip() for s in re.split(r'[&,]', provider.specialty) if s.strip()]
+                query = Q(provider_id=provider_id)
+                for sp in specialties:
+                    query |= Q(patient__condition__icontains=sp)
+                queryset = queryset.filter(query)
+            else:
+                queryset = queryset.filter(provider_id=provider_id)
+        except Provider.DoesNotExist:
+            queryset = queryset.filter(provider_id=provider_id)
     if appt_status:
         queryset = queryset.filter(status=appt_status)
     if date_from:
