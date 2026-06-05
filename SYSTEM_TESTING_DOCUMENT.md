@@ -599,8 +599,12 @@ This test verifies that the home screen dynamically updates its UI based on the 
 1. **(Tier 2)** In the web dashboard, navigate to the **Analytics** tab. Scroll to the bottom and enter notes into the **"Provider Clinical Notes & Observations"** text field.
 2. Navigate to another tab and then back to Analytics.
    - **Expected:** The notes persist locally via SharedPreferences.
-3. Click the **"Download Weekly Report"** button (to be implemented).
+3. Click the **"Download Weekly Report"** button in the Analytics tab.
    - **Expected:** A PDF report is generated and downloaded locally containing the analytics summary, risk/condition distributions, and the provider's weekly comments.
+4. **(Automated Download Test)** To verify the automated Friday download feature:
+   - Temporarily adjust your computer's system time to a Friday after 5:00 PM.
+   - Refresh the dashboard.
+   - **Expected:** The system detects it is the end of the week and automatically triggers the PDF report download without requiring any button clicks.
 
 ### 1.10 Security: Unique Credentials Validation
 
