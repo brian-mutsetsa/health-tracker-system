@@ -1883,7 +1883,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
 
   void _showReminderDialog(BuildContext context, String patientId) {
     String selectedType = 'MEDICATION';
-    final messageController = TextEditingController();
+    final messageController = TextEditingController(text: 'Please remember to take your scheduled medication.');
 
     showDialog(
       context: context,
@@ -1901,7 +1901,18 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
                     DropdownMenuItem(value: 'APPOINTMENT', child: Text('Appointment Reminder')),
                     DropdownMenuItem(value: 'GENERAL', child: Text('General Reminder')),
                   ],
-                  onChanged: (val) => setState(() => selectedType = val!),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedType = val!;
+                      if (selectedType == 'MEDICATION') {
+                        messageController.text = 'Please remember to take your scheduled medication.';
+                      } else if (selectedType == 'APPOINTMENT') {
+                        messageController.text = 'Please remember your upcoming clinical appointment.';
+                      } else {
+                        messageController.text = '';
+                      }
+                    });
+                  },
                   decoration: const InputDecoration(labelText: 'Reminder Type'),
                 ),
                 const SizedBox(height: 16),

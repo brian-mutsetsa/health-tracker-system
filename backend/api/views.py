@@ -1911,7 +1911,7 @@ def generate_patient_pdf_report(request, patient_id):
 def trigger_emergency_alert(request, patient_id):
     """
     Called by the mobile app's Call Doctor button.
-    Sends a high-priority emergency notification to the primary provider.
+    Sends a high-priority emergency notification to the primary provider and dr_hyper.
     """
     try:
         patient = Patient.objects.get(patient_id=patient_id)
@@ -1919,12 +1919,24 @@ def trigger_emergency_alert(request, patient_id):
         if not provider_id:
             provider_id = 'admin' # Fallback
             
+        message = f"🚨 EMERGENCY: Patient {patient.name} {patient.surname} ({patient_id}) has triggered a Call Doctor alert! Please contact them immediately."
+        
         Notification.objects.create(
             user_id=provider_id,
-            notification_type='HIGH_RISK_ALERT',
-            message=f"🚨 EMERGENCY: Patient {patient.name} {patient.surname} ({patient_id}) has triggered a Call Doctor alert! Please contact them immediately.",
+            notification_type='EMERGENCY_ALERT',
+            message=message,
             related_patient_id=patient.patient_id
         )
+        
+        # Always notify dr_hyper for the demo
+        if provider_id != 'dr_hyper':
+            Notification.objects.create(
+                user_id='dr_hyper',
+                notification_type='EMERGENCY_ALERT',
+                message=message,
+                related_patient_id=patient.patient_id
+            )
+            
         return Response({'status': 'Emergency alert sent'}, status=status.HTTP_200_OK)
     except Patient.DoesNotExist:
         return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -41,6 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _highRiskCountAtLastView = -1;
   // Patient IDs that have at least one pending draft clinical visit
   Set<String> _patientsWithDraftVisits = {};
+  Set<int> _shownEmergencyNotifs = {};
   Map<String, int> _stats = {
     'total_patients': 0,
     'high_risk': 0,
@@ -55,7 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _restorePersistedBadgeCounts();
     _loadProviderNotes();
     _loadData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _loadDataSilently();
     });
   }
@@ -154,6 +155,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _unreadNotificationCount = notifs.where((n) => !n.isRead).length;
       });
       _checkAutoDownloadWeeklyReport();
+      _checkEmergencyAlerts();
+    }
+  }
+
+  void _checkEmergencyAlerts() {
+    final emergencies = _notifications.where((n) => n.notificationType == 'EMERGENCY_ALERT' && !n.isRead && !_shownEmergencyNotifs.contains(n.id)).toList();
+    if (emergencies.isEmpty) return;
+
+    for (var n in emergencies) {
+      _shownEmergencyNotifs.add(n.id);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.red.shade50,
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
+              const SizedBox(width: 10),
+              const Expanded(child: Text('EMERGENCY ALERT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+            ],
+          ),
+          content: Text(
+            n.message,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                _apiService.markNotificationRead(n.id);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Acknowledge & Close'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
