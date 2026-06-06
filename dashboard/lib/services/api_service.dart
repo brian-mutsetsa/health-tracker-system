@@ -120,6 +120,9 @@ class ClinicalVisit {
   final double? weightKg;
   final double? temperature;
   final double? oxygenSaturation;
+  final double? hba1c;
+  final double? egfr;
+  final int? respiratoryRate;
   final String comments;
   final String medicationIntake;
   final String changesMade;
@@ -140,6 +143,9 @@ class ClinicalVisit {
     this.weightKg,
     this.temperature,
     this.oxygenSaturation,
+    this.hba1c,
+    this.egfr,
+    this.respiratoryRate,
     this.comments = '',
     this.medicationIntake = '',
     this.changesMade = '',
@@ -164,6 +170,9 @@ class ClinicalVisit {
       weightKg: (json['weight_kg'] as num?)?.toDouble(),
       temperature: (json['temperature'] as num?)?.toDouble(),
       oxygenSaturation: (json['oxygen_saturation'] as num?)?.toDouble(),
+      hba1c: (json['hba1c'] as num?)?.toDouble(),
+      egfr: (json['egfr'] as num?)?.toDouble(),
+      respiratoryRate: json['respiratory_rate'],
       comments: json['comments'] ?? '',
       medicationIntake: json['medication_intake'] ?? '',
       changesMade: json['changes_made'] ?? '',

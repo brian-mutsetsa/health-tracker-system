@@ -232,10 +232,15 @@ class ClinicalVisit(models.Model):
     systolic_bp = models.IntegerField(null=True, blank=True)
     diastolic_bp = models.IntegerField(null=True, blank=True)
     heart_rate = models.IntegerField(null=True, blank=True)
-    blood_glucose = models.IntegerField(null=True, blank=True, help_text="mg/dL")
+    blood_glucose = models.IntegerField(null=True, blank=True, help_text="mg/dL (generic/baseline)")
     weight_kg = models.FloatField(null=True, blank=True)
     temperature = models.FloatField(null=True, blank=True, help_text="Celsius")
     oxygen_saturation = models.FloatField(null=True, blank=True, help_text="SpO2 %")
+    
+    # Condition-specific vitals
+    hba1c = models.FloatField(null=True, blank=True, help_text="HbA1c % (Diabetes)")
+    egfr = models.FloatField(null=True, blank=True, help_text="eGFR ml/min/1.73m^2 (Diabetes)")
+    respiratory_rate = models.IntegerField(null=True, blank=True, help_text="bpm (Cardiovascular)")
 
     # Narrative fields
     comments = models.TextField(blank=True)

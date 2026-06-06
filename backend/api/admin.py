@@ -184,7 +184,7 @@ class NotificationAdmin(admin.ModelAdmin):
 @admin.register(ClinicalVisit)
 class ClinicalVisitAdmin(admin.ModelAdmin):
     list_display = ['patient', 'hcw_id', 'visit_date', 'systolic_bp', 'diastolic_bp',
-                    'heart_rate', 'blood_glucose', 'created_at']
+                    'heart_rate', 'blood_glucose', 'hba1c', 'egfr', 'respiratory_rate', 'created_at']
     list_filter = ['visit_date', 'hcw_id']
     search_fields = ['patient__patient_id', 'patient__name', 'hcw_id']
     readonly_fields = ['created_at']

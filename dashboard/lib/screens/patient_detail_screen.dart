@@ -1008,13 +1008,21 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
 
   Widget _visitCard(ClinicalVisit v) {
     final vitals = <String>[];
+    final cond = widget.patient.condition.toLowerCase();
+
+    // Common vitals
     if (v.systolicBp != null)
       vitals.add('BP: ${v.systolicBp}/${v.diastolicBp} mmHg');
     if (v.heartRate != null) vitals.add('HR: ${v.heartRate} bpm');
-    if (v.bloodGlucose != null) vitals.add('Glucose: ${v.bloodGlucose} mg/dL');
     if (v.weightKg != null) vitals.add('Weight: ${v.weightKg} kg');
-    if (v.temperature != null) vitals.add('Temp: ${v.temperature} °C');
-    if (v.oxygenSaturation != null) vitals.add('SpO2: ${v.oxygenSaturation}%');
+
+    if (cond.contains('diab')) {
+      if (v.hba1c != null) vitals.add('HbA1c: ${v.hba1c}%');
+      if (v.egfr != null) vitals.add('eGFR: ${v.egfr} ml/min/1.73m²');
+    } else if (cond.contains('cardio') || cond.contains('heart')) {
+      if (v.oxygenSaturation != null) vitals.add('SpO2: ${v.oxygenSaturation}%');
+      if (v.respiratoryRate != null) vitals.add('Resp Rate: ${v.respiratoryRate} bpm');
+    }
 
     return Card(
       elevation: 0,
@@ -1162,6 +1170,9 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
     final spo2C = TextEditingController(
       text: v.oxygenSaturation?.toString() ?? '',
     );
+    final hba1cC = TextEditingController(text: v.hba1c?.toString() ?? '');
+    final egfrC = TextEditingController(text: v.egfr?.toString() ?? '');
+    final respC = TextEditingController(text: v.respiratoryRate?.toString() ?? '');
     final medC = TextEditingController(text: v.medicationIntake);
     final commentC = TextEditingController(text: v.comments);
     final changesC = TextEditingController(text: v.changesMade);
@@ -1355,72 +1366,62 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _visitField(
-                                  sbpC,
-                                  'Systolic BP',
-                                  TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _visitField(
-                                  dbpC,
-                                  'Diastolic BP',
-                                  TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _visitField(
-                                  hrC,
-                                  'Heart Rate (bpm)',
-                                  TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _visitField(
-                                  glucC,
-                                  'Glucose (mg/dL)',
-                                  TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _visitField(
-                                  wtC,
-                                  'Weight (kg)',
-                                  TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _visitField(
-                                  tempC,
-                                  'Temp (°C)',
-                                  TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _visitField(
-                                  spo2C,
-                                  'SpO2 (%)',
-                                  TextInputType.number,
-                                ),
-                              ),
-                            ],
+                          // Condition-specific rendering
+                          Builder(
+                            builder: (context) {
+                              final cond = p.condition.toLowerCase();
+                              List<Widget> rows = [];
+                              
+                              // Common for all: BP
+                              rows.add(
+                                Row(
+                                  children: [
+                                    Expanded(child: _visitField(sbpC, 'Systolic BP', TextInputType.number)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: _visitField(dbpC, 'Diastolic BP', TextInputType.number)),
+                                  ],
+                                )
+                              );
+                              rows.add(const SizedBox(height: 8));
+                              
+                              // Common for all: HR and Weight
+                              rows.add(
+                                Row(
+                                  children: [
+                                    Expanded(child: _visitField(hrC, 'Heart Rate (bpm)', TextInputType.number)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: _visitField(wtC, 'Weight (kg)', TextInputType.number)),
+                                  ],
+                                )
+                              );
+                              
+                              if (cond.contains('diab')) {
+                                rows.add(const SizedBox(height: 8));
+                                rows.add(
+                                  Row(
+                                    children: [
+                                      Expanded(child: _visitField(hba1cC, 'HbA1c (%)', TextInputType.number)),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: _visitField(egfrC, 'eGFR (ml/min/1.73m²)', TextInputType.number)),
+                                    ],
+                                  )
+                                );
+                              } else if (cond.contains('cardio') || cond.contains('heart')) {
+                                rows.add(const SizedBox(height: 8));
+                                rows.add(
+                                  Row(
+                                    children: [
+                                      Expanded(child: _visitField(spo2C, 'SpO2 (%)', TextInputType.number)),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: _visitField(respC, 'Resp Rate (bpm)', TextInputType.number)),
+                                    ],
+                                  )
+                                );
+                              }
+                              
+                              return Column(children: rows);
+                            }
                           ),
                           const SizedBox(height: 14),
                           const Text(
@@ -1538,6 +1539,24 @@ class _PatientDetailScreenState extends State<PatientDetailScreen>
                                   'oxygen_saturation',
                                   spo2C.text,
                                   double.tryParse,
+                                );
+                                _addIfNotEmpty(
+                                  data,
+                                  'hba1c',
+                                  hba1cC.text,
+                                  double.tryParse,
+                                );
+                                _addIfNotEmpty(
+                                  data,
+                                  'egfr',
+                                  egfrC.text,
+                                  double.tryParse,
+                                );
+                                _addIfNotEmpty(
+                                  data,
+                                  'respiratory_rate',
+                                  respC.text,
+                                  int.tryParse,
                                 );
 
                                 final err = await _apiService

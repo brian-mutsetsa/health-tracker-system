@@ -240,6 +240,7 @@ class ClinicalVisitSerializer(serializers.ModelSerializer):
             'previous_data_snapshot',
             'systolic_bp', 'diastolic_bp', 'heart_rate', 'blood_glucose',
             'weight_kg', 'temperature', 'oxygen_saturation',
+            'hba1c', 'egfr', 'respiratory_rate',
             'comments', 'medication_intake', 'changes_made', 'created_at',
         ]
         read_only_fields = ['id', 'created_at', 'appointment_id', 'appointment_reason', 'previous_data_snapshot']
